@@ -1,4 +1,4 @@
-package org.jlab.calib.services;
+package org.jlab.calib.services; 
 
 import java.awt.BorderLayout;
 import java.util.ArrayList;
@@ -38,53 +38,22 @@ import org.jlab.utils.groups.IndexedList;
 
 public class TofVeffEventListener extends TOFCalibrationEngine {
 
-	public final static int[]		NUM_PADDLES = {23,62,5};
-	public final static String[]	LAYER_NAME = {"FTOF1A","FTOF1B","FTOF2"};
-
-	CalibrationConstants calib;
-	IndexedList<DataGroup> dataGroups = new IndexedList<DataGroup>(3);
-
 	public TofVeffEventListener() {
 
 		calib = new CalibrationConstants(3,
 				"veff_left/F:veff_right/F:veff_left_err/F:veff_right_err/F");
 		calib.setName("/calibration/ftof/effective_velocity");
-
+		
+		// assign constraints to all paddles
+		// effective velocity to be within 10% of 16.0 cm/ns
+		calib.addConstraint(3, 16.0*0.9,
+							   16.0*1.1);
+		calib.addConstraint(4, 16.0*0.9,
+							   16.0*1.1);
+		
 	}
 	
 	@Override
-	public void dataEventAction(DataEvent event) {
-
-		if (event.getType()==DataEventType.EVENT_START) {
-			resetEventListener();
-			processEvent(event);
-		}
-		else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
-			processEvent(event);
-		}
-		else if (event.getType()==DataEventType.EVENT_STOP) {
-			analyze();
-		} 
-
-	}
-
-	public void timerUpdate() {
-		analyze();
-	}
-
-	private double halfLength(int paddle) {
-		return 85.0;
-		// *** hard coded for paddle 10 at the moment - read from geometry???
-	}
-	
-	public double lowY(int paddle) {
-		return -halfLength(paddle);
-	}
-	
-	public double highY(int paddle) {
-		return halfLength(paddle);
-	}	
-	
 	public void resetEventListener() {
 
 		// LC perform init processing
@@ -94,11 +63,14 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 
 					// create all the histograms
+					int numBins = (int) (paddleLength(sector,layer,paddle)*0.6);  // 1 bin per 2cm + 10% either side
+					double min = paddleLength(sector,layer,paddle) * -0.6;
+					double max = paddleLength(sector,layer,paddle) * 0.6;
+					
 					H2F hist = 
 					new H2F("veff",
 							"veff",
-							100, lowY(paddle), highY(paddle), 
-							//100, -210.0, 210.0,
+							numBins, min, max, 
 							200, -10.0, 10.0);
 					
 					hist.setName("veff");
@@ -108,12 +80,15 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 					hist.setXTitle("Position (cm)");
 					hist.setYTitle("Half Time Diff (ns)");
 
-					// create all the functions
-					F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", lowY(paddle), highY(paddle));
+					// create all the functions and graphs
+					F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
+					GraphErrors veffGraph = new GraphErrors();
+					veffGraph.setName("veffGraph");
 					
-					DataGroup dg = new DataGroup(1,1);
+					DataGroup dg = new DataGroup(2,1);
 					dg.addDataSet(hist, 0);
-					dg.addDataSet(veffFunc, 0);
+					dg.addDataSet(veffGraph, 1);
+					dg.addDataSet(veffFunc, 1);
 					dataGroups.add(dg, sector,layer,paddle);
 					
 				}
@@ -121,6 +96,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		}
 	}
 
+	@Override
 	public void processEvent(DataEvent event) {
 
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
@@ -135,25 +111,15 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		}
 	}
 
-	public void analyze() {
-		for (int sector = 1; sector <= 6; sector++) {
-			for (int layer = 1; layer <= 3; layer++) {
-				int layer_index = layer - 1;
-				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
-					fit(sector, layer, paddle, 0.0, 0.0);
-				}
-			}
-		}
-		save();
-	}
-
+	@Override
 	public void fit(int sector, int layer, int paddle,
 			double minRange, double maxRange) {
 		
 		H2F veffHist = dataGroups.getItem(sector,layer,paddle).getH2F("veff");
 		
 		// fit function to the graph of means
-		GraphErrors meanGraph = veffHist.getProfileX();
+		GraphErrors veffGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("veffGraph");
+		veffGraph.copy(veffHist.getProfileX());
 
 		// find the range for the fit
 		double lowLimit;
@@ -166,39 +132,9 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 			highLimit = maxRange;
 		}
 		else {
-
-			int lowIndex = 20;
-			int highIndex = 80;
-			int graphMaxIndex = meanGraph.getDataSize(0)-1;
 			
-			// get the position with max entries
-			int maxCounts = 0;
-			int centreIndex = meanGraph.getDataSize(0)/2;
-			int maxIndex = 0;
-			for (int i=3; i<meanGraph.getDataSize(0)-3; i++) {
-				if (veffHist.getSlicesX().get(i).getEntries() > maxCounts) {
-					maxIndex = i;
-					maxCounts = veffHist.getSlicesX().get(i).getEntries(); 
-				}
-			}
-			
-			for (int pos=centreIndex; pos < graphMaxIndex; pos++) {
-				
-			    if(veffHist.getSlicesX().get(pos).getEntries() < 0.2*maxCounts){
-				      highIndex = pos;
-				      break;
-			    }
-			}
-			
-			for (int pos=centreIndex; pos>=1; pos--) {
-			    if(veffHist.getSlicesX().get(pos).getEntries() < 0.2*maxCounts){
-				      lowIndex = pos;
-				      break;
-			    }
-			}
-			
-			lowLimit = meanGraph.getDataX(lowIndex);
-			highLimit = meanGraph.getDataX(highIndex);
+			lowLimit = paddleLength(sector,layer,paddle) * -0.4;
+			highLimit = paddleLength(sector,layer,paddle) * 0.4;
 		}
 
 		F1D veffFunc = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc");
@@ -209,7 +145,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		veffFunc.setParLimits(0, -5.0, 5.0);
 		veffFunc.setParLimits(1, 1.0/20.0, 1.0/12.0);
 		
-		DataFitter.fit(veffFunc, meanGraph, "RNQ");
+		DataFitter.fit(veffFunc, veffGraph, "RNQ");
 		
 	}
 
@@ -250,6 +186,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		return veffError;
 	}	
 
+	@Override
 	public void save() {
 
 		for (int sector = 1; sector <= 6; sector++) {

@@ -219,7 +219,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 				int width  = widths[layer-1];
 				int length = lengths[layer-1];
 
-				for(int paddle = 1; paddle < npaddles[layer-1]; paddle++){
+				for(int paddle = 1; paddle <= npaddles[layer-1]; paddle++){
 
 					DetectorShape2D shape = new DetectorShape2D();
 					shape.getDescriptor().setType(DetectorType.FTOF);

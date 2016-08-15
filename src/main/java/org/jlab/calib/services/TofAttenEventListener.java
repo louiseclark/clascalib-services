@@ -64,6 +64,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 
 	}
 
+	@Override
 	public void resetEventListener() {
 
 		// LC perform init processing
@@ -102,26 +103,6 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 			}
 		}
 	}
-	
-    public double paddleLength(int sector, int layer, int paddle) {
-    	double len = 0.0;
-    	
-    	if (layer==1 && paddle<=5) {
-    		len = (15.85*paddle) + 16.43;
-    	}
-    	else if (layer==1 && paddle>5) {
-    		len = (15.85*paddle) + 11.45;
-    	}
-    	else if (layer==2) {
-    		len = (6.4*paddle) + 10.84;
-    	}
-    	else if (layer==3) {
-    		len = (13.73*paddle) + 357.55;
-    	}
-    	
-    	return len;
-    	
-    }
 
     @Override
 	public void processEvent(DataEvent event) {
@@ -138,6 +119,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 		}
 	}
 
+    @Override
 	public void fit(int sector, int layer, int paddle, double minRange,
 			double maxRange) {
 
@@ -297,6 +279,41 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 		
 		return (attlen >= (0.9*expAttlen)) && (attlen <= (1.1*expAttlen));
 
-
 	}
+
+	@Override
+	public DataGroup getSummary(int sector, int layer) {
+				
+		int layer_index = layer-1;
+		double[] paddleNumbers = new double[NUM_PADDLES[layer_index]];
+		double[] paddleUncs = new double[NUM_PADDLES[layer_index]];
+		double[] Attlens = new double[NUM_PADDLES[layer_index]];
+		double[] AttlenUncs = new double[NUM_PADDLES[layer_index]];
+
+		for (int p = 1; p <= NUM_PADDLES[layer_index]; p++) {
+
+			paddleNumbers[p - 1] = (double) p;
+			paddleUncs[p - 1] = 0.0;
+			Attlens[p - 1] = getAttlen(sector, layer, p);
+			AttlenUncs[p - 1] = getAttlenError(sector, layer, p);
+		}
+
+		GraphErrors attSumm = new GraphErrors("attSumm", paddleNumbers,
+				Attlens, paddleUncs, AttlenUncs);
+		
+//		summary.setTitle("Attenuation Length: "
+//				+ LAYER_NAME[paddle - 1] + " Sector "
+//				+ sector);
+//		summary.setXTitle("Paddle Number");
+//		summary.setYTitle("Attenuation Length (cm)");
+//		summary.setMarkerSize(5);
+//		summary.setMarkerStyle(2);
+		
+		DataGroup dg = new DataGroup(1,1);
+		dg.addDataSet(attSumm, 0);
+		return dg;
+		
+	}
+
+
 }

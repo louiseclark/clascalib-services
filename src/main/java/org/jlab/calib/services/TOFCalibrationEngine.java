@@ -101,5 +101,25 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		DataGroup dg = null;
 		return dg;
 	}
+	
+    public double paddleLength(int sector, int layer, int paddle) {
+    	double len = 0.0;
+    	
+    	if (layer==1 && paddle<=5) {
+    		len = (15.85*paddle) + 16.43;
+    	}
+    	else if (layer==1 && paddle>5) {
+    		len = (15.85*paddle) + 11.45;
+    	}
+    	else if (layer==2) {
+    		len = (6.4*paddle) + 10.84;
+    	}
+    	else if (layer==3) {
+    		len = (13.73*paddle) + 357.55;
+    	}
+    	
+    	return len;
+    	
+    }	
 		
 }

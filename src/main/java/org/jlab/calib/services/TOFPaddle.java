@@ -18,8 +18,8 @@ public class TOFPaddle {
     public int ADCR = 0;
     public int TDCL = 0;
     public int TDCR = 0;
-    public float XPOS = 0; 
-    public float YPOS = 0; 
+    public double XPOS = 0; 
+    public double YPOS = 0; 
     public double RF_TIME = 0.0;
     public double TOF_TIME = 0.0;
     public double FLIGHT_TIME = 0.0;
@@ -46,7 +46,7 @@ public class TOFPaddle {
 
     public TOFPaddle(int sector, int layer, int paddle,
             int adcL, int adcR, int tdcL, int tdcR,
-            float xpos, float ypos){
+            double xpos, double ypos){
         this.desc.setSectorLayerComponent(sector, layer, paddle);
         this.ADCL = adcL;
         this.ADCR = adcR;
@@ -57,7 +57,7 @@ public class TOFPaddle {
     }
     
     
-    public final void setData(int adcL, int adcR, int tdcL, int tdcR, float xpos, float ypos){
+    public final void setData(int adcL, int adcR, int tdcL, int tdcR, double xpos, double ypos){
         this.ADCL = adcL;
         this.ADCR = adcR;
         this.TDCL = tdcL;
