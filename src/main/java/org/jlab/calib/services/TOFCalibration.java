@@ -181,12 +181,14 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			
 			engine.customFit(selectedSector, selectedLayer, selectedPaddle);
 			updateDetectorView(false);
+			this.updateCanvas();
 		}
 	}
 
     public void dataEventAction(DataEvent event) {
     	if (event.getType()==DataEventType.EVENT_STOP) {
     		this.updateDetectorView(false);
+    		this.updateCanvas();
 		} 
 	}
     
@@ -195,8 +197,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	}
 	
 	public void timerUpdate() {
-		System.out.println("timerUpdate received in GUI");
 		this.updateDetectorView(false);
+		this.updateCanvas();
 	}
 
 	public final void updateDetectorView(boolean isNew){
@@ -312,6 +314,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         if (tabTitle != selectedDir) {
         	selectedDir = tabTitle;
         	this.updateDetectorView(false);
+        	this.updateCanvas();
         }
 		
 	}

@@ -28,26 +28,21 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	
 	@Override
 	public void dataEventAction(DataEvent event) {
-		//System.out.println("HV dataEventAction "+event.getType());
 
 		if (event.getType()==DataEventType.EVENT_START) {
-			System.out.println("Event start received in HV");
 			resetEventListener();
 			processEvent(event);
 		}
 		else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
-			//System.out.println("Event accum received in HV");
 			processEvent(event);
 		}
 		else if (event.getType()==DataEventType.EVENT_STOP) {
-			System.out.println("Event stop received in HV");
 			analyze();
 		} 
 	}
 
 	@Override
 	public void timerUpdate() {
-		System.out.println("timerUpdate received in HV");
 		analyze();
 	}
 

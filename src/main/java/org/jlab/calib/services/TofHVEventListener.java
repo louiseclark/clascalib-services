@@ -58,7 +58,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 								   EXPECTED_MIP_CHANNEL[i]+ALLOWED_MIP_DIFF, 1, layer);
 			// calib.addConstraint(calibration column, min value, max value,
 			// col to check if constraint should apply, value of col if constraint should be applied);
-			// (omit last two if applying to all rows
+			// (omit last two if applying to all rows)
 			calib.addConstraint(4, EXPECTED_MIP_CHANNEL[i]-ALLOWED_MIP_DIFF, 
 					   EXPECTED_MIP_CHANNEL[i]+ALLOWED_MIP_DIFF, 1, layer);
 		}
@@ -107,7 +107,6 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	public void processEvent(DataEvent event) {
 
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
-		//System.out.println("Process paddle list "+paddleList.size());
 		
 		for (TOFPaddle paddle : paddleList) {
 			
@@ -115,11 +114,10 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
 
-			//System.out.println("Filling hist geomean = "+paddle.geometricMean());
 			if (paddle.isValidGeoMean()) {
 				dataGroups.getItem(sector,layer,component).getH1F("geomean").fill(paddle.geometricMean());
 			}
-			// fill Log Ratio
+
 			if (paddle.isValidLogRatio()) {
 				dataGroups.getItem(sector,layer,component).getH1F("logratio").fill(paddle.logRatio());
 			}
@@ -159,7 +157,6 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		double endChannelForFit = 0.0;
 		if (minRange==0.0) {
 			// default value
-			//startChannelForFit = maxChannel * 0.1;
 			startChannelForFit = EXPECTED_MIP_CHANNEL[layer-1] * 0.75;
 		}
 		else {
@@ -320,10 +317,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			fitGeoMean(sector, layer, paddle, minRange, maxRange);
 
 			// update the table
-			calib.setDoubleValue(getMipChannel(sector,layer,paddle),
-					"mipa_left", sector, layer, paddle);
-			calib.setDoubleValue(getMipChannel(sector,layer,paddle),
-					"mipa_right", sector, layer, paddle);
+			saveRow(sector,layer,paddle);
 			calib.fireTableDataChanged();
 			
 		}	 
@@ -354,45 +348,89 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	
 	public double getMipChannelUnc(int sector, int layer, int paddle) {
 
-		if (dataGroups.hasItem(sector, layer, paddle)) {
+		double mipChannelUnc = 0.0;
+		double overrideVal = 0.0;
 
-			double mipChannelUnc = 0.0;
-			F1D f = dataGroups.getItem(sector,layer,paddle).getF1D("gmFunc");
-			mipChannelUnc = f.parameter(1).error();
-			if (Double.isInfinite(mipChannelUnc)){
-				mipChannelUnc = 9999.0;
-			}
+		// has the value been overridden?
+		if (constants.hasItem(sector,layer,paddle)) {
+			overrideVal = constants.getItem(sector, layer, paddle)[GEOMEAN_UNC_OVERRIDE];
+		}
 
-			return mipChannelUnc;
+		if (overrideVal != 0.0) {
+			mipChannelUnc = overrideVal;
 		}
 		else {
-			return 0.0;
+			if (dataGroups.hasItem(sector, layer, paddle)) {
+				F1D f = dataGroups.getItem(sector,layer,paddle).getF1D("gmFunc");
+				mipChannelUnc = f.parameter(1).error();
+				if (Double.isInfinite(mipChannelUnc)){
+					mipChannelUnc = 9999.0;
+				}
+			}
+			else {
+				mipChannelUnc = 0.0;
+			}
 		}
+		return mipChannelUnc;
 
 	}	
 	
 	public double getLogRatio(int sector, int layer, int paddle) {
+	
+		double logRatio = 0.0;
+		// has the value been overridden?
+		double overrideVal = constants.getItem(sector, layer, paddle)[LOGRATIO_OVERRIDE];
 		
-		if (constants.hasItem(sector, layer, paddle)) {
+		if (overrideVal != 0.0) {
+			logRatio = overrideVal;
+		}
+		else if (constants.hasItem(sector, layer, paddle)) {
 			
-			return constants.getItem(sector, layer, paddle)[LR_CENTROID];
+			logRatio = constants.getItem(sector, layer, paddle)[LR_CENTROID];
 		}
 		else {
-			return 0.0;
+			logRatio = 0.0;
 		}
-
+				
+		return logRatio;
+		
 	}
 	
 	public double getLogRatioUnc(int sector, int layer, int paddle) {
 		
-		if (constants.hasItem(sector, layer, paddle)) {
+		double logRatioUnc= 0.0;
+		// has the value been overridden?
+		double overrideVal = constants.getItem(sector, layer, paddle)[LOGRATIO_UNC_OVERRIDE];
+		
+		if (overrideVal != 0.0) {
+			logRatioUnc = overrideVal;
+		}
+		else if (constants.hasItem(sector, layer, paddle)) {
 			
-			return constants.getItem(sector, layer, paddle)[LR_ERROR];
+			logRatioUnc = constants.getItem(sector, layer, paddle)[LR_ERROR];
 		}
 		else {
-			return 0.0;
+			logRatioUnc = 0.0;
 		}
+				
+		return logRatioUnc;
 	}	
+	
+	private void saveRow(int sector, int layer, int paddle) {
+		calib.setDoubleValue(getMipChannel(sector,layer,paddle),
+				"mipa_left", sector, layer, paddle);
+		calib.setDoubleValue(getMipChannel(sector,layer,paddle),
+				"mipa_right", sector, layer, paddle);
+		calib.setDoubleValue(getMipChannelUnc(sector,layer,paddle),
+				"mipa_left_err", sector, layer, paddle);
+		calib.setDoubleValue(getMipChannelUnc(sector,layer,paddle),
+				"mipa_right_err", sector, layer, paddle);
+		calib.setDoubleValue(getLogRatio(sector,layer,paddle),
+				"logratio", sector, layer, paddle);
+		calib.setDoubleValue(getLogRatioUnc(sector,layer,paddle),
+				"logratio_err", sector, layer, paddle);
+		
+	}
 
 	@Override
 	public void save() {
@@ -402,18 +440,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 				int layer_index = layer - 1;
 				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 					calib.addEntry(sector, layer, paddle);
-					calib.setDoubleValue(getMipChannel(sector,layer,paddle),
-							"mipa_left", sector, layer, paddle);
-					calib.setDoubleValue(getMipChannel(sector,layer,paddle),
-							"mipa_right", sector, layer, paddle);
-					calib.setDoubleValue(getMipChannelUnc(sector,layer,paddle),
-							"mipa_left_err", sector, layer, paddle);
-					calib.setDoubleValue(getMipChannelUnc(sector,layer,paddle),
-							"mipa_right_err", sector, layer, paddle);
-					calib.setDoubleValue(getLogRatio(sector,layer,paddle),
-							"logratio", sector, layer, paddle);
-					calib.setDoubleValue(getLogRatioUnc(sector,layer,paddle),
-							"logratio_err", sector, layer, paddle);
+					saveRow(sector,layer,paddle);
 				}
 			}
 		}

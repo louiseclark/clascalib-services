@@ -38,11 +38,11 @@ import org.jlab.utils.groups.IndexedList;
 
 public class TofVeffEventListener extends TOFCalibrationEngine {
 
-	public final static int[]		NUM_PADDLES = {23,62,5};
-	public final static String[]	LAYER_NAME = {"FTOF1A","FTOF1B","FTOF2"};
-
-	CalibrationConstants calib;
-	IndexedList<DataGroup> dataGroups = new IndexedList<DataGroup>(3);
+//	public final static int[]		NUM_PADDLES = {23,62,5};
+//	public final static String[]	LAYER_NAME = {"FTOF1A","FTOF1B","FTOF2"};
+//
+//	CalibrationConstants calib;
+//	IndexedList<DataGroup> dataGroups = new IndexedList<DataGroup>(3);
 
 	public TofVeffEventListener() {
 
@@ -52,21 +52,21 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 
 	}
 	
-	@Override
-	public void dataEventAction(DataEvent event) {
-
-		if (event.getType()==DataEventType.EVENT_START) {
-			resetEventListener();
-			processEvent(event);
-		}
-		else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
-			processEvent(event);
-		}
-		else if (event.getType()==DataEventType.EVENT_STOP) {
-			analyze();
-		} 
-
-	}
+//	@Override
+//	public void dataEventAction(DataEvent event) {
+//
+//		if (event.getType()==DataEventType.EVENT_START) {
+//			resetEventListener();
+//			processEvent(event);
+//		}
+//		else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
+//			processEvent(event);
+//		}
+//		else if (event.getType()==DataEventType.EVENT_STOP) {
+//			analyze();
+//		} 
+//
+//	}
 
 	public void timerUpdate() {
 		analyze();
