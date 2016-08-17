@@ -25,10 +25,19 @@ import org.jlab.io.evio.EvioDataBank;
  * @author gavalian
  */
 public class DataProvider {
+	
+	public static FTOFDetectorMesh ftofDetector;
+	
+	public static void getGeometry() {
+	
+		ConstantProvider cp = DataBaseLoader.getGeometryConstants(DetectorType.FTOF);
+		FTOFFactory factory = new FTOFFactory();
+		ftofDetector = factory.getDetectorGeant4(cp);
+	}
+
 
 	public static List<TOFPaddle> getPaddleList(DataEvent event){
 		
-		System.out.println("New event");
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 
 //		if (event.hasBank("FTOF::dgtz")) {
@@ -54,20 +63,10 @@ public class DataProvider {
 				// get lab hit co ords from DC
 				if (event.hasBank("TimeBasedTrkg::TBTracks")) {
 					
-					//System.out.println("Found tracking bank");
-					
 					EvioDataBank bankDC = (EvioDataBank) event.getBank("TimeBasedTrkg::TBTracks");
-					//System.out.println("Tracking bank rows "+bankDC.rows());
-					ConstantProvider cp = null; // DataBaseLoader.getGeometryConstants(DetectorType.FTOF);
-					//System.out.println("Assigned cp");
-					FTOFFactory factory = new FTOFFactory();
-					//System.out.println("New FTOFFactory");
-					FTOFDetectorMesh ftofDetector = factory.getDetectorGeant4(cp);
-					//System.out.println("ftofDetector");
 
 					if (bankDC.rows()==1) {
 
-						//System.out.println("Using tracking bank");
 						double x = bankDC.getDouble("c3_x", 0); // Region 3 cross x-position in the lab
 						double y = bankDC.getDouble("c3_y", 0); // Region 3 cross y-position in the lab
 						double z = bankDC.getDouble("c3_z", 0); // Region 3 cross z-position in the lab
@@ -84,7 +83,6 @@ public class DataProvider {
 						Line3D intersect = path.distance(lineX); // intersection of the path with the paddle line
 						Point3D intP = intersect.end();
 						
-						//System.out.println("y pos is "+intP.y());
 						xpos = intP.x();
 						ypos = intP.y();
 
@@ -92,7 +90,6 @@ public class DataProvider {
 				}
 				// else don't set position for this event as can't match up multiple tracks right now
 
-				//System.out.println("Creating paddle");
 				TOFPaddle  paddle = new TOFPaddle(
 						sector,
 						layer,

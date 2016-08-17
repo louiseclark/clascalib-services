@@ -82,6 +82,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public final int WRITE = 3;
 	
 	public TOFCalibration() {
+		
+		DataProvider.getGeometry();
 
         pane = new JPanel();
         pane.setLayout(new BorderLayout());
