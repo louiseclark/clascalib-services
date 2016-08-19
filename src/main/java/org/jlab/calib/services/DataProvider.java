@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.jlab.detector.base.DetectorType;
+import org.jlab.detector.base.GeometryFactory;
 import org.jlab.detector.calib.utils.CalibrationConstants;
 import org.jlab.geom.base.ConstantProvider;
 import org.jlab.geom.base.Detector;
@@ -30,7 +31,7 @@ public class DataProvider {
 	
 	public static void getGeometry() {
 	
-		ConstantProvider cp = DataBaseLoader.getGeometryConstants(DetectorType.FTOF);
+		ConstantProvider cp = GeometryFactory.getConstants(DetectorType.FTOF);
 		FTOFFactory factory = new FTOFFactory();
 		ftofDetector = factory.getDetectorGeant4(cp);
 	}

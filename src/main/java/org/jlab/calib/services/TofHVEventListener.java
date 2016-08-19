@@ -300,12 +300,12 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);
 		if (result == JOptionPane.OK_OPTION) {
 
-			double minRange = TOFCalibration.toDouble(panel.textFields[0].getText());
-			double maxRange = TOFCalibration.toDouble(panel.textFields[1].getText());
-			double overrideGM = TOFCalibration.toDouble(panel.textFields[2].getText());
-			double overrideGMUnc = TOFCalibration.toDouble(panel.textFields[3].getText());			
-			double overrideLR = TOFCalibration.toDouble(panel.textFields[4].getText());
-			double overrideLRUnc = TOFCalibration.toDouble(panel.textFields[5].getText());			
+			double minRange = toDouble(panel.textFields[0].getText());
+			double maxRange = toDouble(panel.textFields[1].getText());
+			double overrideGM = toDouble(panel.textFields[2].getText());
+			double overrideGMUnc = toDouble(panel.textFields[3].getText());			
+			double overrideLR = toDouble(panel.textFields[4].getText());
+			double overrideLRUnc = toDouble(panel.textFields[5].getText());			
 			
 			// save the override values
 			Double[] consts = constants.getItem(sector, layer, paddle);
@@ -513,6 +513,16 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 
 	}
 
+	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
+
+		H1F fitHist = dataGroups.getItem(sector,layer,paddle).getH1F("geomean");
+		canvas.draw(fitHist);
+		
+		F1D fitFunc = dataGroups.getItem(sector,layer,paddle).getF1D("gmFunc");
+		canvas.draw(fitFunc, "same");
+
+	}
+	
 	@Override
 	public void showPlots(int sector, int layer) {
 		
@@ -527,14 +537,9 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		
 		for (int paddleNum=1; paddleNum <= NUM_PADDLES[layer_index]; paddleNum++) {
 			
-			H1F fitHist = dataGroups.getItem(sector,layer,paddleNum).getH1F("geomean");
-						
 			fitCanvases[canvasNum].cd(padNum);
 			fitCanvases[canvasNum].getPad(padNum).setOptStat(0);
-			fitCanvases[canvasNum].draw(fitHist);
-			
-			F1D fitFunc = dataGroups.getItem(sector,layer,paddleNum).getF1D("gmFunc");
-			fitCanvases[canvasNum].draw(fitFunc, "same");
+			drawPlots(sector, layer, paddleNum, fitCanvases[canvasNum]);
 			
     		padNum = padNum+1;
     		
@@ -550,8 +555,8 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			
 		}
 		
-    	JFrame frame = new JFrame(LAYER_NAME[layer-1]+" Sector "+sector);
-        frame.setSize(1200, 700);
+    	JFrame frame = new JFrame("Geometric Mean "+LAYER_NAME[layer-1]+" Sector "+sector);
+        frame.setSize(1000, 800);
         
         JTabbedPane pane = new JTabbedPane();
         for (int i=0; i<=canvasNum; i++) {
@@ -559,7 +564,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
         }
  		
         frame.add(pane);
-        frame.pack();
+        //frame.pack();
         frame.setVisible(true);
         frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 

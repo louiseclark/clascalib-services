@@ -126,7 +126,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         
         enginePane.setTopComponent(canvas);
         enginePane.setBottomComponent(ccview);
-        enginePane.setDividerLocation(0.5);
+        enginePane.setDividerLocation(0.3);
+        enginePane.setResizeWeight(0.3);
         engineView.add(splitPane,BorderLayout.CENTER);
 
         splitPane.setRightComponent(enginePane);
@@ -296,19 +297,6 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		this.canvas.update();
 		
 	}
-
-	public static double toDouble(String stringVal) {
-		
-		double doubleVal;
-		try {
-			doubleVal = Double.parseDouble(stringVal);
-		}
-		catch (NumberFormatException e) {
-			doubleVal = 0.0;
-		}
-		return doubleVal;
-	}
-	
 
 	public void stateChanged(ChangeEvent e) {
 		int i = ccview.getTabbedPane().getSelectedIndex();

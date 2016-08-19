@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.TreeMap;
 
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 
@@ -38,18 +39,25 @@ import org.jlab.utils.groups.IndexedList;
 
 public class TofVeffEventListener extends TOFCalibrationEngine {
 
+	public final int VEFF_OVERRIDE = 0;
+	public final int VEFF_UNC_OVERRIDE = 1;
+	
+	public final double EXPECTED_VEFF = 16.0;
+	public final double ALLOWED_VEFF_DIFF = 0.1;
+	
 	public TofVeffEventListener() {
 
 		calib = new CalibrationConstants(3,
 				"veff_left/F:veff_right/F:veff_left_err/F:veff_right_err/F");
 		calib.setName("/calibration/ftof/effective_velocity");
+		calib.setPrecision(3);
 		
 		// assign constraints to all paddles
 		// effective velocity to be within 10% of 16.0 cm/ns
-		calib.addConstraint(3, 16.0*0.9,
-							   16.0*1.1);
-		calib.addConstraint(4, 16.0*0.9,
-							   16.0*1.1);
+		calib.addConstraint(3, EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF),
+							   EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
+		calib.addConstraint(4, EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF),
+							   EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 		
 	}
 	
@@ -74,7 +82,6 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 							200, -10.0, 10.0);
 					
 					hist.setName("veff");
-					
 					hist.setTitle("Half Time Diff vs Position : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
 					hist.setXTitle("Position (cm)");
@@ -91,6 +98,12 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 					dg.addDataSet(veffFunc, 1);
 					dataGroups.add(dg, sector,layer,paddle);
 					
+					// initialize the constants array
+					Double[] consts = {0.0, 0.0};
+					// override values
+					
+					constants.add(consts, sector, layer, paddle);
+					
 				}
 			}
 		}
@@ -106,8 +119,10 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
 
-			dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
+			if (paddle.includeInVeff()) {
+				dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
 					paddle.paddleY(), paddle.halfTimeDiff());
+			}
 		}
 	}
 
@@ -148,6 +163,37 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		DataFitter.fit(veffFunc, veffGraph, "RNQ");
 		
 	}
+	
+	public void customFit(int sector, int layer, int paddle){
+
+		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
+				"Override Effective Velocity:", "Override Effective Velocity uncertainty:"};
+				
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+
+		int result = JOptionPane.showConfirmDialog(null, panel, 
+				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);
+		if (result == JOptionPane.OK_OPTION) {
+
+			double minRange = toDouble(panel.textFields[0].getText());
+			double maxRange = toDouble(panel.textFields[1].getText());
+			double overrideValue = toDouble(panel.textFields[2].getText());
+			double overrideUnc = toDouble(panel.textFields[3].getText());
+			
+			// save the override values
+			Double[] consts = constants.getItem(sector, layer, paddle);
+			consts[VEFF_OVERRIDE] = overrideValue;
+			consts[VEFF_UNC_OVERRIDE] = overrideUnc;
+
+			fit(sector, layer, paddle, minRange, maxRange);
+
+			// update the table
+			saveRow(sector,layer,paddle);
+			calib.fireTableDataChanged();
+			
+		}	 
+	}
+	
 
 	public Double getVeff(int sector, int layer, int paddle) {
 		
@@ -186,6 +232,18 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		return veffError;
 	}	
 
+	private void saveRow(int sector, int layer, int paddle) {
+		calib.setDoubleValue(getVeff(sector,layer,paddle),
+				"veff_left", sector, layer, paddle);
+		calib.setDoubleValue(getVeff(sector,layer,paddle),
+				"veff_right", sector, layer, paddle);
+		calib.setDoubleValue(getVeffError(sector,layer,paddle),
+				"veff_left_err", sector, layer, paddle);
+		calib.setDoubleValue(getVeffError(sector,layer,paddle),
+				"veff_right_err", sector, layer, paddle);
+
+	}
+		
 	@Override
 	public void save() {
 
@@ -194,14 +252,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 				int layer_index = layer - 1;
 				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 					calib.addEntry(sector, layer, paddle);
-					calib.setDoubleValue(getVeff(sector,layer,paddle),
-							"veff_left", sector, layer, paddle);
-					calib.setDoubleValue(getVeff(sector,layer,paddle),
-							"veff_right", sector, layer, paddle);
-					calib.setDoubleValue(getVeffError(sector,layer,paddle),
-							"veff_left_err", sector, layer, paddle);
-					calib.setDoubleValue(getVeffError(sector,layer,paddle),
-							"veff_right_err", sector, layer, paddle);
+					saveRow(sector,layer,paddle);
 				}
 			}
 		}
@@ -218,23 +269,23 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	public IndexedList<DataGroup>  getDataGroup(){
 		return dataGroups;
 	}
-
-	public JPanel getView(CalibrationConstantsListener listener, EmbeddedCanvas canvas) {
-		
-		JPanel panel = new JPanel();
-		
-	    JSplitPane          splitPane = null;
-	    CalibrationConstantsView ccview = null;
-	    
-	    panel.setLayout(new BorderLayout());
-        splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        ccview = new CalibrationConstantsView();
-        ccview.addConstants(this.getCalibrationConstants().get(0),listener);
-        splitPane.setTopComponent(canvas);
-        splitPane.setBottomComponent(ccview);
-        panel.add(splitPane,BorderLayout.CENTER);
-        splitPane.setDividerLocation(0.5);
-		
-		return panel;
-	}
+//
+//	public JPanel getView(CalibrationConstantsListener listener, EmbeddedCanvas canvas) {
+//		
+//		JPanel panel = new JPanel();
+//		
+//	    JSplitPane          splitPane = null;
+//	    CalibrationConstantsView ccview = null;
+//	    
+//	    panel.setLayout(new BorderLayout());
+//        splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+//        ccview = new CalibrationConstantsView();
+//        ccview.addConstants(this.getCalibrationConstants().get(0),listener);
+//        splitPane.setTopComponent(canvas);
+//        splitPane.setBottomComponent(ccview);
+//        panel.add(splitPane,BorderLayout.CENTER);
+//        splitPane.setDividerLocation(0.5);
+//		
+//		return panel;
+//	}
 }

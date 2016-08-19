@@ -120,6 +120,18 @@ public class TOFCalibrationEngine extends CalibrationEngine {
     	
     	return len;
     	
-    }	
+    }
+    
+	public static double toDouble(String stringVal) {
+		
+		double doubleVal;
+		try {
+			doubleVal = Double.parseDouble(stringVal);
+		}
+		catch (NumberFormatException e) {
+			doubleVal = 0.0;
+		}
+		return doubleVal;
+	}
 		
 }

@@ -96,7 +96,6 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 					dg.addDataSet(hist, 0);
 					dg.addDataSet(meanGraph, 1);
 					dg.addDataSet(attenFunc, 1);
-					
 					dataGroups.add(dg, sector,layer,paddle);
 					
 				}

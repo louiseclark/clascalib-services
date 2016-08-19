@@ -84,6 +84,11 @@ public class TOFPaddle {
     	return (this.geometricMean() > 100.0 && ADCR != ADCL);
     }	
     
+    public boolean includeInVeff() {
+    	// exclude if position is zero
+    	return (this.XPOS !=0 || this.YPOS !=0);
+    }
+    
     public boolean isValidLogRatio() {
     	// only if geometric mean is over a minimum
 		// only if both TDCs are non-zero - otherwise ADCs are equal and log ratio is always 0
