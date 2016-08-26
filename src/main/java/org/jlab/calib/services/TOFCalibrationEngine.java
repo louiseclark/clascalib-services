@@ -3,10 +3,15 @@ package org.jlab.calib.services;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.swing.JFrame;
+import javax.swing.JTabbedPane;
+
 import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.utils.CalibrationConstants;
+import org.jlab.groot.data.H1F;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
+import org.jlab.groot.math.F1D;
 import org.jlab.io.base.DataEvent;
 import org.jlab.io.base.DataEventType;
 import org.jlab.utils.groups.IndexedList;
@@ -16,11 +21,12 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public final static int[]		NUM_PADDLES = {23,62,5};
 	public final static String[]	LAYER_NAME = {"FTOF1A","FTOF1B","FTOF2"};
 	
-	IndexedList<Double[]> constants = new IndexedList<Double[]>(3);
+	public IndexedList<Double[]> constants = new IndexedList<Double[]>(3);
 	
-	CalibrationConstants calib;
-	IndexedList<DataGroup> dataGroups = new IndexedList<DataGroup>(3);
+	public CalibrationConstants calib;
+	public IndexedList<DataGroup> dataGroups = new IndexedList<DataGroup>(3);
 
+	public String stepName = "Unknown";
 
 	public TOFCalibrationEngine() {
 		// controlled by calibration step class
@@ -39,6 +45,10 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		else if (event.getType()==DataEventType.EVENT_STOP) {
 			analyze();
 		} 
+	}
+	
+	public void processPaddleList(List<TOFPaddle> paddleList) {
+		// overridden in calibration step classes
 	}
 
 	@Override
@@ -87,10 +97,6 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		return dataGroups;
 	}
 
-	public void showPlots(int sector, int layer) {
-		// Overridden in calibration step class
-	}
-
 	public boolean isGoodPaddle(int sector, int layer, int paddle) {
 		// Overridden in calibration step class
 		return true;
@@ -133,5 +139,55 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		}
 		return doubleVal;
 	}
+	
+	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
+		// Overridden in calibration step classes
+	}	
+
+	public void showPlots(int sector, int layer) {
 		
+		int layer_index = layer -1;
+		EmbeddedCanvas[] fitCanvases;
+		fitCanvases = new EmbeddedCanvas[3];
+		fitCanvases[0] = new EmbeddedCanvas();
+		fitCanvases[0].divide(6, 4);
+		
+		int canvasNum = 0;
+		int padNum = 0;
+		
+		for (int paddleNum=1; paddleNum <= NUM_PADDLES[layer_index]; paddleNum++) {
+			
+			fitCanvases[canvasNum].cd(padNum);
+			fitCanvases[canvasNum].getPad(padNum).setOptStat(0);
+			drawPlots(sector, layer, paddleNum, fitCanvases[canvasNum]);
+			
+    		padNum = padNum+1;
+    		
+    		if ((paddleNum)%24 == 0) {
+    			// new canvas
+    			canvasNum = canvasNum+1;
+    			padNum = 0;
+    			
+    			fitCanvases[canvasNum] = new EmbeddedCanvas();
+    			fitCanvases[canvasNum].divide(6, 4);
+
+    		}
+			
+		}
+		
+    	JFrame frame = new JFrame(stepName+" "+LAYER_NAME[layer-1]+" Sector "+sector);
+        frame.setSize(1000, 800);
+        
+        JTabbedPane pane = new JTabbedPane();
+        for (int i=0; i<=canvasNum; i++) {
+        	pane.add("Paddles "+((i*24)+1)+" to "+Math.min(((i+1)*24),NUM_PADDLES[layer-1]), fitCanvases[i]);
+        }
+ 		
+        frame.add(pane);
+        //frame.pack();
+        frame.setVisible(true);
+        frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+				
+	}	
+	
 }

@@ -1,4 +1,4 @@
-package org.jlab.calib.services;
+package org.jlab.calib.services.ctof;
 
 
 import java.awt.BorderLayout;
@@ -11,6 +11,8 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 
+import org.jlab.calib.services.TOFCalibrationEngine;
+import org.jlab.calib.services.TOFPaddle;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.utils.CalibrationConstants;
@@ -37,7 +39,7 @@ import org.jlab.io.task.DataSourceProcessorPane;
 import org.jlab.io.task.IDataEventListener;
 import org.jlab.utils.groups.IndexedList;
 
-public class TofLeftRightEventListener extends TOFCalibrationEngine {
+public class CtofLeftRightEventListener extends TOFCalibrationEngine {
 
 	public final static int[]		NUM_PADDLES = {23,62,5};
 	public final static String[]	LAYER_NAME = {"FTOF1A","FTOF1B","FTOF2"};
@@ -46,9 +48,8 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 	CalibrationConstants calib;
 	IndexedList<DataGroup> dataGroups = new IndexedList<DataGroup>(3);
 
-	public TofLeftRightEventListener() {
+	public CtofLeftRightEventListener() {
 
-		stepName = "Left Right";
 		calib = new CalibrationConstants(3,
 				"left_right/F");
 		calib.setName("/calibration/ftof/timing_offset");

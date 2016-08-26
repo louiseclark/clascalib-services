@@ -1,4 +1,4 @@
-package org.jlab.calib.services; 
+package org.jlab.calib.services.ctof; 
 
 import java.awt.BorderLayout;
 import java.util.ArrayList;
@@ -10,8 +10,10 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
-import javax.swing.JTabbedPane;
 
+import org.jlab.calib.services.TOFCalibrationEngine;
+import org.jlab.calib.services.TOFCustomFitPanel;
+import org.jlab.calib.services.TOFPaddle;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.utils.CalibrationConstants;
@@ -38,7 +40,7 @@ import org.jlab.io.task.DataSourceProcessorPane;
 import org.jlab.io.task.IDataEventListener;
 import org.jlab.utils.groups.IndexedList;
 
-public class TofVeffEventListener extends TOFCalibrationEngine {
+public class CtofVeffEventListener extends TOFCalibrationEngine {
 
 	public final int VEFF_OVERRIDE = 0;
 	public final int VEFF_UNC_OVERRIDE = 1;
@@ -46,9 +48,8 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	public final double EXPECTED_VEFF = 16.0;
 	public final double ALLOWED_VEFF_DIFF = 0.1;
 	
-	public TofVeffEventListener() {
+	public CtofVeffEventListener() {
 
-		stepName = "Effective Velocity";
 		calib = new CalibrationConstants(3,
 				"veff_left/F:veff_right/F:veff_left_err/F:veff_right_err/F");
 		calib.setName("/calibration/ftof/effective_velocity");
@@ -285,7 +286,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc"), "same");
 
 	}
-	
+
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
 				
@@ -320,6 +321,5 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		return dg;
 		
 	}
-	
 
 }

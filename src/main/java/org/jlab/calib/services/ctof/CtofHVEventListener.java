@@ -1,4 +1,4 @@
-package org.jlab.calib.services;
+package org.jlab.calib.services.ctof;
 
 
 import java.util.Arrays;
@@ -8,6 +8,10 @@ import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JTabbedPane;
 
+import org.jlab.calib.services.TOFCalibrationEngine;
+import org.jlab.calib.services.TOFCustomFitPanel;
+import org.jlab.calib.services.TOFH1F;
+import org.jlab.calib.services.TOFPaddle;
 import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.utils.CalibrationConstants;
 import org.jlab.groot.data.GraphErrors;
@@ -21,7 +25,7 @@ import org.jlab.io.base.DataEvent;
 import org.jlab.io.base.DataEventType;
 import org.jlab.utils.groups.IndexedList;
 
-public class TofHVEventListener extends TOFCalibrationEngine {
+public class CtofHVEventListener extends TOFCalibrationEngine {
 
 	// hists
 	public final int GEOMEAN = 0;
@@ -44,9 +48,8 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	public final int[]		EXPECTED_MIP_CHANNEL = {800, 2000, 800};
 	public final int		ALLOWED_MIP_DIFF = 50;
 
-	public TofHVEventListener() {
+	public CtofHVEventListener() {
 
-		stepName = "HV";
 		calib = new CalibrationConstants(3,
 				"mipa_left/F:mipa_right/F:mipa_left_err/F:mipa_right_err/F:logratio/F:logratio_err/F");
 		calib.setName("/calibration/ftof/gain_balance");
@@ -524,53 +527,5 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		canvas.draw(fitFunc, "same");
 
 	}
-	
-//	@Override
-//	public void showPlots(int sector, int layer) {
-//		
-//		int layer_index = layer -1;
-//		EmbeddedCanvas[] fitCanvases;
-//		fitCanvases = new EmbeddedCanvas[3];
-//		fitCanvases[0] = new EmbeddedCanvas();
-//		fitCanvases[0].divide(6, 4);
-//		
-//		int canvasNum = 0;
-//		int padNum = 0;
-//		
-//		for (int paddleNum=1; paddleNum <= NUM_PADDLES[layer_index]; paddleNum++) {
-//			
-//			fitCanvases[canvasNum].cd(padNum);
-//			fitCanvases[canvasNum].getPad(padNum).setOptStat(0);
-//			drawPlots(sector, layer, paddleNum, fitCanvases[canvasNum]);
-//			
-//    		padNum = padNum+1;
-//    		
-//    		if ((paddleNum)%24 == 0) {
-//    			// new canvas
-//    			canvasNum = canvasNum+1;
-//    			padNum = 0;
-//    			
-//    			fitCanvases[canvasNum] = new EmbeddedCanvas();
-//    			fitCanvases[canvasNum].divide(6, 4);
-//
-//    		}
-//			
-//		}
-//		
-//    	JFrame frame = new JFrame("Geometric Mean "+LAYER_NAME[layer-1]+" Sector "+sector);
-//        frame.setSize(1000, 800);
-//        
-//        JTabbedPane pane = new JTabbedPane();
-//        for (int i=0; i<=canvasNum; i++) {
-//        	pane.add("Paddles "+((i*24)+1)+" to "+Math.min(((i+1)*24),NUM_PADDLES[layer-1]), fitCanvases[i]);
-//        }
-// 		
-//        frame.add(pane);
-//        //frame.pack();
-//        frame.setVisible(true);
-//        frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-//
-//				
-//	}	
 
 }

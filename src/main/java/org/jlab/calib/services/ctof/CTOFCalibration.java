@@ -1,4 +1,4 @@
-package org.jlab.calib.services;
+package org.jlab.calib.services.ctof;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -17,6 +17,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.TableModelEvent;
 
+import org.jlab.calib.services.TOFCalibrationEngine;
+import org.jlab.calib.services.TOFPaddle;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.tasks.CalibrationEngineView;
@@ -34,7 +36,7 @@ import org.jlab.io.task.DataSourceProcessorPane;
 import org.jlab.io.task.IDataEventListener;
 import org.jlab.utils.groups.IndexedList;
 
-public class TOFCalibration implements IDataEventListener, ActionListener, 
+public class CTOFCalibration implements IDataEventListener, ActionListener, 
 									   CalibrationConstantsListener, DetectorListener,
 									   ChangeListener {
 
@@ -53,24 +55,21 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     CalibrationConstantsView ccview = null;
 
     TOFCalibrationEngine[] engines = {
-    		new TofHVEventListener(),
-    		new TofAttenEventListener(),
-    		new TofLeftRightEventListener(),
-    		new TofVeffEventListener(),
-    		new TofTimeWalkEventListener()};
+    		new CtofHVEventListener(),
+    		new CtofAttenEventListener(),
+    		new CtofLeftRightEventListener(),
+    		new CtofVeffEventListener()};
     
     // engine indices
     public final int HV = 0;
     public final int ATTEN = 1;
     public final int LEFT_RIGHT = 2;
     public final int VEFF = 3;
-    public final int TW = 4;
     
-    String[] dirs = {"/calibration/ftof/gain_balance",
-    				 "/calibration/ftof/attenuation",
-    				 "/calibration/ftof/timing_offset",
-    				 "/calibration/ftof/effective_velocity",
-    				 "/calibration/ftof/time_walk"};
+    String[] dirs = {"/calibration/ctof/gain_balance",
+    				 "/calibration/ctof/attenuation",
+    				 "/calibration/ctof/timing_offset",
+    				 "/calibration/ctof/effective_velocity"};
 	
 	String selectedDir = dirs[HV];
 	int selectedSector = 1;
@@ -84,7 +83,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public final int ADJUST_HV = 2;
 	public final int WRITE = 3;
 	
-	public TOFCalibration() {
+	public CTOFCalibration() {
 		
 		DataProvider.getGeometry();
 
@@ -146,7 +145,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 //        }
         pane.add(processorPane,BorderLayout.PAGE_END);
 		
-    	JFrame frame = new JFrame("FTOF Calibration");
+    	JFrame frame = new JFrame("CTOF Calibration");
         frame.setSize(1800, 1000);
  		
         frame.add(pane);
@@ -168,8 +167,6 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			engine = engines[LEFT_RIGHT];
 		} else if (selectedDir == dirs[VEFF]) {
 			engine = engines[VEFF];
-		} else if (selectedDir == dirs[TW]) {
-			engine = engines[TW];
 		}
 		return engine;
 	}
@@ -235,39 +232,31 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 		TOFCalibrationEngine engine = getSelectedEngine();
 
-		double FTOFSize = 500.0;
-		int[]     npaddles = new int[]{23,62,5};
-		int[]     widths   = new int[]{6,15,25};
-		int[]     lengths  = new int[]{6,15,25};
+		double CTOFSize = 500.0;
+		int     npaddles = 48;
+		int     width   = 25;
+		int     length  = 25;
 
-		String[]  names    = new String[]{"FTOF 1A","FTOF 1B","FTOF 2"};
-		for(int sector = 1; sector <= 6; sector++){
-			double rotation = Math.toRadians((sector-1)*(360.0/6)+90.0);
+		for(int paddle = 1; paddle <= npaddles; paddle++){
 
-			for(int layer = 1; layer <=3; layer++){
+			double rotation = Math.toRadians((paddle-1)*(360.0/48)+90.0);
 
-				int width  = widths[layer-1];
-				int length = lengths[layer-1];
-
-				for(int paddle = 1; paddle <= npaddles[layer-1]; paddle++){
-
-					DetectorShape2D shape = new DetectorShape2D();
-					shape.getDescriptor().setType(DetectorType.FTOF);
-					shape.getDescriptor().setSectorLayerComponent(sector, layer, paddle);
-					shape.createBarXY(20 + length*paddle, width);
-					shape.getShapePath().translateXYZ(0.0, 40 + width*paddle , 0.0);
-					shape.getShapePath().rotateZ(rotation);
-					if (!isNew) {
-						if (engine.isGoodPaddle(sector, layer, paddle)) {
-							shape.setColor(101,200,59); //green
-						}
-						else {
-							shape.setColor(225,75,60); //red
-						}
-					}	
-					detectorView.getView().addShape(names[layer-1], shape);
+			DetectorShape2D shape = new DetectorShape2D();
+			shape.getDescriptor().setType(DetectorType.CTOF);
+			shape.getDescriptor().setSectorLayerComponent(1, 1, paddle);
+			shape.createTrapXY(5.4, 4.7, 5);
+			//shape.createBarXY(20 + length*paddle, width);
+			shape.getShapePath().translateXYZ(0.0, 40 , 0.0);
+			shape.getShapePath().rotateZ(rotation);
+			if (!isNew) {
+				if (engine.isGoodPaddle(1, 1, paddle)) {
+					shape.setColor(101,200,59); //green
 				}
-			}
+				else {
+					shape.setColor(225,75,60); //red
+				}
+			}	
+			detectorView.getView().addShape("CTOF", shape);
 		}
 
 		if (isNew) {
@@ -338,7 +327,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 	public static void main(String[] args) {
 
-        TOFCalibration calibGUI = new TOFCalibration();
+        CTOFCalibration calibGUI = new CTOFCalibration();
         
 	}
 

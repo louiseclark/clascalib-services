@@ -1,8 +1,9 @@
-package org.jlab.calib.services;
+package org.jlab.calib.services.ctof;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jlab.calib.services.TOFPaddle;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.detector.base.GeometryFactory;
 import org.jlab.detector.calib.utils.CalibrationConstants;

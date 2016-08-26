@@ -138,19 +138,19 @@ public class TOFPaddle {
 	public double[] timeResiduals(double[] lambda, double[] order) {
 		double[] tr = {0.0, 0.0};
 		
-		double timeL = tdcToTime(TDCL);
-		double timeR = tdcToTime(TDCR);
-		//double timeL = getTWTimeL();
-		//double timeR = getTWTimeR();
+		//double timeL = tdcToTime(TDCL);
+		//double timeR = tdcToTime(TDCR);
+		double timeL = getTWTimeL();
+		double timeR = getTWTimeR();
 		
 		timeL = timeL - veffOffset();
 		timeR = timeR + veffOffset();
 		
-		double timeLCorr = timeL + (lambda[LEFT]/Math.pow(ADCL, order[LEFT]));
-		double timeRCorr = timeR + (lambda[RIGHT]/Math.pow(ADCR, order[RIGHT]));
+		double timeLCorr = timeL - (lambda[LEFT]/Math.pow(ADCL, order[LEFT]));
+		double timeRCorr = timeR - (lambda[RIGHT]/Math.pow(ADCR, order[RIGHT]));
 		
-		tr[LEFT] = ((timeL - timeRCorr)/2) - (YPOS/veff());
-		tr[RIGHT] =  - ((timeLCorr - timeR)/2) + (YPOS/veff());
+		tr[LEFT] =  ((timeL - timeRCorr)/2) - (paddleY()/veff());
+		tr[RIGHT] = ((timeLCorr - timeR)/2) - (paddleY()/veff());
 		
 		return tr;
 	}      
@@ -202,7 +202,7 @@ public class TOFPaddle {
     	return (timeL-timeR)/2;
     }
 
-    double halfTimeDiff() {
+    public double halfTimeDiff() {
     	
     	double timeL = tdcToTime(TDCL);
     	double timeR = tdcToTime(TDCR);

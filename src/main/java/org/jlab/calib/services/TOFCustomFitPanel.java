@@ -10,7 +10,7 @@ import javax.swing.JTextField;
 
 public class TOFCustomFitPanel extends JPanel {
 	
-	JTextField[] textFields;
+	public JTextField[] textFields;
 	
 	public TOFCustomFitPanel(String[] fields){
 		

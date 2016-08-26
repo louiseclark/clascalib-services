@@ -1,4 +1,4 @@
-package org.jlab.calib.services;
+package org.jlab.calib.services.ctof;
 
 
 import java.awt.BorderLayout;
@@ -12,6 +12,8 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 
+import org.jlab.calib.services.TOFCalibrationEngine;
+import org.jlab.calib.services.TOFPaddle;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.utils.CalibrationConstants;
@@ -40,11 +42,10 @@ import org.jlab.io.task.IDataEventListener;
 import org.jlab.utils.groups.IndexedList;
 
 
-public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventListener {
+public class CtofAttenEventListener extends TOFCalibrationEngine { // IDataEventListener {
 
-	public TofAttenEventListener() {
+	public CtofAttenEventListener() {
 
-		stepName = "Attenuation Length";
 		calib = new CalibrationConstants(3,
 				"attlen_left/F:attlen_right/F:attlen_left_err/F:attlen_right_err/F:y_offset/F");
 		calib.setName("/calibration/ftof/attenuation");
@@ -261,7 +262,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 		return (attlen >= (0.9*expAttlen)) && (attlen <= (1.1*expAttlen));
 
 	}
-	
+
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
@@ -269,7 +270,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 		canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc"), "same");
 
 	}
-
+	
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
 				
