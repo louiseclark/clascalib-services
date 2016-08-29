@@ -43,38 +43,39 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	// constants for indexing the histograms
 	public final int LEFT = 0;
 	public final int RIGHT = 1;
+	
+//	// indices for constants
+//	public final int LAMBDA_LEFT = 0;
+//	public final int ORDER_LEFT = 1;
+//	public final int LAMBDA_RIGHT = 2;
+//	public final int ORDER_RIGHT = 3;
 
-	private final double[]		ADC_MAX = {0.0,	1500.0,	8000.0,	3000.0};
-	private final double[]		FIT_MIN = {0.0,	250.0, 	100.0, 	100.0};
-	private final double[]		FIT_MAX = {0.0, 1400.0,	3000.0, 1200.0};
+	private final double[]		ADC_MAX = {0.0,	3000.0,	8000.0,	3000.0};
+	private final double[]		FIT_MIN = {0.0,	200.0, 	300.0, 	100.0};
+	private final double[]		FIT_MAX = {0.0, 2000.0,	5000.0, 1200.0};
 
-	double[] lambda = {40.0,40.0};
-	double[] order = {0.5,0.5};
+	double[] fitLambda = {40.0,40.0};  // starting values for the fit
+	double[] fitOrder = {0.5,0.5};  // starting values for the fit
+	double[] lambda = {0.0,0.0};
+	double[] order = {0.0,0.0};
 	
 	//IndexedList<CalibrationConstants> calibList;
 	
-	private int iter = 1; // will be passed as parameter
+	//private int iter = 1; // will be passed as parameter
 
 	public TofTimeWalkEventListener() {
-	
+
 		stepName = "Timewalk";
-//		for (int i=1; i<=NUM_ITERATIONS; i++) {
-			calib = 
+		calib = 
 				new CalibrationConstants(3,
-				"tw0_left/F:tw1_left/F:tw2_left/F:tw0_right/F:tw1_right/F:tw2_right/F");
-			
-			calib.setName("/calibration/ftof/time_walk");
-			calib.setPrecision(3);
-			//calibList.add(c, i);
-			
-			// assign constraints
-			// TO DO
-		//}
-		
-//		calib = new CalibrationConstants(3,
-//				"tw0_left/F:tw1_left/F:tw2_left/F:tw0_right/F:tw1_right/F:tw2_right/F");
-//		calib.setName("/calibration/ftof/time_walk");
-		//calib = calibList.getItem(1);
+						"tw0_left/F:tw1_left/F:tw2_left/F:tw0_right/F:tw1_right/F:tw2_right/F");
+
+		calib.setName("/calibration/ftof/time_walk");
+		calib.setPrecision(3);
+
+		// assign constraints
+		// TO DO
+
 	}
 	
 	//@Override
@@ -97,12 +98,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 							"Time residual vs ADC LEFT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
-							100, -10.0, 10.0);
+							100, -2.5, 2.5);
 					H2F rightHist = new H2F("TW_right",
 							"Time residual vs ADC RIGHT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
-							100, -10.0, 10.0);
+							100, -2.5, 2.5);
 
 					leftHist.setTitle("Time residual vs ADC LEFT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
@@ -114,18 +115,18 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					rightHist.setYTitle("Time residual");
 					
 					// create all the functions and graphs
-					F1D trLeftFunc = new F1D("trLeftFunc", "[a]-([b]/(x^[c]))", 0.0, ADC_MAX[layer]);
+					F1D trLeftFunc = new F1D("trLeftFunc", "[a]-([b]/(x^[c]))", 300.0, ADC_MAX[layer]);
 					GraphErrors trLeftGraph = new GraphErrors();
 					trLeftGraph.setName("trLeftGraph");					
-					F1D trRightFunc = new F1D("trRightFunc", "[a]-([b]/(x^[c]))", 0.0, ADC_MAX[layer]);
+					F1D trRightFunc = new F1D("trRightFunc", "[a]+([b]/(x^[c]))", 300.0, ADC_MAX[layer]);
 					GraphErrors trRightGraph = new GraphErrors();
 					trRightGraph.setName("trRightGraph");					
 					
 					DataGroup dg = new DataGroup(2,2);
 					dg.addDataSet(leftHist, 0);
-					dg.addDataSet(trLeftGraph, 1);
-					dg.addDataSet(trLeftFunc, 1);
-					dg.addDataSet(rightHist, 2);
+					dg.addDataSet(trLeftGraph, 2);
+					dg.addDataSet(trLeftFunc, 2);
+					dg.addDataSet(rightHist, 1);
 					dg.addDataSet(trRightGraph, 3);
 					dg.addDataSet(trRightFunc, 3);
 
@@ -154,13 +155,14 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			int component = paddle.getDescriptor().getComponent();
 
 				// fill timeResidual vs ADC
+			//double [] tr = paddle.timeResidualsTest(lambda, order);
 			double [] tr = paddle.timeResiduals(lambda, order);
 
-			if (paddle.includeInTimeWalk()) {
+			//if (paddle.includeInTimeWalk()) {
 
 				dataGroups.getItem(sector,layer,component).getH2F("TW_left").fill(paddle.ADCL, tr[LEFT]);
 				dataGroups.getItem(sector,layer,component).getH2F("TW_right").fill(paddle.ADCR, tr[RIGHT]);
-			}
+			//}
 
 		}
 	}	
@@ -181,7 +183,6 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	@Override
 	public void fit(int sector, int layer, int paddle, double minRange, double maxRange) {
 
-		System.out.println("TW fit "+sector+layer+paddle+" "+new Date());
 		H2F twL = dataGroups.getItem(sector,layer,paddle).getH2F("TW_left");
 		H2F twR = dataGroups.getItem(sector,layer,paddle).getH2F("TW_right");
 
@@ -247,8 +248,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		F1D twLFunc = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc");
 		twLFunc.setRange(FIT_MIN[layer], FIT_MAX[layer]);
 		twLFunc.setParameter(0, 1.0);
-		twLFunc.setParameter(1, lambda[LEFT]);
-		twLFunc.setParameter(2, order[LEFT]);
+		twLFunc.setParameter(1, fitLambda[LEFT]/2);
+		twLFunc.setParameter(2, fitOrder[LEFT]);
 		try {
 			DataFitter.fit(twLFunc, twLGraph, "RNQ");
 		}
@@ -258,9 +259,9 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 		F1D twRFunc = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc");
 		twRFunc.setRange(FIT_MIN[layer], FIT_MAX[layer]);
-		twRFunc.setParameter(0, -2.0);
-		twRFunc.setParameter(1, lambda[RIGHT]);
-		twRFunc.setParameter(2, order[RIGHT]);
+		twRFunc.setParameter(0, 1.0);
+		twRFunc.setParameter(1, fitLambda[RIGHT]/2);
+		twRFunc.setParameter(2, fitOrder[RIGHT]);
 		try {
 			DataFitter.fit(twRFunc, twRGraph, "RNQ");
 		}
@@ -285,7 +286,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 	public Double getLambdaLeft(int sector, int layer, int paddle) {
 
-		return dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc").getParameter(1);
+		return 2.0 * dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc").getParameter(1);
 	}	
 
 	public Double getOrderLeft(int sector, int layer, int paddle) {
@@ -295,7 +296,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		
 	public Double getLambdaRight(int sector, int layer, int paddle) {
 
-		return dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc").getParameter(1);
+		return 2.0 * dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc").getParameter(1);
 	}	
 
 	public Double getOrderRight(int sector, int layer, int paddle) {

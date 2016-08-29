@@ -125,35 +125,42 @@ public class TOFPaddle {
     	// hardcoded for S1 P10 as that's the data I have
     	return 410.0;
     }
-
-    
-	private double veffOffset() {
-		return 0.0; // get from calibration database, store locally to save going to database for every event
-	}
 	
 	private double veff() {
-		return 16.0; // get from calibration database, store locally to save going to database for every event
+		return 15.0; // get from calibration database, store locally to save going to database for every event
 	}  
     
 	public double[] timeResiduals(double[] lambda, double[] order) {
 		double[] tr = {0.0, 0.0};
 		
-		//double timeL = tdcToTime(TDCL);
-		//double timeR = tdcToTime(TDCR);
-		double timeL = getTWTimeL();
-		double timeR = getTWTimeR();
-		
-		timeL = timeL - veffOffset();
-		timeR = timeR + veffOffset();
-		
+		double timeL = tdcToTime(TDCL);
+		double timeR = tdcToTime(TDCR);
+//		double timeL = getTWTimeL();
+//		double timeR = getTWTimeR();
+
 		double timeLCorr = timeL - (lambda[LEFT]/Math.pow(ADCL, order[LEFT]));
 		double timeRCorr = timeR - (lambda[RIGHT]/Math.pow(ADCR, order[RIGHT]));
 		
-		tr[LEFT] =  ((timeL - timeRCorr)/2) - (paddleY()/veff());
-		tr[RIGHT] = ((timeLCorr - timeR)/2) - (paddleY()/veff());
-		
+		tr[LEFT] =  ((timeLCorr - timeR)/2) - (paddleY()/veff());
+		tr[RIGHT] = ((timeL - timeRCorr)/2) - (paddleY()/veff());
+
 		return tr;
 	}      
+	
+	public double[] timeResidualsTest(double[] lambda, double[] order) {
+		double[] tr = {0.0, 0.0};
+		
+		double timeL = tdcToTime(TDCL);
+		double timeR = tdcToTime(TDCR);
+
+		double timeLCorr = timeL - (lambda[LEFT]/Math.pow(ADCL, order[LEFT]));
+		double timeRCorr = timeR - (lambda[RIGHT]/Math.pow(ADCR, order[RIGHT]));
+
+		tr[LEFT] =  ((timeL - timeR)/2) - (paddleY()/veff());
+		tr[RIGHT] = ((timeLCorr - timeRCorr)/2) - (paddleY()/veff());
+
+		return tr;
+	}	
     
     public double leftRight() {
     	double timeLeft=tdcToTime(TDCL);
