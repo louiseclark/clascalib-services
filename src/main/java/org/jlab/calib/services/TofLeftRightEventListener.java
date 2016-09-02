@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.TreeMap;
 
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 
@@ -39,40 +40,26 @@ import org.jlab.utils.groups.IndexedList;
 
 public class TofLeftRightEventListener extends TOFCalibrationEngine {
 
-	public final static int[]		NUM_PADDLES = {23,62,5};
-	public final static String[]	LAYER_NAME = {"FTOF1A","FTOF1B","FTOF2"};
-	final double LEFT_RIGHT_RATIO = 0.3;
+	// indices for override values
+	public final int LEFTRIGHT_OVERRIDE = 0;
 	
-	CalibrationConstants calib;
-	IndexedList<DataGroup> dataGroups = new IndexedList<DataGroup>(3);
-
+	final double LEFT_RIGHT_RATIO = 0.3;
+	final double MAX_LEFTRIGHT = 0.1;
+	
 	public TofLeftRightEventListener() {
 
 		stepName = "Left Right";
+		fileNamePrefix = "FTOF_CALIB_LEFTRIGHT_";
+		// get file name here so that each timer update overwrites it
+		filename = nextFileName();
+		
 		calib = new CalibrationConstants(3,
 				"left_right/F");
 		calib.setName("/calibration/ftof/timing_offset");
+		calib.setPrecision(3);
+		
+		calib.addConstraint(3, -MAX_LEFTRIGHT, MAX_LEFTRIGHT);
 
-	}
-
-	@Override
-	public void dataEventAction(DataEvent event) {
-
-		if (event.getType()==DataEventType.EVENT_START) {
-			resetEventListener();
-			processEvent(event);
-		}
-		else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
-			processEvent(event);
-		}
-		else if (event.getType()==DataEventType.EVENT_STOP) {
-			analyze();
-		} 
-
-	}
-
-	public void timerUpdate() {
-		analyze();
 	}
 
 	public void resetEventListener() {
@@ -98,6 +85,11 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 					dg.addDataSet(hist, 0);
 					dg.addDataSet(edgeToEdgeFunc, 0);
 					dataGroups.add(dg, sector,layer,paddle);
+					
+					// initialize the constants array
+					Double[] consts = {UNDEFINED_OVERRIDE};
+					// override value
+					constants.add(consts, sector, layer, paddle);
 
 				}
 			}
@@ -125,20 +117,9 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		}
 	}
 
-
-	public void analyze() {
-		for (int sector = 1; sector <= 6; sector++) {
-			for (int layer = 1; layer <= 3; layer++) {
-				int layer_index = layer - 1;
-				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
-					fit(sector, layer, paddle);
-				}
-			}
-		}
-		save();
-	}
-
-	public void fit(int sector, int layer, int paddle) {
+	@Override
+	public void fit(int sector, int layer, int paddle,
+			double minRange, double maxRange) {
 		
 		H1F leftRightHist = dataGroups.getItem(sector,layer,paddle).getH1F("left_right");
 		
@@ -224,41 +205,59 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		
 	}
 	
+	@Override
+	public void customFit(int sector, int layer, int paddle){
+
+		String[] fields = { "Override centroid:" , "SPACE"};
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+
+		int result = JOptionPane.showConfirmDialog(null, panel, 
+				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);
+		if (result == JOptionPane.OK_OPTION) {
+
+			double overrideValue = toDouble(panel.textFields[0].getText());
+			
+			// save the override values
+			Double[] consts = constants.getItem(sector, layer, paddle);
+			consts[LEFTRIGHT_OVERRIDE] = overrideValue;
+			
+			fit(sector, layer, paddle);
+
+			// update the table
+			saveRow(sector,layer,paddle);
+			calib.fireTableDataChanged();
+			
+		}	 
+	}
+	
 	public Double getCentroid(int sector, int layer, int paddle) {
 		
 		double leftRight = 0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[LEFTRIGHT_OVERRIDE];
 
-		double min = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMin(); 
-		double max = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMax();
-		leftRight = (min+max)/2.0;
-		
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			leftRight = overrideVal;
+		}
+		else {
+			double min = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMin(); 
+			double max = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMax();
+			leftRight = (min+max)/2.0;
+		}
 		return leftRight;
 	}
 
-	public void save() {
-
-		for (int sector = 1; sector <= 6; sector++) {
-			for (int layer = 1; layer <= 3; layer++) {
-				int layer_index = layer - 1;
-				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
-					calib.addEntry(sector, layer, paddle);
-					calib.setDoubleValue(getCentroid(sector,layer,paddle),
-							"left_right", sector, layer, paddle);
-				}
-			}
-		}
-		calib.save("FTOF_CALIB_LEFTRIGHT.txt");
-	}
-
 	@Override
-	public List<CalibrationConstants> getCalibrationConstants() {
-		
-		return Arrays.asList(calib);
+	public void saveRow(int sector, int layer, int paddle) {
+		calib.setDoubleValue(getCentroid(sector,layer,paddle),
+				"left_right", sector, layer, paddle);
 	}
-
+	
 	@Override
-	public IndexedList<DataGroup>  getDataGroup(){
-		return dataGroups;
+	public boolean isGoodPaddle(int sector, int layer, int paddle) {
+
+		return (getCentroid(sector,layer,paddle) >= -MAX_LEFTRIGHT
+			&&
+			getCentroid(sector,layer,paddle) <= MAX_LEFTRIGHT);
 	}
 
 	@Override

@@ -25,7 +25,7 @@ import org.jlab.io.base.DataEvent;
 import org.jlab.io.base.DataEventType;
 import org.jlab.utils.groups.IndexedList;
 
-public class CtofHVEventListener extends TOFCalibrationEngine {
+public class CtofHVEventListener extends CTOFCalibrationEngine {
 
 	// hists
 	public final int GEOMEAN = 0;
@@ -40,76 +40,74 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 	public final int LOGRATIO_UNC_OVERRIDE = 5;	
 
 	// calibration values
-	private final double[]		GM_HIST_MAX = {4000.0,8000.0,3000.0};
-	private final int[]			GM_HIST_BINS = {200, 300, 150};
+	private final double		GM_HIST_MAX = 8000.0;
+	private final int			GM_HIST_BINS = 300;
 	private final double 		LR_THRESHOLD_FRACTION = 0.2;
 	private final int			GM_REBIN_THRESHOLD = 50000;
 
-	public final int[]		EXPECTED_MIP_CHANNEL = {800, 2000, 800};
+	public final int		EXPECTED_MIP_CHANNEL = 2000;
 	public final int		ALLOWED_MIP_DIFF = 50;
 
 	public CtofHVEventListener() {
 
+		stepName = "HV";
+		fileNamePrefix = "CTOF_CALIB_HV_";
+		// get file name here so that each timer update overwrites it
+		filename = nextFileName();
+		
 		calib = new CalibrationConstants(3,
 				"mipa_left/F:mipa_right/F:mipa_left_err/F:mipa_right_err/F:logratio/F:logratio_err/F");
-		calib.setName("/calibration/ftof/gain_balance");
+		calib.setName("/calibration/ctof/gain_balance");
 		calib.setPrecision(3); // record calibration constants to 3 dp
 		
-		for (int i=0; i<3; i++) {
-			
-			int layer = i+1;
-			calib.addConstraint(3, EXPECTED_MIP_CHANNEL[i]-ALLOWED_MIP_DIFF, 
-								   EXPECTED_MIP_CHANNEL[i]+ALLOWED_MIP_DIFF, 1, layer);
-			// calib.addConstraint(calibration column, min value, max value,
-			// col to check if constraint should apply, value of col if constraint should be applied);
-			// (omit last two if applying to all rows)
-			calib.addConstraint(4, EXPECTED_MIP_CHANNEL[i]-ALLOWED_MIP_DIFF, 
-					   EXPECTED_MIP_CHANNEL[i]+ALLOWED_MIP_DIFF, 1, layer);
-		}
+		calib.addConstraint(3, EXPECTED_MIP_CHANNEL-ALLOWED_MIP_DIFF, 
+								   EXPECTED_MIP_CHANNEL+ALLOWED_MIP_DIFF);
+		// calib.addConstraint(calibration column, min value, max value,
+		// col to check if constraint should apply, value of col if constraint should be applied);
+		// (omit last two if applying to all rows)
+		calib.addConstraint(4, EXPECTED_MIP_CHANNEL-ALLOWED_MIP_DIFF, 
+					   EXPECTED_MIP_CHANNEL+ALLOWED_MIP_DIFF);
 	}
 
 	@Override
 	public void resetEventListener() {
 
 		// LC perform init processing
-		for (int sector = 1; sector <= 6; sector++) {
-			for (int layer = 1; layer <= 3; layer++) {
-				int layer_index = layer - 1;
-				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 
-					// create all the histograms
-					TOFH1F geoMeanHist = new TOFH1F("geomean",
-							"Geometric Mean Sector "+sector+" Paddle "+paddle, 
-							GM_HIST_BINS[layer_index], 0.0, GM_HIST_MAX[layer_index]);
-					H1F logRatioHist = new TOFH1F("logratio",
-							"Log Ratio Sector "+sector+" Paddle "+paddle, 75,-6.0,6.0);
+		for (int paddle = 1; paddle <= NUM_PADDLES; paddle++) {
 
-					// create all the functions
-					F1D gmFunc = new F1D("gmFunc", "[amp]*landau(x,[mean],[sigma]) +[exp_amp]*exp([p]*x)",
-							 0.0, GM_HIST_MAX[layer_index]);
-					F1D lrFunc = new F1D("lrFunc","[height]",-6.0,6.0);
+			// create all the histograms
+			TOFH1F geoMeanHist = new TOFH1F("geomean",
+					"Geometric Mean Paddle "+paddle, 
+					GM_HIST_BINS, 0.0, GM_HIST_MAX);
+			H1F logRatioHist = new TOFH1F("logratio",
+					"Log Ratio Paddle "+paddle, 75,-6.0,6.0);
 
-					
-					DataGroup dg = new DataGroup(2,1);
-					dg.addDataSet(geoMeanHist, GEOMEAN);
-					dg.addDataSet(logRatioHist, LOGRATIO);
-					dg.addDataSet(gmFunc, GEOMEAN);
-					dg.addDataSet(lrFunc, LOGRATIO);
-					dataGroups.add(dg, sector,layer,paddle);
+			// create all the functions
+			F1D gmFunc = new F1D("gmFunc", "[amp]*landau(x,[mean],[sigma]) +[exp_amp]*exp([p]*x)",
+					0.0, GM_HIST_MAX);
+			F1D lrFunc = new F1D("lrFunc","[height]",-6.0,6.0);
 
-					// initialize the constants array
-					Double[] consts = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-					// Logratio, log ratio unc, override values
-					
-					constants.add(consts, sector, layer, paddle);
-				}
-			}
+
+			DataGroup dg = new DataGroup(2,1);
+			dg.addDataSet(geoMeanHist, GEOMEAN);
+			dg.addDataSet(logRatioHist, LOGRATIO);
+			dg.addDataSet(gmFunc, GEOMEAN);
+			dg.addDataSet(lrFunc, LOGRATIO);
+			dataGroups.add(dg, 1,1,paddle);
+
+			// initialize the constants array
+			Double[] consts = {0.0, 0.0, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
+			// Logratio, log ratio unc, override values
+
+			constants.add(consts, 1, 1, paddle);
 		}
 	}
 
 	@Override
 	public void processEvent(DataEvent event) {
 
+		//System.out.println("CTOF processEvent");
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
 		processPaddleList(paddleList);
 
@@ -118,17 +116,22 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 	@Override
 	public void processPaddleList(List<TOFPaddle> paddleList) {
 
+		//System.out.println("CTOF processPaddleList");
+
 		for (TOFPaddle paddle : paddleList) {
 			
 			int sector = paddle.getDescriptor().getSector();
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
 
+			//System.out.println("Got paddle "+sector+layer+component);
 			if (paddle.isValidGeoMean()) {
+				//System.out.println("Filling geomean "+paddle.geometricMean());
 				dataGroups.getItem(sector,layer,component).getH1F("geomean").fill(paddle.geometricMean());
 			}
 
 			if (paddle.isValidLogRatio()) {
+				//System.out.println("Filling logratio "+paddle.logRatio());
 				dataGroups.getItem(sector,layer,component).getH1F("logratio").fill(paddle.logRatio());
 			}
 		}
@@ -144,13 +147,11 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 	public void fitGeoMean(int sector, int layer, int paddle,
 			double minRange, double maxRange){
 
-		int layer_index = layer-1;
-
 		TOFH1F h = (TOFH1F) dataGroups.getItem(sector,layer,paddle).getH1F("geomean");;
 		
 		// First rebin depending on number of entries
 		int nEntries = h.getEntries(); 
-		if ((nEntries != 0) && (h.getAxis().getNBins() == GM_HIST_BINS[layer_index])) {
+		if ((nEntries != 0) && (h.getAxis().getNBins() == GM_HIST_BINS)) {
 			//   not empty      &&   hasn't already been rebinned
 			int nRebin=(int) (GM_REBIN_THRESHOLD/nEntries);            
 			if (nRebin>5) {
@@ -165,15 +166,15 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 		double maxChannel = h.getAxis().getBinCenter(h.getAxis().getNBins()-1);
 		double startChannelForFit = 0.0;
 		double endChannelForFit = 0.0;
-		if (minRange==0.0) {
+		if (minRange==UNDEFINED_OVERRIDE) {
 			// default value
-			startChannelForFit = EXPECTED_MIP_CHANNEL[layer-1] * 0.75;
+			startChannelForFit = EXPECTED_MIP_CHANNEL * 0.75;
 		}
 		else {
 			// custom value
 			startChannelForFit = minRange;
 		}
-		if (maxRange==0.0) {
+		if (maxRange==UNDEFINED_OVERRIDE) {
 			//default value
 			endChannelForFit = maxChannel * 0.9;
 		}
@@ -202,10 +203,10 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 //		if (minRange == 0.0) {
 //			startChannelForFit = maxPos*0.5;
 //		}
-		if (maxRange == 0.0) {
-			endChannelForFit = maxPos+GM_HIST_MAX[layer_index]*0.4;
-			if (endChannelForFit > 0.9*GM_HIST_MAX[layer_index]) {
-				endChannelForFit = 0.9*GM_HIST_MAX[layer_index];
+		if (maxRange == UNDEFINED_OVERRIDE) {
+			endChannelForFit = maxPos+GM_HIST_MAX*0.4;
+			if (endChannelForFit > 0.9*GM_HIST_MAX) {
+				endChannelForFit = 0.9*GM_HIST_MAX;
 			}	
 		}
 
@@ -298,7 +299,8 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 		consts[LR_ERROR] = logRatioError;
 
 	}
-
+	
+	@Override
 	public void customFit(int sector, int layer, int paddle){
 
 		String[] fields = {"Min range for geometric mean fit:", "Max range for geometric mean fit:", "SPACE",
@@ -333,24 +335,18 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 		}	 
 	}
 
-	
 	public double getMipChannel(int sector, int layer, int paddle) {
 
 		double mipChannel = 0.0;
-		double overrideVal = 0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[GEOMEAN_OVERRIDE];
 
-		// has the value been overridden?
-		if (constants.hasItem(sector,layer,paddle)) {
-			overrideVal = constants.getItem(sector, layer, paddle)[GEOMEAN_OVERRIDE];
-		}
-
-		if (overrideVal != 0.0) {
+		if (overrideVal != UNDEFINED_OVERRIDE) {
 			mipChannel = overrideVal;
 		}
 		else {
 			if (dataGroups.hasItem(sector, layer, paddle)) {
 				F1D f = dataGroups.getItem(sector,layer,paddle).getF1D("gmFunc");
-				return f.getParameter(1);
+				mipChannel = f.getParameter(1);
 			}
 		}
 		return mipChannel;
@@ -359,14 +355,9 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 	public double getMipChannelUnc(int sector, int layer, int paddle) {
 
 		double mipChannelUnc = 0.0;
-		double overrideVal = 0.0;
-
-		// has the value been overridden?
-		if (constants.hasItem(sector,layer,paddle)) {
-			overrideVal = constants.getItem(sector, layer, paddle)[GEOMEAN_UNC_OVERRIDE];
-		}
-
-		if (overrideVal != 0.0) {
+		double overrideVal = constants.getItem(sector, layer, paddle)[GEOMEAN_UNC_OVERRIDE];
+		
+		if (overrideVal != UNDEFINED_OVERRIDE) {
 			mipChannelUnc = overrideVal;
 		}
 		else {
@@ -391,17 +382,12 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 		// has the value been overridden?
 		double overrideVal = constants.getItem(sector, layer, paddle)[LOGRATIO_OVERRIDE];
 		
-		if (overrideVal != 0.0) {
+		if (overrideVal != UNDEFINED_OVERRIDE) {
 			logRatio = overrideVal;
 		}
-		else if (constants.hasItem(sector, layer, paddle)) {
-			
+		else  {	
 			logRatio = constants.getItem(sector, layer, paddle)[LR_CENTROID];
-		}
-		else {
-			logRatio = 0.0;
-		}
-				
+		}		
 		return logRatio;
 		
 	}
@@ -412,21 +398,17 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 		// has the value been overridden?
 		double overrideVal = constants.getItem(sector, layer, paddle)[LOGRATIO_UNC_OVERRIDE];
 		
-		if (overrideVal != 0.0) {
+		if (overrideVal != UNDEFINED_OVERRIDE) {
 			logRatioUnc = overrideVal;
 		}
-		else if (constants.hasItem(sector, layer, paddle)) {
-			
-			logRatioUnc = constants.getItem(sector, layer, paddle)[LR_ERROR];
-		}
 		else {
-			logRatioUnc = 0.0;
-		}
-				
+			logRatioUnc = constants.getItem(sector, layer, paddle)[LR_ERROR];
+		}		
 		return logRatioUnc;
 	}	
 	
-	private void saveRow(int sector, int layer, int paddle) {
+	@Override
+	public void saveRow(int sector, int layer, int paddle) {
 		calib.setDoubleValue(getMipChannel(sector,layer,paddle),
 				"mipa_left", sector, layer, paddle);
 		calib.setDoubleValue(getMipChannel(sector,layer,paddle),
@@ -441,34 +423,18 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 				"logratio_err", sector, layer, paddle);
 		
 	}
-
-	@Override
-	public void save() {
-
-		for (int sector = 1; sector <= 6; sector++) {
-			for (int layer = 1; layer <= 3; layer++) {
-				int layer_index = layer - 1;
-				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
-					calib.addEntry(sector, layer, paddle);
-					saveRow(sector,layer,paddle);
-				}
-			}
-		}
-		calib.save("FTOF_CALIB_HV.txt");
-	}
 	
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
 				
-		int layer_index = layer-1;
-		double[] paddleNumbers = new double[NUM_PADDLES[layer_index]];
-		double[] paddleUncs = new double[NUM_PADDLES[layer_index]];
-		double[] MIPChannels = new double[NUM_PADDLES[layer_index]];
-		double[] MIPChannelUncs = new double[NUM_PADDLES[layer_index]];
-		double[] LogRatios = new double[NUM_PADDLES[layer_index]];
-		double[] LogRatioUncs = new double[NUM_PADDLES[layer_index]];
+		double[] paddleNumbers = new double[NUM_PADDLES];
+		double[] paddleUncs = new double[NUM_PADDLES];
+		double[] MIPChannels = new double[NUM_PADDLES];
+		double[] MIPChannelUncs = new double[NUM_PADDLES];
+		double[] LogRatios = new double[NUM_PADDLES];
+		double[] LogRatioUncs = new double[NUM_PADDLES];
 
-		for (int p = 1; p <= NUM_PADDLES[layer_index]; p++) {
+		for (int p = 1; p <= NUM_PADDLES; p++) {
 
 			paddleNumbers[p - 1] = (double) p;
 			paddleUncs[p - 1] = 0.0;
@@ -481,24 +447,24 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 		GraphErrors gmSumm = new GraphErrors("gmSumm", paddleNumbers,
 				MIPChannels, paddleUncs, MIPChannelUncs);
 		
-//		summary.setTitle("MIP Channel: "
+//		gmSumm.setTitle("MIP Channel: "
 //				+ LAYER_NAME[paddle - 1] + " Sector "
 //				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("MIP Channel");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
+//		gmSumm.setXTitle("Paddle Number");
+//		gmSumm.setYTitle("MIP Channel");
+//		gmSumm.setMarkerSize(5);
+//		gmSumm.setMarkerStyle(2);
 //		
 
 		GraphErrors lrSumm = new GraphErrors("lrSumm", paddleNumbers,
 				LogRatios, paddleUncs, LogRatioUncs);
-//		summary.setTitle("Log ratio: "
+//		gmSumm.setTitle("Log ratio: "
 //				+ TOFCalibration.LAYER_NAME[paddle - 1] + " Sector "
 //				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("Log ratio");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
+//		gmSumm.setXTitle("Paddle Number");
+//		gmSumm.setYTitle("Log ratio");
+//		gmSumm.setMarkerSize(5);
+//		gmSumm.setMarkerStyle(2);
 
 		DataGroup dg = new DataGroup(2,1);
 		dg.addDataSet(gmSumm, GEOMEAN);
@@ -511,9 +477,9 @@ public class CtofHVEventListener extends TOFCalibrationEngine {
 	@Override
 	public boolean isGoodPaddle(int sector, int layer, int paddle) {
 
-		return (getMipChannel(sector,layer,paddle) >= EXPECTED_MIP_CHANNEL[layer-1]-ALLOWED_MIP_DIFF
+		return (getMipChannel(sector,layer,paddle) >= EXPECTED_MIP_CHANNEL-ALLOWED_MIP_DIFF
 			&&
-			getMipChannel(sector,layer,paddle) <= EXPECTED_MIP_CHANNEL[layer-1]+ALLOWED_MIP_DIFF);
+			getMipChannel(sector,layer,paddle) <= EXPECTED_MIP_CHANNEL+ALLOWED_MIP_DIFF);
 
 	}
 

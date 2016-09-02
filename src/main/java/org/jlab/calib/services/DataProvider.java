@@ -30,6 +30,7 @@ import org.jlab.utils.groups.IndexedTable;
 public class DataProvider {
 
 	public static FTOFDetectorMesh ftofDetector;
+	private static	boolean test = false;
 
 	public static void getGeometry() {
 
@@ -42,13 +43,12 @@ public class DataProvider {
 
 		List<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 
-//				if (event.hasBank("FTOF::dgtz")) {
-//					paddleList = getPaddleListDgtzNew(event);
-//				}
-		//		else 
 				if (event.hasBank("FTOF1A::dgtz")||event.hasBank("FTOF1B::dgtz")||event.hasBank("FTOF2B::dgtz")) {
-		        	paddleList = getPaddleListDgtzOld(event);
+					paddleList = getPaddleListDgtzOld(event);
 				}
+//				else { 
+//		        	paddleList = getPaddleListDgtzNew(event);
+//				}
 
 		//paddleList = getPaddleListTWTest(event);
 		return paddleList;
@@ -59,7 +59,6 @@ public class DataProvider {
 
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 
-		boolean test = false;
 		if (test) {
 			EvioDataEvent e = (EvioDataEvent) event;
 			e.show();
@@ -140,7 +139,6 @@ public class DataProvider {
 
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 
-		boolean test = false;
 		if (test) {
 			EvioDataEvent e = (EvioDataEvent) event;
 			e.show();
@@ -239,7 +237,6 @@ public class DataProvider {
 
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 
-		boolean test = false;
 		if (test) {
 			EvioDataEvent e = (EvioDataEvent) event;
 			e.show();

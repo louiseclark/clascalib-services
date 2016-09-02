@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.TreeMap;
 
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 
@@ -40,11 +41,20 @@ import org.jlab.io.task.IDataEventListener;
 import org.jlab.utils.groups.IndexedList;
 
 
-public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventListener {
+public class TofAttenEventListener extends TOFCalibrationEngine { 
 
+	// constants for indexing the constants array
+	public final int ATTEN_OVERRIDE = 0;
+	public final int ATTEN_UNC_OVERRIDE = 1;
+	public final int OFFSET_OVERRIDE = 2;
+	
 	public TofAttenEventListener() {
 
 		stepName = "Attenuation Length";
+		fileNamePrefix = "FTOF_CALIB_ATTEN_";
+		// get file name here so that each timer update overwrites it
+		filename = nextFileName();
+		
 		calib = new CalibrationConstants(3,
 				"attlen_left/F:attlen_right/F:attlen_left_err/F:attlen_right_err/F:y_offset/F");
 		calib.setName("/calibration/ftof/attenuation");
@@ -99,6 +109,12 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 					dg.addDataSet(attenFunc, 1);
 					dataGroups.add(dg, sector,layer,paddle);
 					
+					// initialize the constants array
+					Double[] consts = {UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
+					// override values
+					
+					constants.add(consts, sector, layer, paddle);
+					
 				}
 			}
 		}
@@ -124,8 +140,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 					paddle.position(), paddle.logRatio());
 		}
 	}
-
-
+    
     @Override
 	public void fit(int sector, int layer, int paddle, double minRange,
 			double maxRange) {
@@ -139,14 +154,23 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 		double lowLimit;
 		double highLimit;
 
-		if (minRange != 0.0 && maxRange != 0.0) {
-
-			// use custom values for fit
-			lowLimit = minRange;
-			highLimit = maxRange;
-		} else {
+		if (minRange == UNDEFINED_OVERRIDE) {
+			// default value
 			lowLimit = paddleLength(sector,layer,paddle) * -0.4;
+		} 
+		else {
+			// custom value
+			lowLimit = minRange;
+		}
+
+		
+		if (maxRange == UNDEFINED_OVERRIDE) {
+			// default value
 			highLimit = paddleLength(sector,layer,paddle) * 0.4;
+		} 
+		else {
+			// custom value
+			highLimit = maxRange;
 		}
 
 //		System.out.println("SLC "+sector+layer+paddle);
@@ -155,7 +179,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 		F1D attenFunc = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc");
 		attenFunc.setRange(lowLimit, highLimit);
 		attenFunc.setParameter(0, 0.0);
-		attenFunc.setParameter(1, 2.0/200.0);
+		attenFunc.setParameter(1, 2.0/expectedAttlen(sector,layer,paddle));
 		attenFunc.setParLimits(0, -5.0, 5.0);
 		attenFunc.setParLimits(1, 2.0/500.0, 2.0/10.0);
 		DataFitter.fit(attenFunc, meanGraph, "RNQ");
@@ -173,15 +197,54 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 		
 	}
 
+	public void customFit(int sector, int layer, int paddle){
+
+		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
+				"Override Attenuation Length:", "Override Attenuation Length uncertainty:",
+				"Override offset:" };
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+
+		int result = JOptionPane.showConfirmDialog(null, panel, 
+				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);
+		if (result == JOptionPane.OK_OPTION) {
+
+			double minRange = toDouble(panel.textFields[0].getText());
+			double maxRange = toDouble(panel.textFields[1].getText());
+			double overrideValue = toDouble(panel.textFields[2].getText());
+			double overrideUnc = toDouble(panel.textFields[3].getText());			
+			double overrideOffset = toDouble(panel.textFields[4].getText());		
+			
+			// save the override values
+			Double[] consts = constants.getItem(sector, layer, paddle);
+			consts[ATTEN_OVERRIDE] = overrideValue;
+			consts[ATTEN_UNC_OVERRIDE] = overrideUnc;
+			consts[OFFSET_OVERRIDE] = overrideOffset;
+			
+			fit(sector, layer, paddle, minRange, maxRange);
+
+			// update the table
+			saveRow(sector,layer,paddle);
+			calib.fireTableDataChanged();
+			
+		}	 
+	}
+    
 	public Double getAttlen(int sector, int layer, int paddle) {
 
 		double attLen = 0.0;
-		double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
-				.getParameter(1);
-		if (gradient == 0.0) {
-			attLen = 0.0;
-		} else {
-			attLen = 2 / gradient;
+		double overrideVal = constants.getItem(sector, layer, paddle)[ATTEN_OVERRIDE];
+
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			attLen = overrideVal;
+		}
+		else {
+			double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
+					.getParameter(1);
+			if (gradient == 0.0) {
+				attLen = 0.0;
+			} else {
+				attLen = 2 / gradient;
+			}
 		}
 
 		return attLen;
@@ -190,49 +253,56 @@ public class TofAttenEventListener extends TOFCalibrationEngine { // IDataEventL
 	public Double getAttlenError(int sector, int layer, int paddle) {
 
 		double attLenUnc = 0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[ATTEN_UNC_OVERRIDE];
 
-		double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
-				.getParameter(1);
-		double gradientErr = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
-				.parameter(1).error();
-		double attlen = getAttlen(sector, layer, paddle);
-		if (gradient == 0.0) {
-			attLenUnc = 0.0;
-		} else {
-			attLenUnc = (gradientErr / gradient) * attlen;
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			attLenUnc = overrideVal;
+		}
+		else {
+			double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
+					.getParameter(1);
+			double gradientErr = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
+					.parameter(1).error();
+			double attlen = getAttlen(sector, layer, paddle);
+			if (gradient == 0.0) {
+				attLenUnc = 0.0;
+			} else {
+				attLenUnc = (gradientErr / gradient) * attlen;
+			}
 		}
 		return attLenUnc;
 	}
 	
 	public Double getOffset(int sector, int layer, int paddle) {
 		
-		return dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
-				.getParameter(1);
-
-	}	
-
-	@Override
-	public void save() {
-
-		for (int sector = 1; sector <= 6; sector++) {
-			for (int layer = 1; layer <= 3; layer++) {
-				int layer_index = layer - 1;
-				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
-					calib.addEntry(sector, layer, paddle);
-					calib.setDoubleValue(getAttlen(sector,layer,paddle),
-							"attlen_left", sector, layer, paddle);
-					calib.setDoubleValue(getAttlen(sector,layer,paddle),
-							"attlen_right", sector, layer, paddle);
-					calib.setDoubleValue(getAttlenError(sector,layer,paddle),
-							"attlen_left_err", sector, layer, paddle);
-					calib.setDoubleValue(getAttlenError(sector,layer,paddle),
-							"attlen_right_err", sector, layer, paddle);
-					calib.setDoubleValue(getOffset(sector,layer,paddle),
-							"y_offset", sector, layer, paddle);
-				}
-			}
+		double offset = 0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[OFFSET_OVERRIDE];
+		
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			offset = overrideVal;
 		}
-		calib.save("FTOF_CALIB_ATTEN.txt");
+		else {
+			offset = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
+					.getParameter(1);
+		}
+		
+		return offset;
+
+	}
+	
+	@Override
+	public void saveRow(int sector, int layer, int paddle) {
+		calib.setDoubleValue(getAttlen(sector,layer,paddle),
+				"attlen_left", sector, layer, paddle);
+		calib.setDoubleValue(getAttlen(sector,layer,paddle),
+				"attlen_right", sector, layer, paddle);
+		calib.setDoubleValue(getAttlenError(sector,layer,paddle),
+				"attlen_left_err", sector, layer, paddle);
+		calib.setDoubleValue(getAttlenError(sector,layer,paddle),
+				"attlen_right_err", sector, layer, paddle);
+		calib.setDoubleValue(getOffset(sector,layer,paddle),
+				"y_offset", sector, layer, paddle);
+
 	}
 		
 	public double expectedAttlen(int sector, int layer, int paddle) {

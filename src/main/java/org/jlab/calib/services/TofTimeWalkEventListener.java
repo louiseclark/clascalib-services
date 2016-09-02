@@ -1,71 +1,53 @@
 package org.jlab.calib.services;
 
 
-import java.awt.BorderLayout;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
-import java.util.TreeMap;
 
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JSplitPane;
+import javax.swing.JOptionPane;
 
-import org.jlab.detector.base.DetectorType;
-import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.utils.CalibrationConstants;
-import org.jlab.detector.decode.CodaEventDecoder;
-import org.jlab.detector.decode.DetectorDataDgtz;
-import org.jlab.detector.decode.DetectorDecoderView;
-import org.jlab.detector.decode.DetectorEventDecoder;
-import org.jlab.detector.examples.RawEventViewer;
-import org.jlab.detector.view.DetectorPane2D;
-import org.jlab.detector.view.DetectorShape2D;
 import org.jlab.groot.data.GraphErrors;
-import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
 import org.jlab.groot.fitter.DataFitter;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
 import org.jlab.groot.math.F1D;
 import org.jlab.io.base.DataEvent;
-import org.jlab.io.base.DataEventType;
-import org.jlab.io.evio.EvioDataEvent;
-import org.jlab.io.task.DataSourceProcessorPane;
-import org.jlab.io.task.IDataEventListener;
 import org.jlab.utils.groups.IndexedList;
 
 public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 	public final int NUM_ITERATIONS = 5;
 
+	private List<TOFPaddle>     allPaddleList = new ArrayList<TOFPaddle>();
+	
 	// constants for indexing the histograms
 	public final int LEFT = 0;
 	public final int RIGHT = 1;
 	
-//	// indices for constants
-//	public final int LAMBDA_LEFT = 0;
-//	public final int ORDER_LEFT = 1;
-//	public final int LAMBDA_RIGHT = 2;
-//	public final int ORDER_RIGHT = 3;
+	// indices for constants
+	public final int LAMBDA_LEFT_OVERRIDE = 0;
+	public final int ORDER_LEFT_OVERRIDE = 1;
+	public final int LAMBDA_RIGHT_OVERRIDE = 2;
+	public final int ORDER_RIGHT_OVERRIDE = 3;
 
+
+	private final double[]		ADC_MIN = {0.0, 300.0, 300.0, 300.0};
 	private final double[]		ADC_MAX = {0.0,	3000.0,	8000.0,	3000.0};
 	private final double[]		FIT_MIN = {0.0,	200.0, 	300.0, 	100.0};
 	private final double[]		FIT_MAX = {0.0, 2000.0,	5000.0, 1200.0};
 
 	double[] fitLambda = {40.0,40.0};  // starting values for the fit
 	double[] fitOrder = {0.5,0.5};  // starting values for the fit
-	double[] lambda = {0.0,0.0};
-	double[] order = {0.0,0.0};
 	
-	//IndexedList<CalibrationConstants> calibList;
-	
-	//private int iter = 1; // will be passed as parameter
-
 	public TofTimeWalkEventListener() {
 
 		stepName = "Timewalk";
+		fileNamePrefix = "FTOF_CALIB_TIMEWALK_";
+		// get file name here so that each timer update overwrites it
+		filename = nextFileName();
+		
 		calib = 
 				new CalibrationConstants(3,
 						"tw0_left/F:tw1_left/F:tw2_left/F:tw0_right/F:tw1_right/F:tw2_right/F");
@@ -74,18 +56,31 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		calib.setPrecision(3);
 
 		// assign constraints
-		// TO DO
+		calib.addConstraint(3, fitLambda[LEFT]*0.9,
+				   fitLambda[LEFT]*1.1);
+		calib.addConstraint(4, fitOrder[LEFT]*0.9,
+				   fitOrder[LEFT]*1.1);
+		calib.addConstraint(6, fitLambda[RIGHT]*0.9,
+				   fitLambda[RIGHT]*1.1);
+		calib.addConstraint(7, fitOrder[RIGHT]*0.9,
+				   fitOrder[RIGHT]*1.1);
 
 	}
 	
 	//@Override
-//	public void timerUpdate() {
-//		// only analyze at end of events for timewalk
-//		
-//	}
+	public void timerUpdate() {
+		// only analyze at end of events for timewalk
+		
+	}
 
 	@Override
 	public void resetEventListener() {
+
+		// create the histograms for the first iteration
+		createHists(0);
+	}
+	
+	public void createHists(int iter) {
 
 		// LC perform init processing
 		for (int sector = 1; sector <= 6; sector++) {
@@ -93,45 +88,53 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				int layer_index = layer - 1;
 				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 
+					// data group format is
+					
+					DataGroup dg = new DataGroup(2,2);
+					
 					// create all the histograms
-					H2F leftHist = new H2F("TW_left",
-							"Time residual vs ADC LEFT Sector "+sector+
+					H2F leftHist = new H2F("trLeftHist",
+							"(After corrections) Time residual vs ADC LEFT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
 							100, -2.5, 2.5);
-					H2F rightHist = new H2F("TW_right",
-							"Time residual vs ADC RIGHT Sector "+sector+
+					H2F rightHist = new H2F("trRightHist",
+							"(After corrections) Time residual vs ADC RIGHT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
 							100, -2.5, 2.5);
 
-					leftHist.setTitle("Time residual vs ADC LEFT : " + LAYER_NAME[layer_index] 
+					leftHist.setTitle("(After corrections) Time residual vs ADC LEFT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
 					leftHist.setXTitle("ADC LEFT");
 					leftHist.setYTitle("Time residual");
-					rightHist.setTitle("Time residual vs ADC RIGHT : " + LAYER_NAME[layer_index] 
+					rightHist.setTitle("(After corrections) Time residual vs ADC RIGHT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
 					rightHist.setXTitle("ADC RIGHT");
 					rightHist.setYTitle("Time residual");
 					
+					dg.addDataSet(leftHist, 0);
+					dg.addDataSet(rightHist, 1);
+					
 					// create all the functions and graphs
-					F1D trLeftFunc = new F1D("trLeftFunc", "[a]-([b]/(x^[c]))", 300.0, ADC_MAX[layer]);
+					F1D trLeftFunc = new F1D("trLeftFunc", "[a]+([b]/(x^[c]))", ADC_MIN[layer], ADC_MAX[layer]);
 					GraphErrors trLeftGraph = new GraphErrors();
 					trLeftGraph.setName("trLeftGraph");					
-					F1D trRightFunc = new F1D("trRightFunc", "[a]+([b]/(x^[c]))", 300.0, ADC_MAX[layer]);
+					F1D trRightFunc = new F1D("trRightFunc", "[a]+([b]/(x^[c]))", ADC_MIN[layer], ADC_MAX[layer]);
 					GraphErrors trRightGraph = new GraphErrors();
-					trRightGraph.setName("trRightGraph");					
+					trRightGraph.setName("trRightGraph");
 					
-					DataGroup dg = new DataGroup(2,2);
-					dg.addDataSet(leftHist, 0);
-					dg.addDataSet(trLeftGraph, 2);
 					dg.addDataSet(trLeftFunc, 2);
-					dg.addDataSet(rightHist, 1);
-					dg.addDataSet(trRightGraph, 3);
+					dg.addDataSet(trLeftGraph, 2);
 					dg.addDataSet(trRightFunc, 3);
-
-					dataGroups.add(dg, sector,layer,paddle);					
-
+					dg.addDataSet(trRightGraph, 3);
+					dataGroups.add(dg,sector,layer,paddle);	
+					
+					// initialize the constants array
+					Double[] consts = {UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
+					// override values
+					
+					constants.add(consts, sector, layer, paddle);
 				}
 			}
 		}
@@ -148,43 +151,72 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	@Override
 	public void processPaddleList(List<TOFPaddle> paddleList) {
 
+		// store the paddle so we can iterate through them
 		for (TOFPaddle paddle : paddleList) {
+			allPaddleList.add(paddle);
+		}
+	}	
 
+	@Override
+	// non-standard analyze step for timewalk
+	// require to iterate through all events several times
+	public void analyze() {
+		
+		for (int iter=0; iter<NUM_ITERATIONS; iter++) {
+
+			System.out.println("Iteration "+iter);
+			createHists(iter);
+			fitAll(iter);
+
+		}
+		save();
+		calib.fireTableDataChanged();
+	}
+
+	public void fitAll(int iter) {
+		
+		for(TOFPaddle paddle : allPaddleList){
+			
+			// Fill the histograms
 			int sector = paddle.getDescriptor().getSector();
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
 
-				// fill timeResidual vs ADC
+			// fill timeResidual vs ADC
 			//double [] tr = paddle.timeResidualsTest(lambda, order);
-			double [] tr = paddle.timeResiduals(lambda, order);
+			double [] tr = paddle.timeResiduals(getLambdas(sector,layer,component,iter), 
+												getOrders(sector,layer,component,iter));
 
 			//if (paddle.includeInTimeWalk()) {
 
-				dataGroups.getItem(sector,layer,component).getH2F("TW_left").fill(paddle.ADCL, tr[LEFT]);
-				dataGroups.getItem(sector,layer,component).getH2F("TW_right").fill(paddle.ADCR, tr[RIGHT]);
+				dataGroups.getItem(sector,layer,component).getH2F("trLeftHist").fill(paddle.ADCL, tr[LEFT]);
+				dataGroups.getItem(sector,layer,component).getH2F("trRightHist").fill(paddle.ADCR, tr[RIGHT]);
 			//}
-
+						
 		}
-	}	
+		
+		// Now do the fits for this iteration
+		for (int sector = 1; sector <= 1; sector++) {
+			for (int layer = 1; layer <= 3; layer++) {
+				int layer_index = layer - 1;
+				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
+					fit(sector,layer,paddle,0.0,0.0);
+		
+//					System.out.println("SLC "+sector+layer+paddle+" Lambda left is "+getLambdaLeft(sector,layer,paddle));
+//					System.out.println("SLC "+sector+layer+paddle+" Lambda right is "+getLambdaRight(sector,layer,paddle));
+//					System.out.println("SLC "+sector+layer+paddle+" Order left is "+getOrderLeft(sector,layer,paddle));
+//					System.out.println("SLC "+sector+layer+paddle+" Order right is "+getOrderRight(sector,layer,paddle));
 
-//	public void analyze() {
-//		System.out.println("analyze");
-//		for (int sector = 1; sector <= 6; sector++) {
-//			for (int layer = 1; layer <= 3; layer++) {
-//				int layer_index = layer - 1;
-//				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
-//					fit(sector, layer, paddle);
-//				}
-//			}
-//		}
-//		save();
-//	}
-
+				}
+			}
+		}
+	}
+	
 	@Override
 	public void fit(int sector, int layer, int paddle, double minRange, double maxRange) {
 
-		H2F twL = dataGroups.getItem(sector,layer,paddle).getH2F("TW_left");
-		H2F twR = dataGroups.getItem(sector,layer,paddle).getH2F("TW_right");
+		H2F twL = dataGroups.getItem(sector,layer,paddle).getH2F("trLeftHist");
+		H2F twR = dataGroups.getItem(sector,layer,paddle).getH2F("trRightHist");
 
 //		ArrayList<H1F> twLSlices = twL.getSlicesX();
 //		ArrayList<H1F> twRSlices = twR.getSlicesX();
@@ -243,12 +275,11 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		GraphErrors twRGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trRightGraph"); 
 		twRGraph.copy(twR.getProfileX());
 		
-		
 		// fit function to the graph of means
 		F1D twLFunc = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc");
 		twLFunc.setRange(FIT_MIN[layer], FIT_MAX[layer]);
 		twLFunc.setParameter(0, 1.0);
-		twLFunc.setParameter(1, fitLambda[LEFT]/2);
+		twLFunc.setParameter(1, fitLambda[LEFT]);
 		twLFunc.setParameter(2, fitOrder[LEFT]);
 		try {
 			DataFitter.fit(twLFunc, twLGraph, "RNQ");
@@ -260,7 +291,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		F1D twRFunc = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc");
 		twRFunc.setRange(FIT_MIN[layer], FIT_MAX[layer]);
 		twRFunc.setParameter(0, 1.0);
-		twRFunc.setParameter(1, fitLambda[RIGHT]/2);
+		twRFunc.setParameter(1, fitLambda[RIGHT]);
 		twRFunc.setParameter(2, fitOrder[RIGHT]);
 		try {
 			DataFitter.fit(twRFunc, twRGraph, "RNQ");
@@ -269,42 +300,122 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			e.printStackTrace();
 		}
 		
-//		if (iter==1) {
-//			trFunc.setParameter(0, 0.0);
-//			trFunc.setParameter(1, 5.0);
-//			trFunc.setParameter(0, 0.5);
-//		}
-//		if (iter>=2){
-//			CalibrationConstants c = calibList.getItem(iter-1);
-//			trFunc.setParameter(0, 0.0);
-//			trFunc.setParameter(1, c.getDoubleValue("tw0_left", sector,layer,paddle));
-//			trFunc.setParameter(0, c.getDoubleValue("tw1_left", sector,layer,paddle));
-//		}
-//		DataFitter.fit(trFunc, meanGraph, "RNQ");
-//		System.out.println("New lambda left is "+trFunc.getParameter(1));
 	}
 
-	public Double getLambdaLeft(int sector, int layer, int paddle) {
+	public double[] getLambdas(int sector, int layer, int paddle, int iter) {
+		// leave as zero for first iteration
+		// take values from function for subsequent iterations
+		double[] lambdas = {0.0,0.0};
+		if (iter>0) {
+			lambdas[0] = getLambdaLeft(sector,layer,paddle);
+			lambdas[1] = getLambdaRight(sector,layer,paddle);
+			
+		}
+		return lambdas;
+	}
 
-		return 2.0 * dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc").getParameter(1);
+	public double[] getOrders(int sector, int layer, int paddle, int iter) {
+		// leave as zero for first iteration
+		// take values from function for subsequent iterations
+		double[] orders = {0.0,0.0};
+		if (iter>0) {
+			orders[0] = getOrderLeft(sector,layer,paddle);
+			orders[1] = getLambdaRight(sector,layer,paddle);
+			
+		}
+		return orders;
+	}
+	
+	@Override
+	public void customFit(int sector, int layer, int paddle){
+
+		String[] fields = { "Override Lambda Left:", "Override Order Left:", "SPACE",
+				"Override Lambda Right:", "Override Order Right:"};
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+
+		int result = JOptionPane.showConfirmDialog(null, panel, 
+				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);
+		if (result == JOptionPane.OK_OPTION) {
+
+			double overrideLL = toDouble(panel.textFields[0].getText());
+			double overrideOL = toDouble(panel.textFields[1].getText());
+			double overrideLR = toDouble(panel.textFields[2].getText());
+			double overrideOR = toDouble(panel.textFields[3].getText());
+			
+			// save the override values
+			Double[] consts = constants.getItem(sector, layer, paddle);
+			consts[LAMBDA_LEFT_OVERRIDE] = overrideLL;
+			consts[ORDER_LEFT_OVERRIDE] = overrideOL;
+			consts[LAMBDA_RIGHT_OVERRIDE] = overrideLR;
+			consts[ORDER_RIGHT_OVERRIDE] = overrideOR;
+
+			fit(sector, layer, paddle);
+
+			// update the table
+			saveRow(sector,layer,paddle);
+			calib.fireTableDataChanged();
+			
+		}	 
+	}
+	
+	public Double getLambdaLeft(int sector, int layer, int paddle) {
+		
+		double lambdaLeft = 0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[LAMBDA_LEFT_OVERRIDE];
+
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			lambdaLeft = overrideVal;
+		}
+		else {
+			lambdaLeft = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc").getParameter(1);
+		}
+		return lambdaLeft;
 	}	
 
 	public Double getOrderLeft(int sector, int layer, int paddle) {
 
-		return dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc").getParameter(2);
+		double orderLeft = 0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[ORDER_LEFT_OVERRIDE];
+
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			orderLeft = overrideVal;
+		}
+		else {
+			orderLeft = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc").getParameter(2);
+		}
+		return orderLeft;
 	}	
 		
 	public Double getLambdaRight(int sector, int layer, int paddle) {
+		
+		double lambdaRight = 0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[LAMBDA_RIGHT_OVERRIDE];
 
-		return 2.0 * dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc").getParameter(1);
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			lambdaRight = overrideVal;
+		}
+		else {
+			lambdaRight = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc").getParameter(1);
+		}
+		return lambdaRight;
 	}	
 
 	public Double getOrderRight(int sector, int layer, int paddle) {
 
-		return dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc").getParameter(2);
+		double orderRight = 0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[ORDER_RIGHT_OVERRIDE];
+
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			orderRight = overrideVal;
+		}
+		else {
+			orderRight = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc").getParameter(2);
+		}
+		return orderRight;
 	}	
 
-	private void saveRow(int sector, int layer, int paddle) {
+	@Override
+	public void saveRow(int sector, int layer, int paddle) {
 
 		calib.setDoubleValue(getLambdaLeft(sector,layer,paddle),
 				"tw0_left", sector, layer, paddle);
@@ -320,23 +431,6 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				"tw2_right", sector, layer, paddle);
 
 	}
-	
-	@Override
-	public void save() {
-
-		//CalibrationConstants calib = calibList.getItem(iter);
-		
-		for (int sector = 1; sector <= 6; sector++) {
-			for (int layer = 1; layer <= 3; layer++) {
-				int layer_index = layer - 1;
-				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
-					calib.addEntry(sector, layer, paddle);
-					saveRow(sector,layer,paddle);
-				}
-			}
-		}
-		calib.save("FTOF_CALIB_TIMEWALK.txt");
-	}
 
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
@@ -346,6 +440,19 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 	}
 
+	@Override
+	public boolean isGoodPaddle(int sector, int layer, int paddle) {
+
+		return (getLambdaLeft(sector,layer,paddle) >= fitLambda[LEFT]*0.9 && 
+				getLambdaLeft(sector,layer,paddle) <= fitLambda[LEFT]*1.1 &&
+				getOrderLeft(sector,layer,paddle) >= fitOrder[LEFT]*0.9 && 
+				getOrderLeft(sector,layer,paddle) <= fitOrder[LEFT]*1.1 &&
+				getLambdaRight(sector,layer,paddle) >= fitLambda[RIGHT]*0.9 && 
+				getLambdaRight(sector,layer,paddle) <= fitLambda[RIGHT]*1.1 &&
+				getOrderRight(sector,layer,paddle) >= fitOrder[RIGHT]*0.9 && 
+				getOrderRight(sector,layer,paddle) <= fitOrder[RIGHT]*1.1);
+
+	}
 	
 	@Override
 	public DataGroup getSummary(int sector, int layer) {

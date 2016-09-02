@@ -40,7 +40,7 @@ import org.jlab.io.task.DataSourceProcessorPane;
 import org.jlab.io.task.IDataEventListener;
 import org.jlab.utils.groups.IndexedList;
 
-public class CtofVeffEventListener extends TOFCalibrationEngine {
+public class CtofVeffEventListener extends CTOFCalibrationEngine {
 
 	public final int VEFF_OVERRIDE = 0;
 	public final int VEFF_UNC_OVERRIDE = 1;
@@ -49,10 +49,15 @@ public class CtofVeffEventListener extends TOFCalibrationEngine {
 	public final double ALLOWED_VEFF_DIFF = 0.1;
 	
 	public CtofVeffEventListener() {
+		
+		stepName = "Effective Velocity";
+		fileNamePrefix = "CTOF_CALIB_VEFF_";
+		// get file name here so that each timer update overwrites it
+		filename = nextFileName();
 
 		calib = new CalibrationConstants(3,
 				"veff_left/F:veff_right/F:veff_left_err/F:veff_right_err/F");
-		calib.setName("/calibration/ftof/effective_velocity");
+		calib.setName("/calibration/ctof/effective_velocity");
 		calib.setPrecision(3);
 		
 		// assign constraints to all paddles
@@ -68,48 +73,44 @@ public class CtofVeffEventListener extends TOFCalibrationEngine {
 	public void resetEventListener() {
 
 		// LC perform init processing
-		for (int sector = 1; sector <= 6; sector++) {
-			for (int layer = 1; layer <= 3; layer++) {
-				int layer_index = layer - 1;
-				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
+		for (int paddle = 1; paddle <= NUM_PADDLES; paddle++) {
 
-					// create all the histograms
-					int numBins = (int) (paddleLength(sector,layer,paddle)*0.6);  // 1 bin per 2cm + 10% either side
-					double min = paddleLength(sector,layer,paddle) * -0.6;
-					double max = paddleLength(sector,layer,paddle) * 0.6;
-					
-					H2F hist = 
+			// create all the histograms
+			int numBins = (int) (paddleLength(1,1,paddle)*0.6);  // 1 bin per 2cm + 10% either side
+			double min = paddleLength(1,1,paddle) * -0.6;
+			double max = paddleLength(1,1,paddle) * 0.6;
+
+			H2F hist = 
 					new H2F("veff",
 							"veff",
 							numBins, min, max, 
 							200, -10.0, 10.0);
-					
-					hist.setName("veff");
-					hist.setTitle("Half Time Diff vs Position : " + LAYER_NAME[layer_index] 
-							+ " Sector "+sector+" Paddle "+paddle);
-					hist.setXTitle("Position (cm)");
-					hist.setYTitle("Half Time Diff (ns)");
 
-					// create all the functions and graphs
-					F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
-					GraphErrors veffGraph = new GraphErrors();
-					veffGraph.setName("veffGraph");
-					
-					DataGroup dg = new DataGroup(2,1);
-					dg.addDataSet(hist, 0);
-					dg.addDataSet(veffGraph, 1);
-					dg.addDataSet(veffFunc, 1);
-					dataGroups.add(dg, sector,layer,paddle);
-					
-					// initialize the constants array
-					Double[] consts = {0.0, 0.0};
-					// override values
-					
-					constants.add(consts, sector, layer, paddle);
-					
-				}
-			}
+			hist.setName("veff");
+			hist.setTitle("Half Time Diff vs Position : " 
+					+ " Paddle "+paddle);
+			hist.setXTitle("Position (cm)");
+			hist.setYTitle("Half Time Diff (ns)");
+
+			// create all the functions and graphs
+			F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
+			GraphErrors veffGraph = new GraphErrors();
+			veffGraph.setName("veffGraph");
+
+			DataGroup dg = new DataGroup(2,1);
+			dg.addDataSet(hist, 0);
+			dg.addDataSet(veffGraph, 1);
+			dg.addDataSet(veffFunc, 1);
+			dataGroups.add(dg, 1,1,paddle);
+
+			// initialize the constants array
+			Double[] consts = {UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
+			// override values
+
+			constants.add(consts, 1, 1, paddle);
+
 		}
+
 	}
 
 	@Override
@@ -149,18 +150,22 @@ public class CtofVeffEventListener extends TOFCalibrationEngine {
 		double lowLimit;
 		double highLimit;
 		
-		if (minRange != 0.0 && maxRange != 0.0) {
-
+		if (minRange != UNDEFINED_OVERRIDE) {
 			// use custom values for fit
 			lowLimit = minRange;
+		}
+		else {
+			lowLimit = paddleLength(sector,layer,paddle) * -0.4;
+		}
+		
+		if (maxRange != UNDEFINED_OVERRIDE) {
+			// use custom values for fit
 			highLimit = maxRange;
 		}
 		else {
-			
-			lowLimit = paddleLength(sector,layer,paddle) * -0.4;
 			highLimit = paddleLength(sector,layer,paddle) * 0.4;
 		}
-
+		
 		F1D veffFunc = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc");
 		veffFunc.setRange(lowLimit, highLimit);
 		
@@ -203,17 +208,23 @@ public class CtofVeffEventListener extends TOFCalibrationEngine {
 		}	 
 	}
 	
-
 	public Double getVeff(int sector, int layer, int paddle) {
 		
 		double veff = 0.0;
-		double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc") 
-				.getParameter(1);
-		if (gradient==0.0) {
-			veff=0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[VEFF_OVERRIDE];
+
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			veff = overrideVal;
 		}
 		else {
-			veff = 1/gradient;
+			double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc") 
+					.getParameter(1);
+			if (gradient==0.0) {
+				veff=0.0;
+			}
+			else {
+				veff = 1/gradient;
+			}
 		}
 		return veff;
 	}
@@ -221,27 +232,33 @@ public class CtofVeffEventListener extends TOFCalibrationEngine {
 	public Double getVeffError(int sector, int layer, int paddle){
 		
 		double veffError = 0.0;
-		
-		// Calculate the error
-		// fractional error in veff = fractional error in 1/veff
-		
-		double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc")
-				.getParameter(1);
-		double gradientErr = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc")
-				.parameter(1).error();
-		double veff = getVeff(sector, layer, paddle);
-		
-		if (gradient==0.0) {
-			veffError = 0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[VEFF_UNC_OVERRIDE];
+
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			veffError = overrideVal;
 		}
 		else {
-			veffError = (gradientErr/gradient) * veff;
-		}
+			// Calculate the error
+			// fractional error in veff = fractional error in 1/veff
 
+			double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc")
+					.getParameter(1);
+			double gradientErr = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc")
+					.parameter(1).error();
+			double veff = getVeff(sector, layer, paddle);
+
+			if (gradient==0.0) {
+				veffError = 0.0;
+			}
+			else {
+				veffError = (gradientErr/gradient) * veff;
+			}
+		}
 		return veffError;
 	}	
 
-	private void saveRow(int sector, int layer, int paddle) {
+	@Override
+	public void saveRow(int sector, int layer, int paddle) {
 		calib.setDoubleValue(getVeff(sector,layer,paddle),
 				"veff_left", sector, layer, paddle);
 		calib.setDoubleValue(getVeff(sector,layer,paddle),
@@ -252,33 +269,16 @@ public class CtofVeffEventListener extends TOFCalibrationEngine {
 				"veff_right_err", sector, layer, paddle);
 
 	}
-		
-	@Override
-	public void save() {
-
-		for (int sector = 1; sector <= 6; sector++) {
-			for (int layer = 1; layer <= 3; layer++) {
-				int layer_index = layer - 1;
-				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
-					calib.addEntry(sector, layer, paddle);
-					saveRow(sector,layer,paddle);
-				}
-			}
-		}
-		calib.save("FTOF_CALIB_VEFF.txt");
-	}
 
 	@Override
-	public List<CalibrationConstants> getCalibrationConstants() {
-		
-		return Arrays.asList(calib);
-	}
+	public boolean isGoodPaddle(int sector, int layer, int paddle) {
 
-	@Override
-	public IndexedList<DataGroup>  getDataGroup(){
-		return dataGroups;
-	}
+		return (getVeff(sector,layer,paddle) >= EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF)
+			&&
+			getVeff(sector,layer,paddle) <= EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 
+	}
+	
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
@@ -291,12 +291,12 @@ public class CtofVeffEventListener extends TOFCalibrationEngine {
 	public DataGroup getSummary(int sector, int layer) {
 				
 		int layer_index = layer-1;
-		double[] paddleNumbers = new double[NUM_PADDLES[layer_index]];
-		double[] paddleUncs = new double[NUM_PADDLES[layer_index]];
-		double[] veffs = new double[NUM_PADDLES[layer_index]];
-		double[] veffUncs = new double[NUM_PADDLES[layer_index]];
+		double[] paddleNumbers = new double[NUM_PADDLES];
+		double[] paddleUncs = new double[NUM_PADDLES];
+		double[] veffs = new double[NUM_PADDLES];
+		double[] veffUncs = new double[NUM_PADDLES];
 
-		for (int p = 1; p <= NUM_PADDLES[layer_index]; p++) {
+		for (int p = 1; p <= NUM_PADDLES; p++) {
 
 			paddleNumbers[p - 1] = (double) p;
 			paddleUncs[p - 1] = 0.0;

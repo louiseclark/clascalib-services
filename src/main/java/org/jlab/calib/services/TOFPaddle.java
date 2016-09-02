@@ -141,8 +141,8 @@ public class TOFPaddle {
 		double timeLCorr = timeL - (lambda[LEFT]/Math.pow(ADCL, order[LEFT]));
 		double timeRCorr = timeR - (lambda[RIGHT]/Math.pow(ADCR, order[RIGHT]));
 		
-		tr[LEFT] =  ((timeLCorr - timeR)/2) - (paddleY()/veff());
-		tr[RIGHT] = ((timeL - timeRCorr)/2) - (paddleY()/veff());
+		tr[LEFT] =  ((timeL - timeRCorr)/2) - (paddleY()/veff());
+		tr[RIGHT] = ((timeLCorr - timeR)/2) - (paddleY()/veff());
 
 		return tr;
 	}      

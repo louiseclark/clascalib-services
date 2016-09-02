@@ -10,6 +10,7 @@ import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
@@ -54,7 +55,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 	EmbeddedCanvas 	canvas = null;   
     CalibrationConstantsView ccview = null;
 
-    TOFCalibrationEngine[] engines = {
+    CTOFCalibrationEngine[] engines = {
     		new CtofHVEventListener(),
     		new CtofAttenEventListener(),
     		new CtofLeftRightEventListener(),
@@ -85,8 +86,6 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 	
 	public CTOFCalibration() {
 		
-		DataProvider.getGeometry();
-
         pane = new JPanel();
         pane.setLayout(new BorderLayout());
 
@@ -137,12 +136,17 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
         
         processorPane = new DataSourceProcessorPane();
         processorPane.setUpdateRate(UPDATE_RATE);
+        
+        // only add the gui as listener so that extracting paddle list from event is only done once per event
+        this.processorPane.addEventListener(this);
+        
 //        this.processorPane.addEventListener(engines[0]);
-        this.processorPane.addEventListener(this); // add gui listener second so detector view updates 
-        										   // as soon as 1st analyze is done
+//        this.processorPane.addEventListener(this); // add gui listener second so detector view updates 
+//        										   // as soon as 1st analyze is done
 //        for (int i=1; i< engines.length; i++) {
 //        	this.processorPane.addEventListener(engines[i]);
 //        }
+        
         pane.add(processorPane,BorderLayout.PAGE_END);
 		
     	JFrame frame = new JFrame("CTOF Calibration");
@@ -155,9 +159,9 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 		
 	}
 
-	public TOFCalibrationEngine getSelectedEngine() {
+	public CTOFCalibrationEngine getSelectedEngine() {
 		
-		TOFCalibrationEngine engine = engines[HV];
+		CTOFCalibrationEngine engine = engines[HV];
 
 		if (selectedDir == dirs[HV]) {
 			engine = engines[HV];
@@ -174,7 +178,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 	
 	public void actionPerformed(ActionEvent e) {
 
-		TOFCalibrationEngine engine = getSelectedEngine();
+		CTOFCalibrationEngine engine = getSelectedEngine();
 		
 		if (e.getActionCommand().compareTo(buttons[VIEW_ALL])==0) {
 
@@ -187,6 +191,13 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 			engine.customFit(selectedSector, selectedLayer, selectedPaddle);
 			updateDetectorView(false);
 			this.updateCanvas();
+		}
+		else if (e.getActionCommand().compareTo(buttons[WRITE])==0) {
+			
+			String outputFilename = engine.nextFileName();
+			engine.calib.save(outputFilename);
+			JOptionPane.showMessageDialog(new JPanel(),
+					engine.stepName + " calibration values written to "+outputFilename);
 		}
 	}
 
@@ -230,7 +241,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 
 	public final void updateDetectorView(boolean isNew){
 
-		TOFCalibrationEngine engine = getSelectedEngine();
+		CTOFCalibrationEngine engine = getSelectedEngine();
 
 		double CTOFSize = 500.0;
 		int     npaddles = 48;

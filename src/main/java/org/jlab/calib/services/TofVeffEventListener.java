@@ -49,6 +49,10 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	public TofVeffEventListener() {
 
 		stepName = "Effective Velocity";
+		fileNamePrefix = "FTOF_CALIB_VEFF_";
+		// get file name here so that each timer update overwrites it
+		filename = nextFileName();
+		
 		calib = new CalibrationConstants(3,
 				"veff_left/F:veff_right/F:veff_left_err/F:veff_right_err/F");
 		calib.setName("/calibration/ftof/effective_velocity");
@@ -101,7 +105,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 					dataGroups.add(dg, sector,layer,paddle);
 					
 					// initialize the constants array
-					Double[] consts = {0.0, 0.0};
+					Double[] consts = {UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
 					// override values
 					
 					constants.add(consts, sector, layer, paddle);
@@ -148,15 +152,19 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		double lowLimit;
 		double highLimit;
 		
-		if (minRange != 0.0 && maxRange != 0.0) {
-
+		if (minRange != UNDEFINED_OVERRIDE) {
 			// use custom values for fit
 			lowLimit = minRange;
+		}
+		else {
+			lowLimit = paddleLength(sector,layer,paddle) * -0.4;
+		}
+		
+		if (maxRange != UNDEFINED_OVERRIDE) {
+			// use custom values for fit
 			highLimit = maxRange;
 		}
 		else {
-			
-			lowLimit = paddleLength(sector,layer,paddle) * -0.4;
 			highLimit = paddleLength(sector,layer,paddle) * 0.4;
 		}
 
@@ -206,13 +214,20 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	public Double getVeff(int sector, int layer, int paddle) {
 		
 		double veff = 0.0;
-		double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc") 
-				.getParameter(1);
-		if (gradient==0.0) {
-			veff=0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[VEFF_OVERRIDE];
+
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			veff = overrideVal;
 		}
 		else {
-			veff = 1/gradient;
+			double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc") 
+					.getParameter(1);
+			if (gradient==0.0) {
+				veff=0.0;
+			}
+			else {
+				veff = 1/gradient;
+			}
 		}
 		return veff;
 	}
@@ -220,27 +235,33 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	public Double getVeffError(int sector, int layer, int paddle){
 		
 		double veffError = 0.0;
-		
-		// Calculate the error
-		// fractional error in veff = fractional error in 1/veff
-		
-		double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc")
-				.getParameter(1);
-		double gradientErr = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc")
-				.parameter(1).error();
-		double veff = getVeff(sector, layer, paddle);
-		
-		if (gradient==0.0) {
-			veffError = 0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[VEFF_UNC_OVERRIDE];
+
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			veffError = overrideVal;
 		}
 		else {
-			veffError = (gradientErr/gradient) * veff;
-		}
+			// Calculate the error
+			// fractional error in veff = fractional error in 1/veff
 
+			double gradient = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc")
+					.getParameter(1);
+			double gradientErr = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc")
+					.parameter(1).error();
+			double veff = getVeff(sector, layer, paddle);
+
+			if (gradient==0.0) {
+				veffError = 0.0;
+			}
+			else {
+				veffError = (gradientErr/gradient) * veff;
+			}
+		}
 		return veffError;
 	}	
 
-	private void saveRow(int sector, int layer, int paddle) {
+	@Override
+	public void saveRow(int sector, int layer, int paddle) {
 		calib.setDoubleValue(getVeff(sector,layer,paddle),
 				"veff_left", sector, layer, paddle);
 		calib.setDoubleValue(getVeff(sector,layer,paddle),
@@ -253,31 +274,14 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	}
 		
 	@Override
-	public void save() {
+	public boolean isGoodPaddle(int sector, int layer, int paddle) {
 
-		for (int sector = 1; sector <= 6; sector++) {
-			for (int layer = 1; layer <= 3; layer++) {
-				int layer_index = layer - 1;
-				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
-					calib.addEntry(sector, layer, paddle);
-					saveRow(sector,layer,paddle);
-				}
-			}
-		}
-		calib.save("FTOF_CALIB_VEFF.txt");
+		return (getVeff(sector,layer,paddle) >= EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF)
+			&&
+			getVeff(sector,layer,paddle) <= EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
+
 	}
-
-	@Override
-	public List<CalibrationConstants> getCalibrationConstants() {
-		
-		return Arrays.asList(calib);
-	}
-
-	@Override
-	public IndexedList<DataGroup>  getDataGroup(){
-		return dataGroups;
-	}
-
+	
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
