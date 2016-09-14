@@ -54,8 +54,8 @@ public class DataProvider {
 				event.getBank("CTOF::dgtz").show();
 			}
 
-			if (event.hasBank("TimeBasedTrkg::TBTracks")) {
-				event.getBank("TimeBasedTrkg::TBTracks").show();
+			if (event.hasBank("BST::true")) {
+				event.getBank("BST::true").show();
 			}
 		}
 		
@@ -67,29 +67,42 @@ public class DataProvider {
 
 				int component = dgtzBank.getInt("paddle", dgtzIndex);
 
-				double xpos = 0; // lab hit co ords from SVT projection
-				double ypos = 0;
+				double zpos = 0; // lab hit co ords from SVT projection
+				
 				// get lab hit co ords from SVT
 				// 
-//				if (event.hasBank("TimeBasedTrkg::TBTracks")) {
-//					
-//					EvioDataBank bankDC = (EvioDataBank) event.getBank("TimeBasedTrkg::TBTracks");
-//
-//					if (bankDC.rows()==1) {
-//
-//						double x = bankDC.getDouble("c3_x", 0); // Region 3 cross x-position in the lab
-//						double y = bankDC.getDouble("c3_y", 0); // Region 3 cross y-position in the lab
-//						double z = bankDC.getDouble("c3_z", 0); // Region 3 cross z-position in the lab
-//						double ux = bankDC.getDouble("c3_ux", 0); // Region 3 cross x-unit-dir in the lab
-//						double uy = bankDC.getDouble("c3_uy", 0); // Region 3 cross y-unit-dir in the lab
-//						double uz = bankDC.getDouble("c3_uz", 0); // Region 3 cross z-unit-dir in the lab
-//
-//						// swim to CTOF radius
-//						xpos = intP.x();
-//						ypos = intP.y();
-//
-//					}
-//				}
+				if (event.hasBank("BST::true")) {
+					
+					EvioDataBank bankSVT = (EvioDataBank) event.getBank("BST::true");
+
+					//if (bankDC.rows()==1) {
+
+						double x = bankSVT.getDouble("avgX", 0); // Maybe this is the pos from SVT???
+						double y = bankSVT.getDouble("avgY", 0);  
+						double z = bankSVT.getDouble("avgZ", 0); 
+						double px = bankSVT.getDouble("px", 0); // Use momentum vector for the moment
+						double py = bankSVT.getDouble("py", 0); // as velocity seems to be always zero...
+						double pz = bankSVT.getDouble("pz", 0); 
+
+						// swim to CTOF radius 250mm
+						Path3D path = new Path3D();
+						// how far is path from SVT to CTOF???
+						path.generate(new Point3D(x, y, z), new Vector3D(px, py, pz),  1.0, 2);
+
+						zpos = path.getLine(0).end().z();
+						
+						if (test) {
+							System.out.println("x "+x);
+							System.out.println("y "+y);
+							System.out.println("z "+z);
+							System.out.println("px "+px);
+							System.out.println("py "+py);
+							System.out.println("pz "+pz);
+							System.out.println("z pos "+zpos);
+						}
+
+					//}
+				}
 				// else don't set position for this event as can't match up multiple tracks right now
 
 				TOFPaddle  paddle = new TOFPaddle(
@@ -100,8 +113,9 @@ public class DataProvider {
 						dgtzBank.getInt("ADCD", dgtzIndex),
 						dgtzBank.getInt("TDCU", dgtzIndex),
 						dgtzBank.getInt("TDCD", dgtzIndex),
-						xpos,
-						ypos);
+						0.0,
+						0.0,
+						zpos);
 
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);

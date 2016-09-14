@@ -18,8 +18,9 @@ public class TOFPaddle {
     public int ADCR = 0;
     public int TDCL = 0;
     public int TDCR = 0;
-    public double XPOS = 0; 
-    public double YPOS = 0; 
+    public double XPOS = 0.0; 
+    public double YPOS = 0.0; 
+    public double ZPOS = 0.0;
     public double RF_TIME = 0.0;
     public double TOF_TIME = 0.0;
     public double FLIGHT_TIME = 0.0;
@@ -56,6 +57,19 @@ public class TOFPaddle {
         this.YPOS = ypos;
     }
     
+    public TOFPaddle(int sector, int layer, int paddle,
+            int adcL, int adcR, int tdcL, int tdcR,
+            double xpos, double ypos, double zpos){
+        this.desc.setSectorLayerComponent(sector, layer, paddle);
+        this.ADCL = adcL;
+        this.ADCR = adcR;
+        this.TDCL = tdcL;
+        this.TDCR = tdcR;
+        this.XPOS = xpos;
+        this.YPOS = ypos;
+        this.ZPOS = zpos;
+    }    
+    
     
     public final void setData(int adcL, int adcR, int tdcL, int tdcR, double xpos, double ypos){
         this.ADCL = adcL;
@@ -86,7 +100,7 @@ public class TOFPaddle {
     
     public boolean includeInVeff() {
     	// exclude if position is zero
-    	return (this.XPOS !=0 || this.YPOS !=0);
+    	return (this.XPOS !=0 || this.YPOS !=0 || this.ZPOS !=0);
     }
     
     public boolean isValidLogRatio() {
@@ -127,7 +141,7 @@ public class TOFPaddle {
     }
 	
 	private double veff() {
-		return 15.0; // get from calibration database, store locally to save going to database for every event
+		return 16.0; // get from calibration database, store locally to save going to database for every event
 	}  
     
 	public double[] timeResiduals(double[] lambda, double[] order) {
@@ -142,7 +156,7 @@ public class TOFPaddle {
 		double timeRCorr = timeR - (lambda[RIGHT]/Math.pow(ADCR, order[RIGHT]));
 		
 		tr[LEFT] =  ((timeL - timeRCorr)/2) - (paddleY()/veff());
-		tr[RIGHT] = ((timeLCorr - timeR)/2) - (paddleY()/veff());
+		tr[RIGHT] = -(((timeLCorr - timeR)/2) - (paddleY()/veff()));
 
 		return tr;
 	}      

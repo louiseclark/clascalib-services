@@ -43,6 +43,11 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 
 	public final int[]		EXPECTED_MIP_CHANNEL = {800, 2000, 800};
 	public final int		ALLOWED_MIP_DIFF = 50;
+	public final double[]	ALPHA = {13.4, 4.7, 8.6};
+    public final double[]	MAX_VOLTAGE = {2500.0, 2000.0, 2500.0};
+    public final double		MAX_DELTA_V = 250.0;
+    public final int		MIN_STATS = 100;
+
 
 	public TofHVEventListener() {
 
@@ -147,7 +152,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 
 		int layer_index = layer-1;
 
-		TOFH1F h = (TOFH1F) dataGroups.getItem(sector,layer,paddle).getH1F("geomean");;
+		TOFH1F h = (TOFH1F) dataGroups.getItem(sector,layer,paddle).getH1F("geomean");
 		
 		// First rebin depending on number of entries
 		int nEntries = h.getEntries(); 
@@ -406,6 +411,88 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			logRatioUnc = constants.getItem(sector, layer, paddle)[LR_ERROR];
 		}		
 		return logRatioUnc;
+	}	
+	
+	public double newHV(int sector, int layer, int paddle, double origVoltage, String pmt) {
+		
+		// Don't bother recalculating if MIP peak is already acceptable
+		if (isGoodPaddle(sector,layer,paddle)) {
+			System.out.println("MIP peak already acceptable, no change to voltage");
+			return origVoltage;
+		}
+		
+		int layer_index = layer-1;
+		//DetectorDescriptor desc = new DetectorDescriptor();
+		//desc.setSectorLayerComponent(sector, layer, paddle);
+		
+		double gainIn = getMipChannel(sector, layer, paddle);		
+		double centroid = getLogRatio(sector, layer, paddle);
+		
+		double gainLR = 0.0;
+		if (pmt == "L") {
+			gainLR = gainIn / (Math.sqrt(Math.exp(centroid)));
+			
+			// put the constants in the treemap
+			//Double[] consts = getConst(sector, layer, paddle);
+			//consts[CURRENT_VOLTAGE_LEFT] = origVoltage;
+			//constants.put(desc.getHashCode(), consts);
+		}
+		else {
+			gainLR = gainIn * (Math.sqrt(Math.exp(centroid)));
+
+			// put the constants in the treemap
+			//Double[] consts = getConst(sector, layer, paddle);
+			//consts[CURRENT_VOLTAGE_RIGHT] = origVoltage;
+			//constants.put(desc.getHashCode(), consts);
+		}
+		
+		double deltaGain = EXPECTED_MIP_CHANNEL[layer_index] - gainLR;
+		double deltaV = (origVoltage * deltaGain) / (gainLR * ALPHA[layer_index]);
+		
+		// Safety check - don't exceed maximum voltage change
+		if (deltaV > MAX_DELTA_V) {
+			System.out.println("Max deltaV exceeded");
+
+			deltaV = MAX_DELTA_V;
+		} else if (deltaV < -MAX_DELTA_V) {
+			System.out.println("Max deltaV exceeded");
+			deltaV = -MAX_DELTA_V;
+		}
+		
+		// Don't change voltage if stats are low
+		if (dataGroups.getItem(sector,layer,paddle).getH1F("geomean").getEntries() < MIN_STATS) {
+			System.out.println("Low stats, deltaV set to zero");
+			deltaV = 0.0;
+		};
+		
+		double newVoltage = origVoltage + deltaV;
+		
+		// Safety check - don't exceed maximum voltage
+		if (newVoltage > MAX_VOLTAGE[layer_index]) {
+			System.out.println("Max V exceeded");
+			newVoltage = MAX_VOLTAGE[layer_index];
+		} else if (newVoltage < -MAX_VOLTAGE[layer_index]) {
+			System.out.println("Max V exceeded");
+			newVoltage = -MAX_VOLTAGE[layer_index];
+		}			
+
+		boolean test=false;
+		if (test) {
+			System.out.println("sector "+sector);
+			System.out.println("layer "+layer);
+			System.out.println("paddle "+paddle);
+			System.out.println("pmt "+pmt);
+			System.out.println("origVoltage = "+origVoltage);
+			System.out.println("gainIn = "+gainIn);
+			System.out.println("centroid = "+centroid);
+			System.out.println("gainLR = "+gainLR);
+			System.out.println("deltaGain = "+deltaGain);
+			System.out.println("deltaV = "+deltaV);
+			System.out.println("return = "+newVoltage);
+		}
+		
+		return newVoltage;
+		
 	}	
 	
 	@Override

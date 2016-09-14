@@ -131,7 +131,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 
 			if (paddle.includeInVeff()) {
 				dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
-					paddle.paddleY(), paddle.halfTimeDiff());
+					paddle.ZPOS, paddle.halfTimeDiff());
 			}
 		}
 	}

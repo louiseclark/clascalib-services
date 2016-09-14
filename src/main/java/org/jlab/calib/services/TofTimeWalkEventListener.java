@@ -67,7 +67,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 	}
 	
-	//@Override
+	@Override
 	public void timerUpdate() {
 		// only analyze at end of events for timewalk
 		
@@ -94,21 +94,21 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					
 					// create all the histograms
 					H2F leftHist = new H2F("trLeftHist",
-							"(After corrections) Time residual vs ADC LEFT Sector "+sector+
+							"Time residual vs ADC LEFT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
 							100, -2.5, 2.5);
 					H2F rightHist = new H2F("trRightHist",
-							"(After corrections) Time residual vs ADC RIGHT Sector "+sector+
+							"Time residual vs ADC RIGHT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
 							100, -2.5, 2.5);
 
-					leftHist.setTitle("(After corrections) Time residual vs ADC LEFT : " + LAYER_NAME[layer_index] 
+					leftHist.setTitle("Time residual vs ADC LEFT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
 					leftHist.setXTitle("ADC LEFT");
 					leftHist.setYTitle("Time residual");
-					rightHist.setTitle("(After corrections) Time residual vs ADC RIGHT : " + LAYER_NAME[layer_index] 
+					rightHist.setTitle("Time residual vs ADC RIGHT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
 					rightHist.setXTitle("ADC RIGHT");
 					rightHist.setYTitle("Time residual");
@@ -183,15 +183,24 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			int component = paddle.getDescriptor().getComponent();
 
 			// fill timeResidual vs ADC
-			//double [] tr = paddle.timeResidualsTest(lambda, order);
-			double [] tr = paddle.timeResiduals(getLambdas(sector,layer,component,iter), 
+			boolean test = false;
+			if (test) {
+				double [] tr = paddle.timeResidualsTest(getLambdas(sector,layer,component,iter), 
 												getOrders(sector,layer,component,iter));
-
+				
+				dataGroups.getItem(sector,layer,component).getH2F("trLeftHist").fill(paddle.geometricMean(), tr[LEFT]);
+				dataGroups.getItem(sector,layer,component).getH2F("trRightHist").fill(paddle.geometricMean(), tr[RIGHT]);
+			}
+			else {
+				
 			//if (paddle.includeInTimeWalk()) {
+				double [] tr = paddle.timeResiduals(getLambdas(sector,layer,component,iter), 
+						getOrders(sector,layer,component,iter));
 
 				dataGroups.getItem(sector,layer,component).getH2F("trLeftHist").fill(paddle.ADCL, tr[LEFT]);
 				dataGroups.getItem(sector,layer,component).getH2F("trRightHist").fill(paddle.ADCR, tr[RIGHT]);
 			//}
+			}
 						
 		}
 		
@@ -320,7 +329,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		double[] orders = {0.0,0.0};
 		if (iter>0) {
 			orders[0] = getOrderLeft(sector,layer,paddle);
-			orders[1] = getLambdaRight(sector,layer,paddle);
+			orders[1] = getOrderRight(sector,layer,paddle);
 			
 		}
 		return orders;

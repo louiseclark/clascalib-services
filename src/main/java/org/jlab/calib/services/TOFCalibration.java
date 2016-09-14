@@ -196,6 +196,15 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			updateDetectorView(false);
 			this.updateCanvas();
 		}
+		else if (e.getActionCommand().compareTo(buttons[ADJUST_HV])==0) {
+			
+			JFrame hvFrame = new JFrame("Adjust HV");
+        	hvFrame.add(new TOFHVAdjustPanel((TofHVEventListener) engines[HV]));
+            hvFrame.setSize(1000, 800);
+        	//hvFrame.pack();
+        	hvFrame.setVisible(true);
+        	hvFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+		}
 		else if (e.getActionCommand().compareTo(buttons[WRITE])==0) {
 			
 			String outputFilename = engine.nextFileName();

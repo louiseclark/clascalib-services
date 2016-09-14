@@ -182,7 +182,19 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		attenFunc.setParameter(1, 2.0/expectedAttlen(sector,layer,paddle));
 		attenFunc.setParLimits(0, -5.0, 5.0);
 		attenFunc.setParLimits(1, 2.0/500.0, 2.0/10.0);
-		DataFitter.fit(attenFunc, meanGraph, "RNQ");
+//		if (sector==1 && paddle==8) {
+//			System.out.println("SLC "+sector+layer+paddle);
+//			DataFitter.fit(attenFunc, meanGraph, "RL");
+//			System.out.println("Param 0 is "+attenFunc.getParameter(0));
+//			System.out.println("Param 0 error is "+attenFunc.parameter(0).error());
+//			System.out.println("Param 1 is "+attenFunc.getParameter(1));
+//			System.out.println("Param 1 error is "+attenFunc.parameter(1).error());
+//
+//		}
+//		else {
+			DataFitter.fit(attenFunc, meanGraph, "RNQ");
+//		}
+		
 		
 //		if (sector==1 && layer==1 && paddle==10) {
 //			TCanvas c1 = new TCanvas("c1",1,1);
@@ -283,7 +295,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		}
 		else {
 			offset = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
-					.getParameter(1);
+					.getParameter(0);
 		}
 		
 		return offset;

@@ -88,7 +88,6 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 					0.0, GM_HIST_MAX);
 			F1D lrFunc = new F1D("lrFunc","[height]",-6.0,6.0);
 
-
 			DataGroup dg = new DataGroup(2,1);
 			dg.addDataSet(geoMeanHist, GEOMEAN);
 			dg.addDataSet(logRatioHist, LOGRATIO);

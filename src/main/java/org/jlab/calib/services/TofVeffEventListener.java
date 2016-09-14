@@ -85,7 +85,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 					new H2F("veff",
 							"veff",
 							numBins, min, max, 
-							200, -10.0, 10.0);
+							200, -15.0, 15.0);
 					
 					hist.setName("veff");
 					hist.setTitle("Half Time Diff vs Position : " + LAYER_NAME[layer_index] 

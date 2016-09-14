@@ -89,7 +89,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 			double min = paddleLength(1,1,paddle) * -0.6;
 			double max = paddleLength(1,1,paddle) * 0.6;
 			H2F hist = new H2F("atten", "Log Ratio vs Position : Paddle "
-					+ paddle, numBins, min, max, 100, -3.0, 3.0);
+					+ paddle, numBins, min, max, 100, -1.5, 1.5);
 
 			hist.setName("atten");
 			hist.setTitle("Log Ratio vs Position : " 
@@ -98,7 +98,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 			hist.setYTitle("Log ratio");
 
 			// create all the functions and graphs
-			F1D attenFunc = new F1D("attenFunc", "[a]+[b]*x", -250.0, 250.0);
+			F1D attenFunc = new F1D("attenFunc", "[a]+[b]*x", -50.0, 50.0);
 			GraphErrors meanGraph = new GraphErrors();
 			meanGraph.setName("meanGraph");
 			//attenFunc.setLineColor(1);
@@ -280,7 +280,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 		}
 		else {
 			offset = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
-					.getParameter(1);
+					.getParameter(0);
 		}
 		
 		return offset;
