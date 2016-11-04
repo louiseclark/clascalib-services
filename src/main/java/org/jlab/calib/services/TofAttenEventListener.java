@@ -3,6 +3,13 @@ package org.jlab.calib.services;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -94,20 +101,25 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 					hist.setName("atten");
 					hist.setTitle("Log Ratio vs Position : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
-					hist.setXTitle("Position");
-					hist.setYTitle("Log ratio");
+					hist.setTitleX("Position (cm)");
+					hist.setTitleY("ln(ADC R / ADC L)");
 					
 					// create all the functions and graphs
 					F1D attenFunc = new F1D("attenFunc", "[a]+[b]*x", -250.0, 250.0);
 					GraphErrors meanGraph = new GraphErrors();
 					meanGraph.setName("meanGraph");
-					//attenFunc.setLineColor(1);
-					
+					attenFunc.setLineColor(FUNC_COLOUR);
+					attenFunc.setLineWidth(FUNC_LINE_WIDTH);
+					meanGraph.setMarkerSize(MARKER_SIZE);
+					meanGraph.setLineThickness(MARKER_LINE_WIDTH);
+				
 					DataGroup dg = new DataGroup(2,1);
 					dg.addDataSet(hist, 0);
 					dg.addDataSet(meanGraph, 1);
 					dg.addDataSet(attenFunc, 1);
 					dataGroups.add(dg, sector,layer,paddle);
+					
+					setPlotTitle(sector,layer,paddle);
 					
 					// initialize the constants array
 					Double[] consts = {UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
@@ -150,7 +162,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		// fit function to the graph of means
 		GraphErrors meanGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("meanGraph");
 		meanGraph.copy(attenHist.getProfileX());
-
+		
 		double lowLimit;
 		double highLimit;
 
@@ -182,18 +194,22 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		attenFunc.setParameter(1, 2.0/expectedAttlen(sector,layer,paddle));
 		attenFunc.setParLimits(0, -5.0, 5.0);
 		attenFunc.setParLimits(1, 2.0/500.0, 2.0/10.0);
-//		if (sector==1 && paddle==8) {
-//			System.out.println("SLC "+sector+layer+paddle);
-//			DataFitter.fit(attenFunc, meanGraph, "RL");
-//			System.out.println("Param 0 is "+attenFunc.getParameter(0));
-//			System.out.println("Param 0 error is "+attenFunc.parameter(0).error());
-//			System.out.println("Param 1 is "+attenFunc.getParameter(1));
-//			System.out.println("Param 1 error is "+attenFunc.parameter(1).error());
-//
-//		}
-//		else {
+		if (sector==1 && layer==1 &&paddle==8) {
+			System.out.println("SLC "+sector+layer+paddle);
 			DataFitter.fit(attenFunc, meanGraph, "RNQ");
-//		}
+			System.out.println("Param 0 is "+attenFunc.getParameter(0));
+			System.out.println("Param 0 error is "+attenFunc.parameter(0).error());
+			System.out.println("Param 1 is "+attenFunc.getParameter(1));
+			System.out.println("Param 1 error is "+attenFunc.parameter(1).error());
+			System.out.println("exp attlen is "+expectedAttlen(sector,layer,paddle));
+			System.out.println("2/exp attlen is "+2/expectedAttlen(sector,layer,paddle));
+			System.out.println("par 1 lower limit "+2.0/500.0);
+			System.out.println("par 1 upper limit "+2.0/10.0);
+
+		}
+		else {
+			DataFitter.fit(attenFunc, meanGraph, "RNQ");
+		}
 		
 		
 //		if (sector==1 && layer==1 && paddle==10) {
@@ -210,6 +226,8 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 	}
 
 	public void customFit(int sector, int layer, int paddle){
+		
+		outputGraph(sector, layer, paddle);
 
 		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
 				"Override Attenuation Length:", "Override Attenuation Length uncertainty:",
@@ -345,9 +363,20 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 	}
 	
 	@Override
+	public void setPlotTitle(int sector, int layer, int paddle) {
+		// reset hist title as may have been set to null by show all 
+		dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph").setTitleX("Position (cm)");
+		dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph").setTitleY("ln(ADC R / ADC L)");
+		
+	}
+	
+	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
-		canvas.draw(dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph"));
+		GraphErrors meanGraph = dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph");
+		meanGraph.setTitleX("");
+		meanGraph.setTitleY("");
+		canvas.draw(meanGraph);
 		canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc"), "same");
 
 	}
@@ -374,18 +403,58 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		GraphErrors attSumm = new GraphErrors("attSumm", paddleNumbers,
 				Attlens, paddleUncs, AttlenUncs);
 		
-//		summary.setTitle("Attenuation Length: "
-//				+ LAYER_NAME[paddle - 1] + " Sector "
-//				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("Attenuation Length (cm)");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
+		attSumm.setTitle("Attenuation Length: "
+				+ LAYER_NAME[layer - 1] + " Sector "
+				+ sector);
+		attSumm.setTitleX("Paddle Number");
+		attSumm.setTitleY("Attenuation Length (cm)");
+		attSumm.setMarkerSize(MARKER_SIZE);
+		attSumm.setLineThickness(MARKER_LINE_WIDTH);
 		
 		DataGroup dg = new DataGroup(1,1);
 		dg.addDataSet(attSumm, 0);
 		return dg;
 		
+	}
+	
+	public void outputGraph(int sector, int layer, int paddle) {
+		String outputFileName = "GraphSLC"+sector+layer+paddle;
+
+		try { 
+
+			// Open the output file
+			File outputFile = new File(outputFileName);
+			FileWriter outputFw = new FileWriter(outputFile.getAbsoluteFile());
+			BufferedWriter outputBw = new BufferedWriter(outputFw);
+
+			H2F attenHist = dataGroups.getItem(sector,layer,paddle).getH2F("atten");
+
+			for (int i=0; i<attenHist.getXAxis().getNBins(); i++) {
+				H1F h1 = attenHist.sliceX(i);
+				if (h1.integral()>1.0) {
+					outputBw.write(attenHist.getXAxis().getBinCenter(i)+" "+
+							h1.getMean()+" "+
+							attenHist.getXAxis().getBinWidth(i)/2.0+" "+
+							h1.getRMS());
+					outputBw.newLine();
+				}
+			}
+
+			outputBw.close();
+		}
+		catch(IOException ex) {
+			ex.printStackTrace();
+		}
+
+		System.out.println("attlen "+getAttlen(sector,layer,paddle));
+		System.out.println("error in attlen "+getAttlenError(sector,layer,paddle));
+		System.out.println("gradient "+dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
+				.getParameter(1));
+		System.out.println(" error in gradient "+dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
+				.parameter(1).error());
+		System.out.println("lowLimit "+paddleLength(sector,layer,paddle) * -0.4);
+		System.out.println("highLimit "+paddleLength(sector,layer,paddle) * 0.4);
+
 	}
 
 }

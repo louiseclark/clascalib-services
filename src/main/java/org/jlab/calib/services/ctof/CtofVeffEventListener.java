@@ -73,7 +73,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 	public void resetEventListener() {
 
 		// LC perform init processing
-		for (int paddle = 1; paddle <= NUM_PADDLES; paddle++) {
+		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 
 			// create all the histograms
 			int numBins = (int) (paddleLength(1,1,paddle)*0.6);  // 1 bin per 2cm + 10% either side
@@ -89,8 +89,8 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 			hist.setName("veff");
 			hist.setTitle("Half Time Diff vs Position : " 
 					+ " Paddle "+paddle);
-			hist.setXTitle("Position (cm)");
-			hist.setYTitle("Half Time Diff (ns)");
+			hist.setTitleX("Position (cm)");
+			hist.setTitleY("Half Time Diff (ns)");
 
 			// create all the functions and graphs
 			F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
@@ -291,12 +291,12 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 	public DataGroup getSummary(int sector, int layer) {
 				
 		int layer_index = layer-1;
-		double[] paddleNumbers = new double[NUM_PADDLES];
-		double[] paddleUncs = new double[NUM_PADDLES];
-		double[] veffs = new double[NUM_PADDLES];
-		double[] veffUncs = new double[NUM_PADDLES];
+		double[] paddleNumbers = new double[NUM_PADDLES[0]];
+		double[] paddleUncs = new double[NUM_PADDLES[0]];
+		double[] veffs = new double[NUM_PADDLES[0]];
+		double[] veffUncs = new double[NUM_PADDLES[0]];
 
-		for (int p = 1; p <= NUM_PADDLES; p++) {
+		for (int p = 1; p <= NUM_PADDLES[0]; p++) {
 
 			paddleNumbers[p - 1] = (double) p;
 			paddleUncs[p - 1] = 0.0;

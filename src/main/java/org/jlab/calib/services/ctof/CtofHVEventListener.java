@@ -47,6 +47,13 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 
 	public final int		EXPECTED_MIP_CHANNEL = 2000;
 	public final int		ALLOWED_MIP_DIFF = 50;
+	public final double[]	ALPHA = {4.0};
+    public final double[]	MAX_VOLTAGE = {2500.0};
+    public final double		MAX_DELTA_V = 250.0;
+    public final int		MIN_STATS = 100;
+
+	
+	public String hvSetPrefix = "CTOFHVSET";
 
 	public CtofHVEventListener() {
 
@@ -57,6 +64,7 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 		
 		calib = new CalibrationConstants(3,
 				"mipa_left/F:mipa_right/F:mipa_left_err/F:mipa_right_err/F:logratio/F:logratio_err/F");
+
 		calib.setName("/calibration/ctof/gain_balance");
 		calib.setPrecision(3); // record calibration constants to 3 dp
 		
@@ -74,7 +82,7 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 
 		// LC perform init processing
 
-		for (int paddle = 1; paddle <= NUM_PADDLES; paddle++) {
+		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 
 			// create all the histograms
 			TOFH1F geoMeanHist = new TOFH1F("geomean",
@@ -406,6 +414,88 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 		return logRatioUnc;
 	}	
 	
+	public double newHV(int sector, int layer, int paddle, double origVoltage, String pmt) {
+		
+		// Don't bother recalculating if MIP peak is already acceptable
+		if (isGoodPaddle(sector,layer,paddle)) {
+			System.out.println("MIP peak already acceptable, no change to voltage");
+			return origVoltage;
+		}
+		
+		int layer_index = layer-1;
+		//DetectorDescriptor desc = new DetectorDescriptor();
+		//desc.setSectorLayerComponent(sector, layer, paddle);
+		
+		double gainIn = getMipChannel(sector, layer, paddle);		
+		double centroid = getLogRatio(sector, layer, paddle);
+		
+		double gainLR = 0.0;
+		if (pmt == "L") {
+			gainLR = gainIn / (Math.sqrt(Math.exp(centroid)));
+			
+			// put the constants in the treemap
+			//Double[] consts = getConst(sector, layer, paddle);
+			//consts[CURRENT_VOLTAGE_LEFT] = origVoltage;
+			//constants.put(desc.getHashCode(), consts);
+		}
+		else {
+			gainLR = gainIn * (Math.sqrt(Math.exp(centroid)));
+
+			// put the constants in the treemap
+			//Double[] consts = getConst(sector, layer, paddle);
+			//consts[CURRENT_VOLTAGE_RIGHT] = origVoltage;
+			//constants.put(desc.getHashCode(), consts);
+		}
+		
+		double deltaGain = EXPECTED_MIP_CHANNEL - gainLR;
+		double deltaV = (origVoltage * deltaGain) / (gainLR * ALPHA[layer_index]);
+		
+		// Safety check - don't exceed maximum voltage change
+		if (deltaV > MAX_DELTA_V) {
+			System.out.println("Max deltaV exceeded");
+
+			deltaV = MAX_DELTA_V;
+		} else if (deltaV < -MAX_DELTA_V) {
+			System.out.println("Max deltaV exceeded");
+			deltaV = -MAX_DELTA_V;
+		}
+		
+		// Don't change voltage if stats are low
+		if (dataGroups.getItem(sector,layer,paddle).getH1F("geomean").getEntries() < MIN_STATS) {
+			System.out.println("Low stats, deltaV set to zero");
+			deltaV = 0.0;
+		};
+		
+		double newVoltage = origVoltage + deltaV;
+		
+		// Safety check - don't exceed maximum voltage
+		if (newVoltage > MAX_VOLTAGE[layer_index]) {
+			System.out.println("Max V exceeded");
+			newVoltage = MAX_VOLTAGE[layer_index];
+		} else if (newVoltage < -MAX_VOLTAGE[layer_index]) {
+			System.out.println("Max V exceeded");
+			newVoltage = -MAX_VOLTAGE[layer_index];
+		}			
+
+		boolean test=false;
+		if (test) {
+			System.out.println("sector "+sector);
+			System.out.println("layer "+layer);
+			System.out.println("paddle "+paddle);
+			System.out.println("pmt "+pmt);
+			System.out.println("origVoltage = "+origVoltage);
+			System.out.println("gainIn = "+gainIn);
+			System.out.println("centroid = "+centroid);
+			System.out.println("gainLR = "+gainLR);
+			System.out.println("deltaGain = "+deltaGain);
+			System.out.println("deltaV = "+deltaV);
+			System.out.println("return = "+newVoltage);
+		}
+		
+		return newVoltage;
+		
+	}		
+	
 	@Override
 	public void saveRow(int sector, int layer, int paddle) {
 		calib.setDoubleValue(getMipChannel(sector,layer,paddle),
@@ -426,14 +516,14 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
 				
-		double[] paddleNumbers = new double[NUM_PADDLES];
-		double[] paddleUncs = new double[NUM_PADDLES];
-		double[] MIPChannels = new double[NUM_PADDLES];
-		double[] MIPChannelUncs = new double[NUM_PADDLES];
-		double[] LogRatios = new double[NUM_PADDLES];
-		double[] LogRatioUncs = new double[NUM_PADDLES];
+		double[] paddleNumbers = new double[NUM_PADDLES[0]];
+		double[] paddleUncs = new double[NUM_PADDLES[0]];
+		double[] MIPChannels = new double[NUM_PADDLES[0]];
+		double[] MIPChannelUncs = new double[NUM_PADDLES[0]];
+		double[] LogRatios = new double[NUM_PADDLES[0]];
+		double[] LogRatioUncs = new double[NUM_PADDLES[0]];
 
-		for (int p = 1; p <= NUM_PADDLES; p++) {
+		for (int p = 1; p <= NUM_PADDLES[0]; p++) {
 
 			paddleNumbers[p - 1] = (double) p;
 			paddleUncs[p - 1] = 0.0;

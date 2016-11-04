@@ -68,7 +68,7 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 
 		// LC perform init processing
 
-		for (int paddle = 1; paddle <= NUM_PADDLES; paddle++) {
+		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 
 			// create all the histograms
 			H1F hist = new H1F("left_right","Left Right: Paddle "+paddle, 
@@ -267,12 +267,12 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
 				
-		double[] paddleNumbers = new double[NUM_PADDLES];
-		double[] paddleUncs = new double[NUM_PADDLES];
-		double[] values = new double[NUM_PADDLES];
-		double[] valueUncs = new double[NUM_PADDLES];
+		double[] paddleNumbers = new double[NUM_PADDLES[0]];
+		double[] paddleUncs = new double[NUM_PADDLES[0]];
+		double[] values = new double[NUM_PADDLES[0]];
+		double[] valueUncs = new double[NUM_PADDLES[0]];
 
-		for (int p = 1; p <= NUM_PADDLES; p++) {
+		for (int p = 1; p <= NUM_PADDLES[0]; p++) {
 
 			paddleNumbers[p - 1] = (double) p;
 			paddleUncs[p - 1] = 0.0;

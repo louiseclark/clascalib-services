@@ -179,7 +179,7 @@ public class TOFPaddle {
     public double leftRight() {
     	double timeLeft=tdcToTime(TDCL);
 		double timeRight=tdcToTime(TDCR);
-		double vEff = 16; // default effective velocity to 16cm/ns
+		double vEff = 16.0; // default effective velocity to 16cm/ns
 		return (timeLeft-timeRight)*vEff;
     }
     

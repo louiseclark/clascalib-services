@@ -65,7 +65,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 		
 		// assign constraints corresponding to layer 1 values for now
 		// need addConstraint to be able to check layer and paddle
-		for (int paddle=1; paddle<=NUM_PADDLES; paddle++) {
+		for (int paddle=1; paddle<=NUM_PADDLES[0]; paddle++) {
 			calib.addConstraint(3, expectedAttlen(1,1,paddle)*0.9,
 								   expectedAttlen(1,1,paddle)*1.1,
 								   2,
@@ -82,7 +82,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 	public void resetEventListener() {
 
 		// LC perform init processing
-		for (int paddle = 1; paddle <= NUM_PADDLES; paddle++) {
+		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 
 			// create all the histograms
 			int numBins = (int) (paddleLength(1,1,paddle)*0.6);  // 1 bin per 2cm + 10% either side
@@ -94,8 +94,8 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 			hist.setName("atten");
 			hist.setTitle("Log Ratio vs Position : " 
 					+ " Paddle "+paddle);
-			hist.setXTitle("Position");
-			hist.setYTitle("Log ratio");
+			hist.setTitleX("Position");
+			hist.setTitleY("Log ratio");
 
 			// create all the functions and graphs
 			F1D attenFunc = new F1D("attenFunc", "[a]+[b]*x", -50.0, 50.0);
@@ -328,12 +328,12 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
 				
-		double[] paddleNumbers = new double[NUM_PADDLES];
-		double[] paddleUncs = new double[NUM_PADDLES];
-		double[] Attlens = new double[NUM_PADDLES];
-		double[] AttlenUncs = new double[NUM_PADDLES];
+		double[] paddleNumbers = new double[NUM_PADDLES[0]];
+		double[] paddleUncs = new double[NUM_PADDLES[0]];
+		double[] Attlens = new double[NUM_PADDLES[0]];
+		double[] AttlenUncs = new double[NUM_PADDLES[0]];
 
-		for (int p = 1; p <= NUM_PADDLES; p++) {
+		for (int p = 1; p <= NUM_PADDLES[0]; p++) {
 
 			paddleNumbers[p - 1] = (double) p;
 			paddleUncs[p - 1] = 0.0;

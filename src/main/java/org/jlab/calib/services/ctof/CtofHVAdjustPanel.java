@@ -1,4 +1,4 @@
-package org.jlab.calib.services;
+package org.jlab.calib.services.ctof;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -33,14 +33,14 @@ import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.utils.CalibrationConstants;
 import org.jlab.detector.calib.utils.CalibrationConstantsView;
 
-public class TOFHVAdjustPanel 	extends JPanel
+public class CtofHVAdjustPanel 	extends JPanel
 								implements ActionListener {
 	
 	JFileChooser fc;
 	CalibrationConstants calib;
-	TofHVEventListener hv;
+	CtofHVEventListener hv;
 
-	public TOFHVAdjustPanel(TofHVEventListener hvIn) {
+	public CtofHVAdjustPanel(CtofHVEventListener hvIn) {
 		
 		hv = hvIn;
 		
@@ -53,21 +53,16 @@ public class TOFHVAdjustPanel 	extends JPanel
 		CalibrationConstantsView ccview = new CalibrationConstantsView();
 		calib = new CalibrationConstants(3,
 				"current_HV_left/F:current_HV_right/F:new_HV_left/F:new_HV_right/F");
-		calib.setName("/calibration/ftof/hv");
+		calib.setName("/calibration/ctof/hv");
 		calib.setPrecision(3);
 		ccview.addConstants(calib);
 		
-		for (int sector = 1; sector <= 6; sector++) {
-			for (int layer = 1; layer <= hv.NUM_LAYERS; layer++) {
-				int layer_index = layer - 1;
-				for (int paddle = 1; paddle <= hv.NUM_PADDLES[layer_index]; paddle++) {
-					calib.addEntry(sector, layer, paddle);
-					calib.setDoubleValue(0.0,"current_HV_left", sector, layer, paddle);
-					calib.setDoubleValue(0.0,"current_HV_right", sector, layer, paddle);
-					calib.setDoubleValue(0.0,"new_HV_left", sector, layer, paddle);
-					calib.setDoubleValue(0.0,"new_HV_right", sector, layer, paddle);
-				}
-			}
+		for (int paddle = 1; paddle <= hv.NUM_PADDLES[0]; paddle++) {
+			calib.addEntry(1, 1, paddle);
+			calib.setDoubleValue(0.0,"current_HV_left", 1, 1, paddle);
+			calib.setDoubleValue(0.0,"current_HV_right", 1, 1, paddle);
+			calib.setDoubleValue(0.0,"new_HV_left", 1, 1, paddle);
+			calib.setDoubleValue(0.0,"new_HV_right", 1, 1, paddle);
 		}
 		
 		// Create field for file selection
@@ -87,7 +82,6 @@ public class TOFHVAdjustPanel 	extends JPanel
 		
 		if(e.getActionCommand().compareTo("Select File")==0) {
 			
-			//fc.setCurrentDirectory(new File("/home/louise/FTOF_calib_rewrite/input_files/hvfiles"));
 			int returnValue = fc.showOpenDialog(null);
 			if (returnValue == JFileChooser.APPROVE_OPTION) {
 				
@@ -129,24 +123,19 @@ public class TOFHVAdjustPanel 	extends JPanel
 				String[] lineValues;
                 lineValues = line.split("_| |:");
                 
-                int sector = Integer.parseInt(lineValues[4].replace("SEC", ""));
+                int sector = 1;
+                int layer = 1;
                 
-                String panelName = lineValues[5];
-                int layer = 0;
-                if (panelName.equals("PANEL1A")) {
-                	layer = 1;
+                String pmt = lineValues[4].substring(0, 1);
+                if (pmt.equals("U")) {
+                	pmt = "L";
                 }
-                else if (panelName.equals("PANEL1B")) {
-                	layer = 2;
+                else {
+                	pmt = "R";
                 }
-                else if (panelName.equals("PANEL2")) {
-                	layer = 3;
-                }
-                
-                String pmt = lineValues[6];
-                int paddle = Integer.parseInt(lineValues[7].replace("E", ""));
+                int paddle = Integer.parseInt(lineValues[4].replace("U", "").replace("D", ""));
 
-                double origVoltage = Double.parseDouble(lineValues[10]);
+                double origVoltage = Double.parseDouble(lineValues[7]);
                 if (origVoltage==0.0) {
                 	line = bufferedReader.readLine();
                 	continue;

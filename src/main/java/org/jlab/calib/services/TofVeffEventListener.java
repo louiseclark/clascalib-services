@@ -90,19 +90,25 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 					hist.setName("veff");
 					hist.setTitle("Half Time Diff vs Position : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
-					hist.setXTitle("Position (cm)");
-					hist.setYTitle("Half Time Diff (ns)");
+					hist.setTitleX("Hit position from tracking (cm)");
+					hist.setTitleY("Half Time Diff (ns)");
 
 					// create all the functions and graphs
 					F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
 					GraphErrors veffGraph = new GraphErrors();
 					veffGraph.setName("veffGraph");
-					
+					veffFunc.setLineColor(FUNC_COLOUR);
+					veffFunc.setLineWidth(FUNC_LINE_WIDTH);
+					veffGraph.setMarkerSize(MARKER_SIZE);
+					veffGraph.setLineThickness(MARKER_LINE_WIDTH);
+
 					DataGroup dg = new DataGroup(2,1);
 					dg.addDataSet(hist, 0);
 					dg.addDataSet(veffGraph, 1);
 					dg.addDataSet(veffFunc, 1);
 					dataGroups.add(dg, sector,layer,paddle);
+					
+					setPlotTitle(sector,layer,paddle);
 					
 					// initialize the constants array
 					Double[] consts = {UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
@@ -283,9 +289,19 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	}
 	
 	@Override
+	public void setPlotTitle(int sector, int layer, int paddle) {
+		// reset hist title as may have been set to null by show all 
+		dataGroups.getItem(sector,layer,paddle).getGraph("veffGraph").setTitleX("Hit position from tracking (cm)");
+		dataGroups.getItem(sector,layer,paddle).getGraph("veffGraph").setTitleY("Half Time Diff (ns)");
+	}
+	
+	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
-		canvas.draw(dataGroups.getItem(sector,layer,paddle).getGraph("veffGraph"));
+		GraphErrors graph = dataGroups.getItem(sector,layer,paddle).getGraph("veffGraph");
+		graph.setTitleX("");
+		graph.setTitleY("");
+		canvas.draw(graph);
 		canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc"), "same");
 
 	}
@@ -304,20 +320,17 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 			paddleNumbers[p - 1] = (double) p;
 			paddleUncs[p - 1] = 0.0;
 			veffs[p - 1] = getVeff(sector, layer, p);
-//			veffUncs[p - 1] = getVeffError(sector, layer, p);
+			//veffUncs[p - 1] = getVeffError(sector, layer, p);
 			veffUncs[p - 1] = 0.0;
 		}
 
 		GraphErrors summ = new GraphErrors("summ", paddleNumbers,
 				veffs, paddleUncs, veffUncs);
 		
-//		summary.setTitle("Effective Velocity: "
-//				+ LAYER_NAME[layer - 1] + " Sector "
-//				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("Effective Velocity (cm/ns)");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
+		summ.setTitleX("Paddle Number");
+		summ.setTitleY("Effective velocity (cm/ns)");
+		summ.setMarkerSize(MARKER_SIZE);
+		summ.setLineThickness(MARKER_LINE_WIDTH);
 		
 		DataGroup dg = new DataGroup(1,1);
 		dg.addDataSet(summ, 0);

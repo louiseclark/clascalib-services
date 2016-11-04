@@ -80,11 +80,15 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 					// create all the functions
 					F1D edgeToEdgeFunc = new F1D("edgeToEdgeFunc","[height]",
 							-960.0, 960.0);
+					edgeToEdgeFunc.setLineColor(FUNC_COLOUR);
+					edgeToEdgeFunc.setLineWidth(FUNC_LINE_WIDTH);
 
 					DataGroup dg = new DataGroup(1,1);
 					dg.addDataSet(hist, 0);
 					dg.addDataSet(edgeToEdgeFunc, 0);
 					dataGroups.add(dg, sector,layer,paddle);
+					
+					setPlotTitle(sector,layer,paddle);
 					
 					// initialize the constants array
 					Double[] consts = {UNDEFINED_OVERRIDE};
@@ -239,10 +243,14 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 			leftRight = overrideVal;
 		}
 		else {
+			
 			double min = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMin(); 
 			double max = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMax();
-			leftRight = (min+max)/2.0;
+			double centroid = (min+max)/2.0;
+			// convert to time in ns
+			leftRight = centroid / 16.0;
 		}
+
 		return leftRight;
 	}
 
@@ -261,9 +269,17 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 	}
 
 	@Override
+	public void setPlotTitle(int sector, int layer, int paddle) {
+		// reset hist title as may have been set to null by show all 
+		dataGroups.getItem(sector,layer,paddle).getH1F("left_right").setTitleX("(timeLeft-timeRight)*vEff (cm)");
+	}
+	
+	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
-
-		canvas.draw(dataGroups.getItem(sector,layer,paddle).getH1F("left_right"));
+		
+		H1F hist = dataGroups.getItem(sector,layer,paddle).getH1F("left_right");
+		hist.setTitleX("");
+		canvas.draw(hist);
 		canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc"), "same");
 
 	}
@@ -288,13 +304,10 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		GraphErrors summ = new GraphErrors("summ", paddleNumbers,
 				values, paddleUncs, valueUncs);
 		
-//		summary.setTitle("Left Right centroids: "
-//				+ LAYER_NAME[layer - 1] + " Sector "
-//				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("Centroid (cm)");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
+		summ.setTitleX("Paddle Number");
+		summ.setTitleY("Centroid");
+		summ.setMarkerSize(MARKER_SIZE);
+		summ.setLineThickness(MARKER_LINE_WIDTH);
 		
 		DataGroup dg = new DataGroup(1,1);
 		dg.addDataSet(summ, 0);

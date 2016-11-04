@@ -30,11 +30,15 @@ import org.jlab.utils.groups.IndexedTable;
  */
 public class DataProvider {
 	
-	private static	boolean test = false;
+	private static	boolean test = true;
 	
 	public static List<TOFPaddle> getPaddleList(DataEvent event) {
 		
 		List<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
+		if (test) {
+			EvioDataEvent e = (EvioDataEvent) event;
+			e.show();
+		}
 
 		if (event.hasBank("CTOF::dgtz")) {
         	paddleList = getPaddleListDgtz(event);
@@ -54,8 +58,8 @@ public class DataProvider {
 				event.getBank("CTOF::dgtz").show();
 			}
 
-			if (event.hasBank("BST::true")) {
-				event.getBank("BST::true").show();
+			if (event.hasBank("CTOFRec::ctofhits")) {
+				event.getBank("CTOFRec::ctofhits").show();
 			}
 		}
 		
@@ -66,44 +70,25 @@ public class DataProvider {
 			for (int dgtzIndex = 0; dgtzIndex < dgtzBank.rows(); dgtzIndex++) {
 
 				int component = dgtzBank.getInt("paddle", dgtzIndex);
-
-				double zpos = 0; // lab hit co ords from SVT projection
+				float zpos = 0; // lab hit co ords from SVT projection
 				
-				// get lab hit co ords from SVT
-				// 
-				if (event.hasBank("BST::true")) {
+				if (event.hasBank("CTOFRec::ctofhits")) {
 					
-					EvioDataBank bankSVT = (EvioDataBank) event.getBank("BST::true");
-
-					//if (bankDC.rows()==1) {
-
-						double x = bankSVT.getDouble("avgX", 0); // Maybe this is the pos from SVT???
-						double y = bankSVT.getDouble("avgY", 0);  
-						double z = bankSVT.getDouble("avgZ", 0); 
-						double px = bankSVT.getDouble("px", 0); // Use momentum vector for the moment
-						double py = bankSVT.getDouble("py", 0); // as velocity seems to be always zero...
-						double pz = bankSVT.getDouble("pz", 0); 
-
-						// swim to CTOF radius 250mm
-						Path3D path = new Path3D();
-						// how far is path from SVT to CTOF???
-						path.generate(new Point3D(x, y, z), new Vector3D(px, py, pz),  1.0, 2);
-
-						zpos = path.getLine(0).end().z();
-						
-						if (test) {
-							System.out.println("x "+x);
-							System.out.println("y "+y);
-							System.out.println("z "+z);
-							System.out.println("px "+px);
-							System.out.println("py "+py);
-							System.out.println("pz "+pz);
-							System.out.println("z pos "+zpos);
+					// find the corresponding row in the ctofhits bank
+					// to get the hit position from tracking
+					EvioDataBank hitsBank = (EvioDataBank) event.getBank("CTOFRec::ctofhits");
+					for (int hitIndex = 0; hitIndex < hitsBank.rows(); hitIndex++) {
+				
+						if (component==hitsBank.getInt("paddle_id",hitIndex)
+            				&&
+            				dgtzBank.getInt("hitn",dgtzIndex)==hitsBank.getInt("id", hitIndex)) {
+							
+							zpos = hitsBank.getFloat("tz", hitIndex);
 						}
+						
+					}
 
-					//}
 				}
-				// else don't set position for this event as can't match up multiple tracks right now
 
 				TOFPaddle  paddle = new TOFPaddle(
 						1,

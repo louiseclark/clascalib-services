@@ -23,7 +23,8 @@ import org.jlab.utils.groups.IndexedList;
 
 public class CTOFCalibrationEngine extends CalibrationEngine {
 
-	public final static int			NUM_PADDLES = 48;
+	public final static int[]		NUM_PADDLES = {48};
+	public final static int 	NUM_LAYERS = 1;
 	public final static double UNDEFINED_OVERRIDE = Double.NEGATIVE_INFINITY;
 	
 	public IndexedList<Double[]> constants = new IndexedList<Double[]>(3);
@@ -69,7 +70,7 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 	}
 
 	public void analyze() {
-		for (int paddle = 1; paddle <= NUM_PADDLES; paddle++) {
+		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 			fit(1, 1, paddle);
 		}
 		save();
@@ -92,7 +93,7 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 
 	public void save() {
 
-		for (int paddle = 1; paddle <= NUM_PADDLES; paddle++) {
+		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 			calib.addEntry(1, 1, paddle);
 			saveRow(1,1,paddle);
 		}
@@ -182,7 +183,7 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 		int canvasNum = 0;
 		int padNum = 0;
 		
-		for (int paddleNum=1; paddleNum <= NUM_PADDLES; paddleNum++) {
+		for (int paddleNum=1; paddleNum <= NUM_PADDLES[0]; paddleNum++) {
 
     		if ((paddleNum-1)%24 == 0) {
     			// new canvas
@@ -214,7 +215,7 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
         
         JTabbedPane pane = new JTabbedPane();
         for (int i=0; i<canvasNum; i++) {
-        	pane.add("Paddles "+((i*24)+1)+" to "+Math.min(((i+1)*24),NUM_PADDLES), fitCanvases[i]);
+        	pane.add("Paddles "+((i*24)+1)+" to "+Math.min(((i+1)*24),NUM_PADDLES[0]), fitCanvases[i]);
         }
  		
         frame.add(pane);

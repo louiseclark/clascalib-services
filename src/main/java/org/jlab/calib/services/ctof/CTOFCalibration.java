@@ -19,7 +19,9 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.TableModelEvent;
 
 import org.jlab.calib.services.TOFCalibrationEngine;
+import org.jlab.calib.services.TOFHVAdjustPanel;
 import org.jlab.calib.services.TOFPaddle;
+import org.jlab.calib.services.TofHVEventListener;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.tasks.CalibrationEngineView;
@@ -192,6 +194,15 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 			updateDetectorView(false);
 			this.updateCanvas();
 		}
+		else if (e.getActionCommand().compareTo(buttons[ADJUST_HV])==0) {
+			
+			JFrame hvFrame = new JFrame("Adjust HV");
+        	hvFrame.add(new CtofHVAdjustPanel((CtofHVEventListener) engines[HV]));
+            hvFrame.setSize(1000, 800);
+        	//hvFrame.pack();
+        	hvFrame.setVisible(true);
+        	hvFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+		}		
 		else if (e.getActionCommand().compareTo(buttons[WRITE])==0) {
 			
 			String outputFilename = engine.nextFileName();

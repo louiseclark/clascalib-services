@@ -6,6 +6,9 @@ import java.util.List;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.detector.base.GeometryFactory;
 import org.jlab.detector.calib.utils.CalibrationConstants;
+import org.jlab.detector.decode.CodaEventDecoder;
+import org.jlab.detector.decode.DetectorDataDgtz;
+import org.jlab.detector.decode.DetectorEventDecoder;
 import org.jlab.geom.base.ConstantProvider;
 import org.jlab.geom.base.Detector;
 import org.jlab.geom.component.ScintillatorMesh;
@@ -17,9 +20,11 @@ import org.jlab.geom.prim.Line3D;
 import org.jlab.geom.prim.Path3D;
 import org.jlab.geom.prim.Point3D;
 import org.jlab.geom.prim.Vector3D;
+import org.jlab.groot.group.DataGroup;
 import org.jlab.io.base.DataEvent;
 import org.jlab.io.evio.EvioDataBank;
 import org.jlab.io.evio.EvioDataEvent;
+import org.jlab.utils.groups.IndexedList;
 import org.jlab.utils.groups.IndexedTable;
 
 
@@ -29,62 +34,54 @@ import org.jlab.utils.groups.IndexedTable;
  */
 public class DataProvider {
 
-	public static FTOFDetectorMesh ftofDetector;
-	private static	boolean test = false;
+	private static	boolean test = true;
+	public static CodaEventDecoder codaDecoder;
+	public static DetectorEventDecoder eventDecoder;
+	public static List<DetectorDataDgtz> detectorData;
 
-	public static void getGeometry() {
+	public static void init() {
 
-		ConstantProvider cp = GeometryFactory.getConstants(DetectorType.FTOF);
-		FTOFFactory factory = new FTOFFactory();
-		ftofDetector = factory.getDetectorGeant4(cp);
+		codaDecoder = new CodaEventDecoder();
+		eventDecoder = new DetectorEventDecoder();
+		detectorData = new ArrayList<DetectorDataDgtz>();
 	}
 
 	public static List<TOFPaddle> getPaddleList(DataEvent event) {
 
 		List<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 
-				if (event.hasBank("FTOF1A::dgtz")||event.hasBank("FTOF1B::dgtz")||event.hasBank("FTOF2B::dgtz")) {
-					paddleList = getPaddleListDgtzOld(event);
-				}
-//				else { 
-//		        	paddleList = getPaddleListDgtzNew(event);
-//				}
+		if (event.hasBank("FTOF1A::dgtz")||event.hasBank("FTOF1B::dgtz")||event.hasBank("FTOF2B::dgtz")) {
+			paddleList = getPaddleListDgtz(event);
+		}
+		else { 
+        	paddleList = getPaddleListRaw(event);
+		}
 
 		//paddleList = getPaddleListTWTest(event);
 		return paddleList;
 
 	}
 
-	public static List<TOFPaddle> getPaddleListDgtzOld(DataEvent event){
+	public static List<TOFPaddle> getPaddleListDgtz(DataEvent event){
 
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 
 		if (test) {
-			EvioDataEvent e = (EvioDataEvent) event;
-//			e.show();
-//			if (event.hasBank("FTOF1A::dgtz")) {
-//				event.getBank("FTOF1A::dgtz").show();
-//			}
-//			if (event.hasBank("FTOF1B::dgtz")) {
-//				event.getBank("FTOF1B::dgtz").show();
-//			}
-//			if (event.hasBank("FTOF2B::dgtz")) {
-//				event.getBank("FTOF2B::dgtz").show();
-//			}		
-//			if (event.hasBank("FTOF1A::true")) {
-//				event.getBank("FTOF1A::true").show();
-//			}
-//			if (event.hasBank("FTOF1B::true")) {
-//				event.getBank("FTOF1B::true").show();
-//			}
-//			if (event.hasBank("FTOF2B::true")) {
-//				event.getBank("FTOF2B::true").show();
-//			}
-//			if (event.hasBank("FTOFRec::ftofhits")) {
-//				event.getBank("FTOFRec::ftofhits").show();
-//			}
-			if (event.hasBank("TimeBasedTrkg::TBTracks")) {
-				event.getBank("TimeBasedTrkg::TBTracks").show();
+			//EvioDataEvent e = (EvioDataEvent) event;
+	    	System.out.println("New event - dgtz");
+			//e.show();
+			
+			if (event.hasBank("FTOF1A::dgtz")) {
+				event.getBank("FTOF1A::dgtz").show();
+			}
+			if (event.hasBank("FTOF1B::dgtz")) {
+				event.getBank("FTOF1B::dgtz").show();
+			}
+			if (event.hasBank("FTOF2B::dgtz")) {
+				event.getBank("FTOF2B::dgtz").show();
+			}		
+			if (event.hasBank("FTOFRec::ftofhits")) {
+				event.getBank("FTOFRec::ftofhits").show();
 			}
 		}
 
@@ -98,39 +95,31 @@ public class DataProvider {
 
 					int sector = dgtzBank.getInt("sector", dgtzIndex);
 					int component = dgtzBank.getInt("paddle", dgtzIndex);
-
-					double xpos = 0; // lab hit co ords from DC
-					double ypos = 0;
-					// get lab hit co ords from DC
-					if (event.hasBank("TimeBasedTrkg::TBTracks")) {
-
-						EvioDataBank bankDC = (EvioDataBank) event.getBank("TimeBasedTrkg::TBTracks");
-
-						if (bankDC.rows()==1) {
-
-							double x = bankDC.getDouble("c3_x", 0); // Region 3 cross x-position in the lab
-							double y = bankDC.getDouble("c3_y", 0); // Region 3 cross y-position in the lab
-							double z = bankDC.getDouble("c3_z", 0); // Region 3 cross z-position in the lab
-							double ux = bankDC.getDouble("c3_ux", 0); // Region 3 cross x-unit-dir in the lab
-							double uy = bankDC.getDouble("c3_uy", 0); // Region 3 cross y-unit-dir in the lab
-							double uz = bankDC.getDouble("c3_uz", 0); // Region 3 cross z-unit-dir in the lab
-
-							ScintillatorMesh geomPaddle = ftofDetector.getSector(sector).getSuperlayer(layer).getLayer(1).getComponent(component);
-							Line3D lineX = geomPaddle.getLineX(); // Line representing the paddle Length
-
-							Path3D path = new Path3D();
-							path.generate(new Point3D(x, y, z), new Vector3D(ux, uy, uz),  1500.0, 2);
-
-							Line3D intersect = path.distance(lineX); // intersection of the path with the paddle line
-							Point3D intP = intersect.end();
-
-							xpos = intP.x();
-							ypos = intP.y();
-
+					float xpos = 0;
+					float ypos = 0;
+					
+					if (event.hasBank("FTOFRec::ftofhits")) {
+						
+						// find the corresponding row in the ftofhits bank
+						// to get the hit position from tracking
+						EvioDataBank hitsBank = (EvioDataBank) event.getBank("FTOFRec::ftofhits");
+						for (int hitIndex = 0; hitIndex < hitsBank.rows(); hitIndex++) {
+					
+							if (sector==hitsBank.getInt("sector",hitIndex)
+	            				&&
+	            				layer==hitsBank.getInt("panel_id",hitIndex)
+	            				&&
+	            				component==hitsBank.getInt("paddle_id",hitIndex)
+	            				&&
+	            				dgtzBank.getInt("hitn",dgtzIndex)==hitsBank.getInt("id", hitIndex)) {
+								
+								xpos = hitsBank.getFloat("tx", hitIndex);
+								ypos = hitsBank.getFloat("ty", hitIndex);
+							}
+							
 						}
-					}
-					// else don't set position for this event as can't match up multiple tracks right now
 
+					}
 					TOFPaddle  paddle = new TOFPaddle(
 							sector,
 							layer,
@@ -144,6 +133,15 @@ public class DataProvider {
 
 					if (paddle.includeInCalib()) {
 						paddleList.add(paddle);
+						
+						if (test) {
+							System.out.println("SLC "+sector+layer+component);
+							System.out.println("ADCL "+dgtzBank.getInt("ADCL", dgtzIndex)+
+											   " ADCR "+dgtzBank.getInt("ADCR", dgtzIndex)+
+											   " TDCL "+dgtzBank.getInt("TDCL", dgtzIndex)+
+											   " TDCR "+dgtzBank.getInt("TDCR", dgtzIndex)+
+											   " xpos "+xpos+" ypos "+ypos);
+						}
 					}
 				}
 
@@ -152,6 +150,92 @@ public class DataProvider {
 
 		return paddleList;
 	}
+
+	public static List<TOFPaddle> getPaddleListRaw(DataEvent event){
+
+		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
+
+		List<DetectorDataDgtz> dataSet = codaDecoder.getDataEntries((EvioDataEvent) event);
+		eventDecoder.translate(dataSet);
+		eventDecoder.fitPulses(dataSet);
+		detectorData.clear();
+		detectorData.addAll(dataSet);
+
+		IndexedList<IndexedList<Integer>> rawPaddles = new IndexedList<IndexedList<Integer>>(3);
+
+		if (test) {
+			System.out.println("New event - raw");
+		}
+
+		for (DetectorDataDgtz bank : detectorData) {
+
+			if(bank.getDescriptor().getType().getName()=="FTOF") {
+
+				int sector = bank.getDescriptor().getSector();
+				int layer = bank.getDescriptor().getLayer(); 
+				int component = bank.getDescriptor().getComponent();
+				int order = bank.getDescriptor().getOrder(); // 0=ADCL 1=ADCR 2=TDCL 3=TDCR	    		
+
+				if (test) {
+					//System.out.println("New FTOF bank");
+					System.out.println(order+" "+sector+" "+layer+" "+component);
+
+//					System.out.println("ORDER "+order);
+//					System.out.println("SLC "+sector+layer+component);
+//					System.out.println("ADCSize "+bank.getADCSize());
+//					System.out.println("TDCSize "+bank.getTDCSize());
+					if (bank.getADCSize()>0) {
+						System.out.println("getADC0 "+bank.getADCData(0).getADC());
+						System.out.println("getIntegral0 "+bank.getADCData(0).getIntegral());
+					}
+					if (bank.getTDCSize()>0) {
+						System.out.println("getTDC0 "+bank.getTDCData(0).getTime());
+					}
+//					System.out.println("TDCL "+bank.getTDCData(0).getTime());
+//					System.out.println("TDCR "+bank.getTDCData(1).getTime());
+
+				}
+
+				IndexedList<Integer> rawPaddle = new IndexedList<Integer>(1);
+				if (rawPaddles.hasItem(sector,layer,component)) {
+					rawPaddle = rawPaddles.getItem(sector,layer,component);
+				}
+				else {
+					rawPaddles.add(rawPaddle, sector,layer,component);
+				}
+
+				if (order==0 || order==1) {
+					rawPaddle.add(bank.getADCData(0).getIntegral(), order);
+				}
+
+			}
+
+			// for rawPaddle in raw Paddles
+
+			// check for 1 ADC hit and 1 TDC hit (1A and 2)
+			// check for 1 ADC hist and at least 1 TDC hit (1B)
+			//if ((layer==2) && (bank.getADCSize()==1) && (bank.getTDCSize()>0)
+			//	||
+			//	(layer!=2) && (bank.getADCSize()==1) && (bank.getTDCSize()==1)) {
+
+			//    		if (bank.getADCSize()>0) {
+			//    			TOFPaddle  paddle = new TOFPaddle(
+			//						sector,
+			//						layer,
+			//						component,
+			//						bank.getADCData(0).getIntegral(),
+			//						0, //bank.getADCData(1).getIntegral(),
+			//						0, //bank.getTDCData(0).getTime(),
+			//						0); //bank.getTDCData(1).getTime());
+			//    			
+			//				if (paddle.includeInCalib()) {
+			//					paddleList.add(paddle);
+			//				}
+			//    		}
+		}
+
+		return paddleList;
+	}	
 	
 	public static List<TOFPaddle> getPaddleListDgtzNew(DataEvent event){
 
@@ -182,35 +266,6 @@ public class DataProvider {
 
 				double xpos = 0; // lab hit co ords from DC
 				double ypos = 0;
-				// get lab hit co ords from DC
-				if (event.hasBank("TimeBasedTrkg::TBTracks")) {
-
-					EvioDataBank bankDC = (EvioDataBank) event.getBank("TimeBasedTrkg::TBTracks");
-
-					if (bankDC.rows()==1) {
-
-						double x = bankDC.getDouble("c3_x", 0); // Region 3 cross x-position in the lab
-						double y = bankDC.getDouble("c3_y", 0); // Region 3 cross y-position in the lab
-						double z = bankDC.getDouble("c3_z", 0); // Region 3 cross z-position in the lab
-						double ux = bankDC.getDouble("c3_ux", 0); // Region 3 cross x-unit-dir in the lab
-						double uy = bankDC.getDouble("c3_uy", 0); // Region 3 cross y-unit-dir in the lab
-						double uz = bankDC.getDouble("c3_uz", 0); // Region 3 cross z-unit-dir in the lab
-
-						ScintillatorMesh geomPaddle = ftofDetector.getSector(sector).getSuperlayer(layer).getLayer(1).getComponent(component);
-						Line3D lineX = geomPaddle.getLineX(); // Line representing the paddle Length
-
-						Path3D path = new Path3D();
-						path.generate(new Point3D(x, y, z), new Vector3D(ux, uy, uz),  1500.0, 2);
-
-						Line3D intersect = path.distance(lineX); // intersection of the path with the paddle line
-						Point3D intP = intersect.end();
-
-						xpos = intP.x();
-						ypos = intP.y();
-
-					}
-				}
-				// else don't set position for this event as can't match up multiple tracks right now
 
 				TOFPaddle  paddle = new TOFPaddle(
 						sector,

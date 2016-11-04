@@ -58,7 +58,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     		new TofAttenEventListener(),
     		new TofLeftRightEventListener(),
     		new TofVeffEventListener(),
-    		new TofTimeWalkEventListener()};
+    		new TofTimeWalkEventListener(),
+    		new TofP2PEventListener()};
     
     // engine indices
     public final int HV = 0;
@@ -66,12 +67,14 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     public final int LEFT_RIGHT = 2;
     public final int VEFF = 3;
     public final int TW = 4;
+    public final int P2P = 5;
     
     String[] dirs = {"/calibration/ftof/gain_balance",
     				 "/calibration/ftof/attenuation",
     				 "/calibration/ftof/timing_offset",
     				 "/calibration/ftof/effective_velocity",
-    				 "/calibration/ftof/time_walk"};
+    				 "/calibration/ftof/time_walk",
+    				 "/calibration/ftof/timing_offset/P2P"};
 	
 	String selectedDir = dirs[HV];
 	int selectedSector = 1;
@@ -85,9 +88,11 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public final int ADJUST_HV = 2;
 	public final int WRITE = 3;
 	
+	//public static EventDecoder decoder = new EventDecoder();
+	
 	public TOFCalibration() {
 		
-		DataProvider.getGeometry();
+		DataProvider.init();
 
         pane = new JPanel();
         pane.setLayout(new BorderLayout());
@@ -175,6 +180,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			engine = engines[VEFF];
 		} else if (selectedDir == dirs[TW]) {
 			engine = engines[TW];
+		} else if (selectedDir == dirs[P2P]) {
+			engine = engines[P2P];
 		}
 		return engine;
 	}
@@ -323,10 +330,12 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public void updateCanvas() {
 
 		IndexedList<DataGroup> group = getSelectedEngine().getDataGroup();
+		getSelectedEngine().setPlotTitle(selectedSector,selectedLayer,selectedPaddle);
 		
         if(group.hasItem(selectedSector,selectedLayer,selectedPaddle)==true){
             DataGroup dataGroup = group.getItem(selectedSector,selectedLayer,selectedPaddle);
             this.canvas.draw(dataGroup);
+            canvas.getPad(0).setTitle(TOFCalibrationEngine.LAYER_NAME[selectedLayer-1]+" Sector "+selectedSector+" Paddle "+selectedPaddle);
             this.canvas.update();
         } else {
             System.out.println(" ERROR: can not find the data group");
@@ -342,6 +351,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		selectedPaddle = 1;
 		
 		this.canvas.draw(getSelectedEngine().getSummary(selectedSector, selectedLayer));
+		canvas.getPad(0).setTitle("Calibration values for "
+				+TOFCalibrationEngine.LAYER_NAME[selectedLayer-1]+" Sector "+selectedSector);
 		this.canvas.update();
 		
 	}
@@ -354,7 +365,6 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         	this.updateDetectorView(false);
         	this.updateCanvas();
         }
-		
 	}
 
 	public static void main(String[] args) {

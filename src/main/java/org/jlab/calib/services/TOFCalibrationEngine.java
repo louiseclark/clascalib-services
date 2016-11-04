@@ -23,9 +23,16 @@ import org.jlab.utils.groups.IndexedList;
 public class TOFCalibrationEngine extends CalibrationEngine {
 
 	public final static int[] NUM_PADDLES = { 23, 62, 5 };
+	public final static int 	NUM_LAYERS = 3;
 	public final static String[] LAYER_NAME = { "FTOF1A", "FTOF1B", "FTOF2" };
 	public final static double UNDEFINED_OVERRIDE = Double.NEGATIVE_INFINITY;
-
+	
+	// plot settings
+	public final static int		FUNC_COLOUR = 2;
+	public final static int		MARKER_SIZE = 3;
+	public final static int		FUNC_LINE_WIDTH = 2;
+	public final static int		MARKER_LINE_WIDTH = 1;
+	
 	public IndexedList<Double[]> constants = new IndexedList<Double[]>(3);
 
 	public CalibrationConstants calib;
@@ -37,6 +44,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 
 	public TOFCalibrationEngine() {
 		// controlled by calibration step class
+		
 	}
 
 	@Override
@@ -190,6 +198,10 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		return doubleVal;
 	}
 
+	public void setPlotTitle(int sector, int layer, int paddle) {
+		// Overridden in calibration step classes
+	}
+	
 	public void drawPlots(int sector, int layer, int paddle,
 			EmbeddedCanvas canvas) {
 		// Overridden in calibration step classes
@@ -207,12 +219,9 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		int padNum = 0;
 
 		for (int paddleNum = 1; paddleNum <= NUM_PADDLES[layer_index]; paddleNum++) {
-
-    		System.out.println("paddleNum "+paddleNum);
-    		System.out.println("canvasNum "+canvasNum);
-    		System.out.println("padNum "+padNum);
     		
 			fitCanvases[canvasNum].cd(padNum);
+			fitCanvases[canvasNum].getPad(padNum).setTitle("Paddle "+paddleNum);
 			fitCanvases[canvasNum].getPad(padNum).setOptStat(0);
 			drawPlots(sector, layer, paddleNum, fitCanvases[canvasNum]);
 

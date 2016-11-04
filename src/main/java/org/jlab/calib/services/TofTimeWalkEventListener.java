@@ -106,12 +106,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 					leftHist.setTitle("Time residual vs ADC LEFT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
-					leftHist.setXTitle("ADC LEFT");
-					leftHist.setYTitle("Time residual");
+					leftHist.setTitleX("ADC LEFT");
+					leftHist.setTitleY("Time residual (ns)");
 					rightHist.setTitle("Time residual vs ADC RIGHT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
-					rightHist.setXTitle("ADC RIGHT");
-					rightHist.setYTitle("Time residual");
+					rightHist.setTitleX("ADC RIGHT");
+					rightHist.setTitleY("Time residual (ns)");
 					
 					dg.addDataSet(leftHist, 0);
 					dg.addDataSet(rightHist, 1);
@@ -124,11 +124,23 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					GraphErrors trRightGraph = new GraphErrors();
 					trRightGraph.setName("trRightGraph");
 					
+					trLeftFunc.setLineColor(FUNC_COLOUR);
+					trLeftFunc.setLineWidth(FUNC_LINE_WIDTH);
+					trLeftGraph.setMarkerSize(MARKER_SIZE);
+					trLeftGraph.setLineThickness(MARKER_LINE_WIDTH);
+
+					trRightFunc.setLineColor(FUNC_COLOUR);
+					trRightFunc.setLineWidth(FUNC_LINE_WIDTH);
+					trRightGraph.setMarkerSize(MARKER_SIZE);
+					trRightGraph.setLineThickness(MARKER_LINE_WIDTH);
+					
 					dg.addDataSet(trLeftFunc, 2);
 					dg.addDataSet(trLeftGraph, 2);
 					dg.addDataSet(trRightFunc, 3);
 					dg.addDataSet(trRightGraph, 3);
 					dataGroups.add(dg,sector,layer,paddle);	
+					
+					setPlotTitle(sector,layer,paddle);
 					
 					// initialize the constants array
 					Double[] consts = {UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
@@ -442,9 +454,22 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	}
 
 	@Override
+	public void setPlotTitle(int sector, int layer, int paddle) {
+		// reset hist title as may have been set to null by show all 
+		dataGroups.getItem(sector,layer,paddle).getGraph("trLeftGraph").setTitleX("ADC LEFT");
+		dataGroups.getItem(sector,layer,paddle).getGraph("trLeftGraph").setTitleY("Time residual (ns)");
+		dataGroups.getItem(sector,layer,paddle).getGraph("trRightGraph").setTitleX("ADC LEFT");
+		dataGroups.getItem(sector,layer,paddle).getGraph("trRightGraph").setTitleY("Time residual (ns)");
+		//System.out.println("Setting TW graph titles");
+	}
+
+	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
-		canvas.draw(dataGroups.getItem(sector,layer,paddle).getGraph("trLeftGraph"));
+		GraphErrors leftGraph = dataGroups.getItem(sector,layer,paddle).getGraph("trLeftGraph");
+		leftGraph.setTitleX("");
+		leftGraph.setTitleY("");
+		canvas.draw(leftGraph);
 		canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc"), "same");
 
 	}
@@ -489,49 +514,34 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		GraphErrors llSumm = new GraphErrors("llSumm", paddleNumbers,
 				lambdaLefts, paddleUncs, zeroUncs);
 		
-//		llSumm.setTitle("Lambda Left: "
-//				+ LAYER_NAME[layer - 1] + " Sector "
-//				+ sector);
-//		llSumm.setXTitle("Paddle Number");
-//		summary.setYTitle("Lambda Left");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
-//		
+		llSumm.setTitleX("Paddle Number");
+		llSumm.setTitleY("Lambda left");
+		llSumm.setMarkerSize(MARKER_SIZE);
+		llSumm.setLineThickness(MARKER_LINE_WIDTH);
 
 		GraphErrors lrSumm = new GraphErrors("lrSumm", paddleNumbers,
 				lambdaRights, paddleUncs, zeroUncs);
 		
-//		summary.setTitle("Lambda Right: "
-//				+ LAYER_NAME[layer - 1] + " Sector "
-//				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("Lambda Right");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
+		lrSumm.setTitleX("Paddle Number");
+		lrSumm.setTitleY("Lambda right");
+		lrSumm.setMarkerSize(MARKER_SIZE);
+		lrSumm.setLineThickness(MARKER_LINE_WIDTH);
 
 		GraphErrors olSumm = new GraphErrors("olSumm", paddleNumbers,
 				orderLefts, paddleUncs, zeroUncs);
 		
-//		summary.setTitle("Order Left: "
-//				+ LAYER_NAME[layer - 1] + " Sector "
-//				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("Order Left");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
-//		
+		olSumm.setTitleX("Paddle Number");
+		olSumm.setTitleY("Order left");
+		olSumm.setMarkerSize(MARKER_SIZE);
+		olSumm.setLineThickness(MARKER_LINE_WIDTH);
 
 		GraphErrors orSumm = new GraphErrors("orSumm", paddleNumbers,
 				orderRights, paddleUncs, zeroUncs);
 		
-//		summary.setTitle("Order Right: "
-//				+ LAYER_NAME[layer - 1] + " Sector "
-//				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("Order Right");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
-//		
+		orSumm.setTitleX("Paddle Number");
+		orSumm.setTitleY("Order right");
+		orSumm.setMarkerSize(MARKER_SIZE);
+		orSumm.setLineThickness(MARKER_LINE_WIDTH);
 
 		DataGroup dg = new DataGroup(2,2);
 		dg.addDataSet(llSumm, 0);
@@ -543,5 +553,4 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		
 	}
 
-	
 }

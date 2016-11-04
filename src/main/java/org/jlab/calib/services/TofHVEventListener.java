@@ -48,6 +48,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
     public final double		MAX_DELTA_V = 250.0;
     public final int		MIN_STATS = 100;
 
+    public String hvSetPrefix = "FTOFHVSET";
 
 	public TofHVEventListener() {
 
@@ -93,8 +94,11 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 					// create all the functions
 					F1D gmFunc = new F1D("gmFunc", "[amp]*landau(x,[mean],[sigma]) +[exp_amp]*exp([p]*x)",
 							 0.0, GM_HIST_MAX[layer_index]);
+					gmFunc.setLineColor(FUNC_COLOUR);
+					gmFunc.setLineWidth(FUNC_LINE_WIDTH);
 					F1D lrFunc = new F1D("lrFunc","[height]",-6.0,6.0);
-
+					lrFunc.setLineColor(FUNC_COLOUR);
+					lrFunc.setLineWidth(FUNC_LINE_WIDTH);
 					
 					DataGroup dg = new DataGroup(2,1);
 					dg.addDataSet(geoMeanHist, GEOMEAN);
@@ -102,6 +106,8 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 					dg.addDataSet(gmFunc, GEOMEAN);
 					dg.addDataSet(lrFunc, LOGRATIO);
 					dataGroups.add(dg, sector,layer,paddle);
+					
+					setPlotTitle(sector,layer,paddle);
 
 					// initialize the constants array
 					Double[] consts = {0.0, 0.0, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
@@ -536,24 +542,18 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		GraphErrors gmSumm = new GraphErrors("gmSumm", paddleNumbers,
 				MIPChannels, paddleUncs, MIPChannelUncs);
 		
-//		summary.setTitle("MIP Channel: "
-//				+ LAYER_NAME[paddle - 1] + " Sector "
-//				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("MIP Channel");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
-//		
+		gmSumm.setTitleX("Paddle Number");
+		gmSumm.setTitleY("MIP Channel");
+		gmSumm.setMarkerSize(MARKER_SIZE);
+		gmSumm.setLineThickness(MARKER_LINE_WIDTH);
 
 		GraphErrors lrSumm = new GraphErrors("lrSumm", paddleNumbers,
 				LogRatios, paddleUncs, LogRatioUncs);
-//		summary.setTitle("Log ratio: "
-//				+ TOFCalibration.LAYER_NAME[paddle - 1] + " Sector "
-//				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("Log ratio");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
+
+		lrSumm.setTitleX("Paddle Number");
+		lrSumm.setTitleY("Log Ratio");
+		lrSumm.setMarkerSize(MARKER_SIZE);
+		lrSumm.setLineThickness(MARKER_LINE_WIDTH);
 
 		DataGroup dg = new DataGroup(2,1);
 		dg.addDataSet(gmSumm, GEOMEAN);
@@ -573,9 +573,18 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	}
 
 	@Override
+	public void setPlotTitle(int sector, int layer, int paddle) {
+		// reset hist title as may have been set to null by show all 
+		dataGroups.getItem(sector,layer,paddle).getH1F("geomean").setTitleX("ADC geometric mean");
+		dataGroups.getItem(sector,layer,paddle).getH1F("logratio").setTitleX("ln(ADC R / ADC L)");
+
+	}
+	
+	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
 		H1F fitHist = dataGroups.getItem(sector,layer,paddle).getH1F("geomean");
+		fitHist.setTitleX("");
 		canvas.draw(fitHist);
 		
 		F1D fitFunc = dataGroups.getItem(sector,layer,paddle).getF1D("gmFunc");
