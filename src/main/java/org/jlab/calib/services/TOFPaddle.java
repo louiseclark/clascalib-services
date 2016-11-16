@@ -89,8 +89,8 @@ public class TOFPaddle {
     }
     
     public boolean isValidGeoMean() {
-    	return includeInCalib();
-    	//return (this.geometricMean() > 300.0);
+    	//return includeInCalib();
+    	return (this.geometricMean() > 300.0);
     }
     
     public boolean includeInCalib() {
@@ -99,18 +99,31 @@ public class TOFPaddle {
     }	
     
     public boolean includeInVeff() {
-    	// exclude if position is zero
-    	return (this.XPOS !=0 || this.YPOS !=0 || this.ZPOS !=0);
+    	// exclude if position is zero or veff is unrealistic
+    	return (this.XPOS !=0 || this.YPOS !=0 || this.ZPOS !=0)
+    			&&
+    			(this.paddleY()/this.halfTimeDiff() > 8.0)
+    			&&
+    			(this.paddleY()/this.halfTimeDiff() < 24.0);
     }
+    
+    public boolean includeInTimeWalk() {
+    	// exclude if position is zero or veff is unrealistic
+    	return (this.XPOS !=0 || this.YPOS !=0 || this.ZPOS !=0)
+    			&&
+    			(this.paddleY()/this.halfTimeDiff() > 8.0)
+    			&&
+    			(this.paddleY()/this.halfTimeDiff() < 24.0);
+    }    
     
     public boolean isValidLogRatio() {
     	// only if geometric mean is over a minimum
 		// only if both TDCs are non-zero - otherwise ADCs are equal and log ratio is always 0
     	//return (this.geometricMean() > 500.0) && (TDCL != 0) && (TDCR != 0);
-    	return (this.geometricMean() > 100.0) && (ADCR != ADCL);
+    	return isValidGeoMean();
     }    
     
-    public boolean includeInTimeWalk() {
+    public boolean includeInTimeWalkTest() {
     	// return true if x and y value is in certain range depending on paddle number
     	// and ADC is positive (only needed for testing where I'm manually subtracting the pedestal
     	// hard coded for s1p10

@@ -50,6 +50,9 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 
     public String hvSetPrefix = "FTOFHVSET";
 
+    public H1F hvStatHist;
+    
+
 	public TofHVEventListener() {
 
 		stepName = "HV";
@@ -77,6 +80,12 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 
 	@Override
 	public void resetEventListener() {
+
+		// create histogram of stats per layer / sector
+		hvStatHist = new H1F("hvStatHist","hvStatHist", 30,0.0,30.0);
+		hvStatHist.setTitle("Total number of hits");
+		hvStatHist.getXaxis().setTitle("Sector");
+		hvStatHist.getYaxis().setTitle("Number of hits");
 
 		// LC perform init processing
 		for (int sector = 1; sector <= 6; sector++) {
@@ -138,6 +147,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 
 			if (paddle.isValidGeoMean()) {
 				dataGroups.getItem(sector,layer,component).getH1F("geomean").fill(paddle.geometricMean());
+				hvStatHist.fill(((layer-1)*10)+sector);
 			}
 
 			if (paddle.isValidLogRatio()) {
@@ -520,7 +530,31 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
-				
+		
+		// draw the stats
+		TCanvas c1 = new TCanvas("HV Stats",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(hvStatHist);
+		
+		// draw the stats
+		c1 = new TCanvas("Total Stats",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.totalStatHist);
+		
+		// draw the stats
+		c1 = new TCanvas("Tracking Stats (non zero)",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.trackingStatHist);
+
+		// draw the stats
+		c1 = new TCanvas("Tracking Stats (zero)",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.trackingZeroStatHist);
+		
 		int layer_index = layer-1;
 		double[] paddleNumbers = new double[NUM_PADDLES[layer_index]];
 		double[] paddleUncs = new double[NUM_PADDLES[layer_index]];

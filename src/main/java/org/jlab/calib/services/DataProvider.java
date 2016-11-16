@@ -34,7 +34,7 @@ import org.jlab.utils.groups.IndexedTable;
  */
 public class DataProvider {
 
-	private static	boolean test = true;
+	private static	boolean test = false;
 	public static CodaEventDecoder codaDecoder;
 	public static DetectorEventDecoder eventDecoder;
 	public static List<DetectorDataDgtz> detectorData;
@@ -97,6 +97,7 @@ public class DataProvider {
 					int component = dgtzBank.getInt("paddle", dgtzIndex);
 					float xpos = 0;
 					float ypos = 0;
+					TOFCalibration.totalStatHist.fill(((layer-1)*10)+sector);
 					
 					if (event.hasBank("FTOFRec::ftofhits")) {
 						
@@ -113,12 +114,13 @@ public class DataProvider {
 	            				&&
 	            				dgtzBank.getInt("hitn",dgtzIndex)==hitsBank.getInt("id", hitIndex)) {
 								
-								xpos = hitsBank.getFloat("tx", hitIndex);
-								ypos = hitsBank.getFloat("ty", hitIndex);
+								if (hitsBank.getFloat("tx", hitIndex)!=0 && 
+									hitsBank.getFloat("ty", hitIndex)!=0) {
+									xpos = hitsBank.getFloat("tx", hitIndex);
+									ypos = hitsBank.getFloat("ty", hitIndex);
+								}
 							}
-							
 						}
-
 					}
 					TOFPaddle  paddle = new TOFPaddle(
 							sector,
@@ -145,6 +147,25 @@ public class DataProvider {
 					}
 				}
 
+			}
+		}
+		
+		if (event.hasBank("FTOFRec::ftofhits")) {
+
+			// find the corresponding row in the ftofhits bank
+			// to get the hit position from tracking
+			EvioDataBank hitsBank = (EvioDataBank) event.getBank("FTOFRec::ftofhits");
+			for (int hitIndex = 0; hitIndex < hitsBank.rows(); hitIndex++) {
+
+				int l = hitsBank.getInt("panel_id",hitIndex);
+				int s = hitsBank.getInt("sector",hitIndex);
+				
+				if ((hitsBank.getFloat("tx", hitIndex) == 0 ) &&
+				    (hitsBank.getFloat("ty", hitIndex) == 0))
+					TOFCalibration.trackingZeroStatHist.fill(((l-1)*10)+s);
+				else {
+					TOFCalibration.trackingStatHist.fill(((l-1)*10)+s);
+				}
 			}
 		}
 

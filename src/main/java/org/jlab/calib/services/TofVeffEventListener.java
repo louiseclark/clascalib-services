@@ -31,6 +31,7 @@ import org.jlab.groot.fitter.DataFitter;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
 import org.jlab.groot.math.F1D;
+import org.jlab.groot.ui.TCanvas;
 import org.jlab.io.base.DataEvent;
 import org.jlab.io.base.DataEventType;
 import org.jlab.io.evio.EvioDataEvent;
@@ -45,6 +46,8 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	
 	public final double EXPECTED_VEFF = 16.0;
 	public final double ALLOWED_VEFF_DIFF = 0.1;
+
+    public H1F veffStatHist;	
 	
 	public TofVeffEventListener() {
 
@@ -70,6 +73,12 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	@Override
 	public void resetEventListener() {
 
+		// create histogram of stats per layer / sector
+		veffStatHist = new H1F("veffStatHist","veffStatHist", 30,0.0,30.0);
+		veffStatHist.setTitle("Number of hits with tracking information");
+		veffStatHist.getXaxis().setTitle("Sector");
+		veffStatHist.getYaxis().setTitle("Number of hits");
+		
 		// LC perform init processing
 		for (int sector = 1; sector <= 6; sector++) {
 			for (int layer = 1; layer <= 3; layer++) {
@@ -140,6 +149,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 			if (paddle.includeInVeff()) {
 				dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
 					paddle.paddleY(), paddle.halfTimeDiff());
+				veffStatHist.fill(((layer-1)*10)+sector);
 			}
 		}
 	}
@@ -308,6 +318,12 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
+		
+		// draw the stats
+		TCanvas c1 = new TCanvas("Veff Stats",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(veffStatHist);		
 				
 		int layer_index = layer-1;
 		double[] paddleNumbers = new double[NUM_PADDLES[layer_index]];

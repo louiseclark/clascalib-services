@@ -27,6 +27,7 @@ import org.jlab.detector.calib.utils.CalibrationConstantsView;
 import org.jlab.detector.view.DetectorListener;
 import org.jlab.detector.view.DetectorPane2D;
 import org.jlab.detector.view.DetectorShape2D;
+import org.jlab.groot.data.H1F;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
 import org.jlab.io.base.DataEvent;
@@ -88,11 +89,29 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public final int ADJUST_HV = 2;
 	public final int WRITE = 3;
 	
+	public static H1F totalStatHist;
+	public static H1F trackingZeroStatHist;
+	public static H1F trackingStatHist;
+	
 	//public static EventDecoder decoder = new EventDecoder();
 	
 	public TOFCalibration() {
 		
 		DataProvider.init();
+		
+		// create histogram of stats per layer / sector
+		totalStatHist = new H1F("totalStatHist","totalStatHist", 30,0.0,30.0);
+		totalStatHist.setTitle("Total number of hits");
+		totalStatHist.getXaxis().setTitle("Sector");
+		totalStatHist.getYaxis().setTitle("Number of hits");
+		trackingStatHist = new H1F("trackingStatHist","trackingStatHist", 30,0.0,30.0);
+		trackingStatHist.setTitle("Total number of hits (non zero)");
+		trackingStatHist.getXaxis().setTitle("Sector");
+		trackingStatHist.getYaxis().setTitle("Number of hits");
+		trackingZeroStatHist = new H1F("trackingZeroStatHist","trackingZeroStatHist", 30,0.0,30.0);
+		trackingZeroStatHist.setTitle("Total number of hits (zero)");
+		trackingZeroStatHist.getXaxis().setTitle("Sector");
+		trackingZeroStatHist.getYaxis().setTitle("Number of hits");
 
         pane = new JPanel();
         pane.setLayout(new BorderLayout());
