@@ -51,7 +51,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
     public String hvSetPrefix = "FTOFHVSET";
 
     public H1F hvStatHist;
-    
+    private String showPlotType = "GEOMEAN";
 
 	public TofHVEventListener() {
 
@@ -531,29 +531,80 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
 		
-		// draw the stats
-		TCanvas c1 = new TCanvas("HV Stats",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(hvStatHist);
+//		// draw the stats
+//		TCanvas c1 = new TCanvas("HV Stats",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(hvStatHist);
+//		
+//		// draw the stats
+//		c1 = new TCanvas("Total Stats",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.totalStatHist);
+//		
+//		// draw the stats
+//		c1 = new TCanvas("Tracking Stats (non zero)",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.trackingStatHist);
+//
+//		// draw the stats
+//		c1 = new TCanvas("Tracking Stats (zero)",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.trackingZeroStatHist);
 		
-		// draw the stats
-		c1 = new TCanvas("Total Stats",1200,800);
+		TCanvas c1 = new TCanvas("FTOF 1A ADCL all events",1200,800);
 		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
 		c1.cd(0);
-		c1.draw(TOFCalibration.totalStatHist);
-		
-		// draw the stats
-		c1 = new TCanvas("Tracking Stats (non zero)",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.trackingStatHist);
+		c1.draw(TOFCalibration.adcLeftHist1A);
 
-		// draw the stats
-		c1 = new TCanvas("Tracking Stats (zero)",1200,800);
+		c1 = new TCanvas("FTOF 1A ADCR all events",1200,800);
 		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
 		c1.cd(0);
-		c1.draw(TOFCalibration.trackingZeroStatHist);
+		c1.draw(TOFCalibration.adcRightHist1A);
+
+		c1 = new TCanvas("FTOF 1A ADCL events with tracking",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.trackingAdcLeftHist1A);
+
+		c1 = new TCanvas("FTOF 1A ADCR events with tracking",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.trackingAdcRightHist1A);
+
+		c1 = new TCanvas("FTOF 1B ADCL all events",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.adcLeftHist1B);
+
+		c1 = new TCanvas("FTOF 1B ADCR all events",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.adcRightHist1B);
+
+		c1 = new TCanvas("FTOF 1B ADCL events with tracking",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.trackingAdcLeftHist1B);
+
+		c1 = new TCanvas("FTOF 1B ADCR events with tracking",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.trackingAdcRightHist1B);
+
+		c1 = new TCanvas("Total events per paddle",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.paddleHist);
+
+		c1 = new TCanvas("Events with tracking per paddle",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.trackingPaddleHist);
+		
 		
 		int layer_index = layer-1;
 		double[] paddleNumbers = new double[NUM_PADDLES[layer_index]];
@@ -616,14 +667,40 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
-
-		H1F fitHist = dataGroups.getItem(sector,layer,paddle).getH1F("geomean");
-		fitHist.setTitleX("");
-		canvas.draw(fitHist);
 		
-		F1D fitFunc = dataGroups.getItem(sector,layer,paddle).getF1D("gmFunc");
-		canvas.draw(fitFunc, "same");
+		if (showPlotType == "GEOMEAN") {
 
+			H1F fitHist = dataGroups.getItem(sector,layer,paddle).getH1F("geomean");
+			fitHist.setTitleX("");
+			canvas.draw(fitHist);
+			
+			F1D fitFunc = dataGroups.getItem(sector,layer,paddle).getF1D("gmFunc");
+			canvas.draw(fitFunc, "same");
+			
+		}
+		else {
+			H1F fitHist = dataGroups.getItem(sector,layer,paddle).getH1F("logratio");
+			fitHist.setTitleX("");
+			canvas.draw(fitHist);
+			
+			F1D fitFunc = dataGroups.getItem(sector,layer,paddle).getF1D("lrFunc");
+			canvas.draw(fitFunc, "same");
+			
+		}
+			
+
+	}
+	
+	@Override
+	public void showPlots(int sector, int layer) {
+
+		showPlotType = "GEOMEAN";
+		stepName = "HV - Geometric mean";
+		super.showPlots(sector, layer);
+		showPlotType = "LOGRATIO";
+		stepName = "HV - Log ratio";
+		super.showPlots(sector, layer);
+		
 	}
 
 }

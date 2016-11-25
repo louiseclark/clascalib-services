@@ -135,6 +135,28 @@ public class DataProvider {
 
 					if (paddle.includeInCalib()) {
 						paddleList.add(paddle);
+
+						if (layer==1) {
+							TOFCalibration.adcLeftHist1A.fill(dgtzBank.getInt("ADCL", dgtzIndex));
+							TOFCalibration.adcRightHist1A.fill(dgtzBank.getInt("ADCR", dgtzIndex));
+							if (xpos!=0.0 || ypos!=0.0) {
+								TOFCalibration.trackingAdcLeftHist1A.fill(dgtzBank.getInt("ADCL", dgtzIndex));
+								TOFCalibration.trackingAdcRightHist1A.fill(dgtzBank.getInt("ADCR", dgtzIndex));
+							}
+						}
+						if (layer==2) {
+							TOFCalibration.adcLeftHist1B.fill(dgtzBank.getInt("ADCL", dgtzIndex));
+							TOFCalibration.adcRightHist1B.fill(dgtzBank.getInt("ADCR", dgtzIndex));
+							if (xpos!=0.0 || ypos!=0.0) {
+								TOFCalibration.trackingAdcLeftHist1B.fill(dgtzBank.getInt("ADCL", dgtzIndex));
+								TOFCalibration.trackingAdcRightHist1B.fill(dgtzBank.getInt("ADCR", dgtzIndex));
+							}
+						}
+						
+						TOFCalibration.paddleHist.fill(((layer-1)*100)+component);
+						if (xpos!=0.0 || ypos!=0.0) {
+							TOFCalibration.trackingPaddleHist.fill(((layer-1)*100)+component);
+						}
 						
 						if (test) {
 							System.out.println("SLC "+sector+layer+component);
@@ -150,10 +172,8 @@ public class DataProvider {
 			}
 		}
 		
-		if (event.hasBank("FTOFRec::ftofhits")) {
+		if ((event.hasBank("FTOFRec::ftofhits")) && (test)) {
 
-			// find the corresponding row in the ftofhits bank
-			// to get the hit position from tracking
 			EvioDataBank hitsBank = (EvioDataBank) event.getBank("FTOFRec::ftofhits");
 			for (int hitIndex = 0; hitIndex < hitsBank.rows(); hitIndex++) {
 

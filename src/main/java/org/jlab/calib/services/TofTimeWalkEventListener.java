@@ -18,7 +18,7 @@ import org.jlab.utils.groups.IndexedList;
 
 public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
-	public final int NUM_ITERATIONS = 3;
+	public final int NUM_ITERATIONS = 5;
 
 	private List<TOFPaddle>     allPaddleList = new ArrayList<TOFPaddle>();
 	
@@ -33,13 +33,15 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	public final int ORDER_RIGHT_OVERRIDE = 3;
 
 
-	private final double[]		ADC_MIN = {0.0, 300.0, 300.0, 300.0};
-	private final double[]		ADC_MAX = {0.0,	3000.0,	8000.0,	3000.0};
-	private final double[]		FIT_MIN = {0.0,	200.0, 	300.0, 	100.0};
-	private final double[]		FIT_MAX = {0.0, 2000.0,	5000.0, 1200.0};
+	private final double[]		ADC_MIN = {0.0, 100.0, 200.0, 100.0};
+	private final double[]		ADC_MAX = {0.0,	3000.0,	5000.0,	3000.0};
+	private final double[]		FIT_MIN = {0.0,	500.0, 	1200.0, 500.0};
+	private final double[]		FIT_MAX = {0.0, 1300.0,	2500.0, 1500.0};
 
 	final double[] fitLambda = {40.0,40.0};  // default values for the constants
 	final double[] fitOrder = {0.5,0.5};  // default values for the constants
+	
+    private String showPlotType = "TW_LEFT";
 	
 	public TofTimeWalkEventListener() {
 
@@ -109,20 +111,20 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 							"Time residual vs ADC LEFT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
-							100, -5.0, 10.0);
+							100, -2.0, 6.0);
 					H2F rightHist = new H2F("trRightHist",
 							"Time residual vs ADC RIGHT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
-							100, -5.0, 10.0);
+							100, -2.0, 6.0);
 
 					leftHist.setTitle("Time residual vs ADC LEFT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
-					leftHist.setTitleX("ADC LEFT test");
+					leftHist.setTitleX("ADC LEFT");
 					leftHist.setTitleY("Time residual (ns)");
 					rightHist.setTitle("Time residual vs ADC RIGHT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
-					rightHist.setTitleX("ADC RIGHT test");
+					rightHist.setTitleX("ADC RIGHT");
 					rightHist.setTitleY("Time residual (ns)");
 					
 					dg.addDataSet(leftHist, 0);
@@ -181,17 +183,20 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		}
 	}	
 
-	@Override
+
 	// non-standard analyze step for timewalk
 	// require to iterate through all events several times
+	@Override
 	public void analyze() {
 		
 		for (int iter=0; iter<NUM_ITERATIONS; iter++) {
 
-			System.out.println("Iteration "+iter);
+			System.out.println("Iteration "+iter+" start");
 
 			resetHists();
 			fitAll(iter);
+			
+			System.out.println("Iteration "+iter+" end");
 
 		}
 		save();
@@ -248,7 +253,9 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	
 	@Override
 	public void fit(int sector, int layer, int paddle, double minRange, double maxRange) {
-
+		
+		//System.out.println("Fitting "+sector+layer+paddle+" start");
+		
 		H2F twL = dataGroups.getItem(sector,layer,paddle).getH2F("trLeftHist");
 		H2F twR = dataGroups.getItem(sector,layer,paddle).getH2F("trRightHist");
 
@@ -328,12 +335,18 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		twRFunc.setParameter(1, fitLambda[RIGHT]/2.0);
 		twRFunc.setParameter(2, fitOrder[RIGHT]);
 		try {
-			DataFitter.fit(twRFunc, twRGraph, "RNQ");
+			if (paddle==20) {
+				DataFitter.fit(twRFunc, twRGraph, "RN");
+			}
+			else {
+				DataFitter.fit(twRFunc, twRGraph, "RNQ");
+			}
+			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+		//System.out.println("Fitting "+sector+layer+paddle+" end");
 	}
 
 	public double[] getLambdas(int sector, int layer, int paddle, int iter) {
@@ -479,14 +492,36 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
-		GraphErrors leftGraph = dataGroups.getItem(sector,layer,paddle).getGraph("trLeftGraph");
-		leftGraph.setTitleX("");
-		leftGraph.setTitleY("");
-		canvas.draw(leftGraph);
-		canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc"), "same");
+		if (showPlotType == "TW_LEFT") {
+			GraphErrors graph = dataGroups.getItem(sector,layer,paddle).getGraph("trLeftGraph");
+			graph.setTitleX("");
+			graph.setTitleY("");
+			canvas.draw(graph);
+			canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc"), "same");
+		}
+		else {
+			GraphErrors graph = dataGroups.getItem(sector,layer,paddle).getGraph("trRightGraph");
+			graph.setTitleX("");
+			graph.setTitleY("");
+			canvas.draw(graph);
+			canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc"), "same");
+			
+		}
 
 	}
 
+	@Override
+	public void showPlots(int sector, int layer) {
+
+		showPlotType = "TW_LEFT";
+		stepName = "Time walk - ADC Left";
+		super.showPlots(sector, layer);
+		showPlotType = "TW_RIGHT";
+		stepName = "Time walk - ADC right";
+		super.showPlots(sector, layer);
+		
+	}
+	
 	@Override
 	public boolean isGoodPaddle(int sector, int layer, int paddle) {
 
