@@ -3,10 +3,13 @@ package org.jlab.calib.services;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.JOptionPane;
 
+import org.jlab.detector.base.DetectorDescriptor;
 import org.jlab.detector.calib.utils.CalibrationConstants;
+import org.jlab.detector.calib.utils.DatabaseConstantProvider;
 import org.jlab.groot.data.GraphErrors;
 import org.jlab.groot.data.H2F;
 import org.jlab.groot.fitter.DataFitter;
@@ -66,6 +69,23 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				   fitLambda[RIGHT]*1.1);
 		calib.addConstraint(7, fitOrder[RIGHT]*0.9,
 				   fitOrder[RIGHT]*1.1);
+		
+		// get the effective velocity constants
+		DatabaseConstantProvider  dbprovider = new DatabaseConstantProvider(10,"default");
+		dbprovider.loadTable("/calibration/ftof/effective_velocity");
+		dbprovider.disconnect();
+		dbprovider.show();
+		
+		for(int loop = 0; loop < dbprovider.length("/calibration/ftof/effective_velocity/veff_left"); loop++){
+	        double value = dbprovider.getDouble("/calibration/ftof/effective_velocity/veff_left",loop);
+	        // for integer values use dbprovider.getInteger("/calibration/ftof/attenuation/y_offset",loop);
+	        System.out.println("loop "+loop+" value "+value);
+		}
+		
+		DetectorDescriptor desc = new DetectorDescriptor();
+		desc.setSectorLayerComponent(1, 1, 4);
+		System.out.println("desc "+desc);
+		
 
 	}
 	

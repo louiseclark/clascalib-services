@@ -100,7 +100,8 @@ public class DataProvider {
 						dgtzBank.getInt("TDCD", dgtzIndex),
 						0.0,
 						0.0,
-						zpos);
+						zpos,
+						0.0,0.0);
 
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);

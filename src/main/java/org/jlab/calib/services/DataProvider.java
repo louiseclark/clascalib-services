@@ -83,6 +83,9 @@ public class DataProvider {
 			if (event.hasBank("FTOFRec::ftofhits")) {
 				event.getBank("FTOFRec::ftofhits").show();
 			}
+			if (event.hasBank("FTOFRec::rawhits")) {
+				event.getBank("FTOFRec::rawhits").show();
+			}
 		}
 
 		String[] bankName = {"zero", "FTOF1A::dgtz", "FTOF1B::dgtz", "FTOF2B::dgtz"};
@@ -97,6 +100,9 @@ public class DataProvider {
 					int component = dgtzBank.getInt("paddle", dgtzIndex);
 					float xpos = 0;
 					float ypos = 0;
+					float timeL = 0;
+					float timeR = 0;
+					int rawIndex =0;
 					TOFCalibration.totalStatHist.fill(((layer-1)*10)+sector);
 					
 					if (event.hasBank("FTOFRec::ftofhits")) {
@@ -116,12 +122,21 @@ public class DataProvider {
 								
 								if (hitsBank.getFloat("tx", hitIndex)!=0 && 
 									hitsBank.getFloat("ty", hitIndex)!=0) {
+									
 									xpos = hitsBank.getFloat("tx", hitIndex);
 									ypos = hitsBank.getFloat("ty", hitIndex);
+									
+									if (event.hasBank("FTOFRec::rawhits")) {
+										// one to one correspondence between ftofhits and rawhits
+										EvioDataBank rawBank = (EvioDataBank) event.getBank("FTOFRec::rawhits");
+										timeL = rawBank.getFloat("time_left", hitIndex);
+										timeR = rawBank.getFloat("time_right", hitIndex);
+									}								
 								}
 							}
 						}
 					}
+					
 					TOFPaddle  paddle = new TOFPaddle(
 							sector,
 							layer,
@@ -131,7 +146,9 @@ public class DataProvider {
 							dgtzBank.getInt("TDCL", dgtzIndex),
 							dgtzBank.getInt("TDCR", dgtzIndex),
 							xpos,
-							ypos);
+							ypos,
+							timeL,
+							timeR);
 
 					if (paddle.includeInCalib()) {
 						paddleList.add(paddle);
@@ -317,7 +334,7 @@ public class DataProvider {
 						dgtzBank.getInt("TDCL", dgtzIndex),
 						dgtzBank.getInt("TDCR", dgtzIndex),
 						xpos,
-						ypos);
+						ypos, 0.0,0.0);
 
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);
@@ -370,7 +387,7 @@ public class DataProvider {
 						bank.getInt("TDCL", loop),
 						bank.getInt("TDCR", loop),
 						xpos,
-						ypos
+						ypos, 0.0, 0.0
 						);
 				paddleList.add(paddle);
 			}

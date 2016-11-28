@@ -18,6 +18,8 @@ public class TOFPaddle {
     public int ADCR = 0;
     public int TDCL = 0;
     public int TDCR = 0;
+    public double TIMEL = 0.0;
+    public double TIMER = 0.0;
     public double XPOS = 0.0; 
     public double YPOS = 0.0; 
     public double ZPOS = 0.0;
@@ -47,7 +49,7 @@ public class TOFPaddle {
 
     public TOFPaddle(int sector, int layer, int paddle,
             int adcL, int adcR, int tdcL, int tdcR,
-            double xpos, double ypos){
+            double xpos, double ypos, double timeL, double timeR){
         this.desc.setSectorLayerComponent(sector, layer, paddle);
         this.ADCL = adcL;
         this.ADCR = adcR;
@@ -55,11 +57,13 @@ public class TOFPaddle {
         this.TDCR = tdcR;
         this.XPOS = xpos;
         this.YPOS = ypos;
+        this.TIMEL = timeL;
+        this.TIMER = timeR;
     }
     
     public TOFPaddle(int sector, int layer, int paddle,
             int adcL, int adcR, int tdcL, int tdcR,
-            double xpos, double ypos, double zpos){
+            double xpos, double ypos, double zpos, double timeL, double timeR){
         this.desc.setSectorLayerComponent(sector, layer, paddle);
         this.ADCL = adcL;
         this.ADCR = adcR;
@@ -68,6 +72,8 @@ public class TOFPaddle {
         this.XPOS = xpos;
         this.YPOS = ypos;
         this.ZPOS = zpos;
+        this.TIMEL = timeL;
+        this.TIMER = timeR;
     }    
     
     
@@ -102,9 +108,11 @@ public class TOFPaddle {
     	// exclude if position is zero or veff is unrealistic
     	return (this.XPOS !=0 || this.YPOS !=0 || this.ZPOS !=0)
     			&&
-    			(this.paddleY()/this.halfTimeDiff() > 8.0)
-    			&&
-    			(this.paddleY()/this.halfTimeDiff() < 24.0);
+    			(Math.abs(position() - paddleY()) < 20.0);
+//    			&&
+//    			(this.paddleY()/this.halfTimeDiff() > 4.0)
+//    			&&
+//    			(this.paddleY()/this.halfTimeDiff() < 28.0);
     }
     
     public boolean includeInTimeWalk() {
@@ -236,6 +244,12 @@ public class TOFPaddle {
     	return (timeL-timeR)/2;
     }
 
+    public double timeTWCorr(double time, double adc) {
+    	
+    	return time - (40.0 / Math.pow(adc, 0.5));
+    	
+    }
+    
     public double halfTimeDiff() {
     	
     	double timeL = tdcToTime(TDCL);
@@ -243,6 +257,17 @@ public class TOFPaddle {
     	return (timeL-timeR)/2;
     }
     
+    public double halfTimeDiffWithTW() {
+    	
+    	double timeL = timeTWCorr(tdcToTime(TDCL), ADCL);
+    	double timeR = timeTWCorr(tdcToTime(TDCR), ADCR);
+    	return (timeL-timeR)/2;
+    }
+    
+    public double recHalfTimeDiff() {
+    	
+    	return (TIMEL-TIMER)/2;
+    }
     
     public double position() {
 		double vEff = 16; // default effective velocity to 16cm/ns

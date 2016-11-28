@@ -87,23 +87,27 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 
 					// create all the histograms
 					int numBins = (int) (paddleLength(sector,layer,paddle)*0.6);  // 1 bin per 2cm + 10% either side
-					double min = paddleLength(sector,layer,paddle) * -0.6;
-					double max = paddleLength(sector,layer,paddle) * 0.6;
+//					double min = paddleLength(sector,layer,paddle) * -0.6;
+//					double max = paddleLength(sector,layer,paddle) * 0.6;
+					double min = paddleLength(sector,layer,paddle) * -0.1;
+					double max = paddleLength(sector,layer,paddle) * 1.1;
 					
 					H2F hist = 
 					new H2F("veff",
 							"veff",
 							numBins, min, max, 
-							200, -15.0, 15.0);
+							//200, -15.0, 15.0);
+							200, 0.0, 30.0);
 					
 					hist.setName("veff");
 					hist.setTitle("Half Time Diff vs Position : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
-					hist.setTitleX("Hit position from tracking (cm)");
-					hist.setTitleY("Half Time Diff (ns)");
+					hist.setTitleX("Hit position from tracking (cm) (+ offset)");
+					hist.setTitleY("Half Time Diff (ns) (+ offset)");
 
 					// create all the functions and graphs
-					F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
+					//F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
+					F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", 0.0, 500.0);
 					GraphErrors veffGraph = new GraphErrors();
 					veffGraph.setName("veffGraph");
 					veffFunc.setLineColor(FUNC_COLOUR);
@@ -147,8 +151,11 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 			int component = paddle.getDescriptor().getComponent();
 
 			if (paddle.includeInVeff()) {
+//				dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
+//					paddle.paddleY(), paddle.recHalfTimeDiff());
 				dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
-					paddle.paddleY(), paddle.halfTimeDiff());
+						paddle.paddleY() + (paddleLength(sector,layer,component)/2), 
+						paddle.recHalfTimeDiff() + 15.0);
 				veffStatHist.fill(((layer-1)*10)+sector);
 			}
 		}
@@ -173,7 +180,8 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 			lowLimit = minRange;
 		}
 		else {
-			lowLimit = paddleLength(sector,layer,paddle) * -0.4;
+			//lowLimit = paddleLength(sector,layer,paddle) * -0.4;
+			lowLimit = paddleLength(sector,layer,paddle) * 0.1;
 		}
 		
 		if (maxRange != UNDEFINED_OVERRIDE) {
@@ -181,7 +189,8 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 			highLimit = maxRange;
 		}
 		else {
-			highLimit = paddleLength(sector,layer,paddle) * 0.4;
+			//highLimit = paddleLength(sector,layer,paddle) * 0.4;
+			highLimit = paddleLength(sector,layer,paddle) * 0.9;
 		}
 
 		F1D veffFunc = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc");
