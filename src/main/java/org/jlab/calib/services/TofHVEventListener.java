@@ -15,6 +15,7 @@ import org.jlab.groot.data.H1F;
 import org.jlab.groot.fitter.DataFitter;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
+//import org.jlab.calib.temp.DataGroup;
 import org.jlab.groot.math.F1D;
 import org.jlab.groot.ui.TCanvas;
 import org.jlab.io.base.DataEvent;
@@ -97,31 +98,33 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 					TOFH1F geoMeanHist = new TOFH1F("geomean",
 							"Geometric Mean Sector "+sector+" Paddle "+paddle, 
 							GM_HIST_BINS[layer_index], 0.0, GM_HIST_MAX[layer_index]);
-					H1F logRatioHist = new TOFH1F("logratio",
-							"Log Ratio Sector "+sector+" Paddle "+paddle, 75,-6.0,6.0);
+					geoMeanHist.setName("geomean");
+					H1F logRatioHist = new TOFH1F("logratio", 
+							"Log Ratio Sector "+sector+" Paddle "+paddle, 
+							75,-6.0,6.0);
+					logRatioHist.setName("logratio");
 
 					// create all the functions
 					F1D gmFunc = new F1D("gmFunc", "[amp]*landau(x,[mean],[sigma]) +[exp_amp]*exp([p]*x)",
-							 0.0, GM_HIST_MAX[layer_index]);
+							0.0, GM_HIST_MAX[layer_index]);
 					gmFunc.setLineColor(FUNC_COLOUR);
 					gmFunc.setLineWidth(FUNC_LINE_WIDTH);
 					F1D lrFunc = new F1D("lrFunc","[height]",-6.0,6.0);
 					lrFunc.setLineColor(FUNC_COLOUR);
 					lrFunc.setLineWidth(FUNC_LINE_WIDTH);
-					
+
 					DataGroup dg = new DataGroup(2,1);
 					dg.addDataSet(geoMeanHist, GEOMEAN);
 					dg.addDataSet(logRatioHist, LOGRATIO);
 					dg.addDataSet(gmFunc, GEOMEAN);
 					dg.addDataSet(lrFunc, LOGRATIO);
 					dataGroups.add(dg, sector,layer,paddle);
-					
 					setPlotTitle(sector,layer,paddle);
 
 					// initialize the constants array
 					Double[] consts = {0.0, 0.0, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
 					// Logratio, log ratio unc, override values
-					
+
 					constants.add(consts, sector, layer, paddle);
 				}
 			}
@@ -130,7 +133,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 
 	@Override
 	public void processEvent(DataEvent event) {
-
+		
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
 		processPaddleList(paddleList);
 
@@ -532,30 +535,30 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	public DataGroup getSummary(int sector, int layer) {
 		
 //		// draw the stats
-//		TCanvas c1 = new TCanvas("HV Stats",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(hvStatHist);
-//		
-//		// draw the stats
-//		c1 = new TCanvas("Total Stats",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.totalStatHist);
-//		
-//		// draw the stats
-//		c1 = new TCanvas("Tracking Stats (non zero)",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.trackingStatHist);
-//
-//		// draw the stats
-//		c1 = new TCanvas("Tracking Stats (zero)",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.trackingZeroStatHist);
+		TCanvas c1 = new TCanvas("HV Stats",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(hvStatHist);
 		
-		TCanvas c1 = new TCanvas("FTOF 1A ADCL all events",1200,800);
+		// draw the stats
+		c1 = new TCanvas("Total Stats",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.totalStatHist);
+		
+		// draw the stats
+		c1 = new TCanvas("Tracking Stats (non zero)",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.trackingStatHist);
+
+		// draw the stats
+		c1 = new TCanvas("Tracking Stats (zero)",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.trackingZeroStatHist);
+		
+		c1 = new TCanvas("FTOF 1A ADCL all events",1200,800);
 		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
 		c1.cd(0);
 		c1.draw(TOFCalibration.adcLeftHist1A);

@@ -316,6 +316,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 		
         if(group.hasItem(selectedSector,selectedLayer,selectedPaddle)==true){
             DataGroup dataGroup = group.getItem(selectedSector,selectedLayer,selectedPaddle);
+            this.canvas.clear();
             this.canvas.draw(dataGroup);
             this.canvas.update();
         } else {
@@ -331,6 +332,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 		selectedLayer = shape.getDescriptor().getLayer();
 		selectedPaddle = 1;
 		
+		this.canvas.clear();
 		this.canvas.draw(getSelectedEngine().getSummary(selectedSector, selectedLayer));
 		this.canvas.update();
 		

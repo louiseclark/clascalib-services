@@ -30,14 +30,14 @@ import org.jlab.utils.groups.IndexedTable;
  */
 public class DataProvider {
 	
-	private static	boolean test = true;
+	private static	boolean test = false;
 	
 	public static List<TOFPaddle> getPaddleList(DataEvent event) {
 		
 		List<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 		if (test) {
 			EvioDataEvent e = (EvioDataEvent) event;
-			e.show();
+			//e.show();
 		}
 
 		if (event.hasBank("CTOF::dgtz")) {
@@ -51,15 +51,29 @@ public class DataProvider {
 	
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 		
+		boolean show = false;
+		int nonZeroHit = 0;
 		if (test) {
 			EvioDataEvent e = (EvioDataEvent) event;
-			e.show();
-			if (event.hasBank("CTOF::dgtz")) {
-				event.getBank("CTOF::dgtz").show();
-			}
-
+//			e.show();
+//			if (event.hasBank("CTOF::dgtz")) {
+//				event.getBank("CTOF::dgtz").show();
+//			}
+			
 			if (event.hasBank("CTOFRec::ctofhits")) {
-				event.getBank("CTOFRec::ctofhits").show();
+				//event.getBank("CTOFRec::ctofhits").show();
+				for (int i = 0; i < event.getBank("CTOFRec::ctofhits").rows(); i++) {
+					
+					if (event.getBank("CTOFRec::ctofhits").getFloat("tz", i) !=0) {
+						show = true;
+						nonZeroHit = i;
+					}
+					
+				}
+				if (show) {
+					event.getBank("CTOF::dgtz").show();
+					event.getBank("CTOFRec::ctofhits").show();
+				}
 			}
 		}
 		
@@ -72,16 +86,27 @@ public class DataProvider {
 				int component = dgtzBank.getInt("paddle", dgtzIndex);
 				float zpos = 0; // lab hit co ords from SVT projection
 				
+				if (show) {
+					System.out.println("dgtz paddle_id "+component+" hitn "
+							+dgtzBank.getInt("hitn",dgtzIndex));
+				}
+				
 				if (event.hasBank("CTOFRec::ctofhits")) {
 					
 					// find the corresponding row in the ctofhits bank
 					// to get the hit position from tracking
 					EvioDataBank hitsBank = (EvioDataBank) event.getBank("CTOFRec::ctofhits");
 					for (int hitIndex = 0; hitIndex < hitsBank.rows(); hitIndex++) {
+						
+						if (show) {
+							System.out.println("hits paddle_id"+hitsBank.getInt("paddle_id", hitIndex));
+						}
 				
-						if (component==hitsBank.getInt("paddle_id",hitIndex)
+						if (component==hitsBank.getInt("paddle",hitIndex)
             				&&
-            				dgtzBank.getInt("hitn",dgtzIndex)==hitsBank.getInt("id", hitIndex)) {
+            				dgtzBank.getInt("hitn",dgtzIndex)==hitsBank.getInt("id", hitIndex)
+            				&&
+            				hitsBank.getFloat("tz", hitIndex) != 0) {
 							
 							zpos = hitsBank.getFloat("tz", hitIndex);
 						}
@@ -102,7 +127,12 @@ public class DataProvider {
 						0.0,
 						zpos,
 						0.0,0.0);
-
+				
+				if (show) {
+					System.out.println("Paddle "+component+" zpos "+zpos+
+							" tz "+event.getBank("CTOFRec::ctofhits").getFloat("tz", nonZeroHit));
+				}
+				
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);
 				}

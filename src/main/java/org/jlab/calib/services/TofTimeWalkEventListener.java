@@ -15,6 +15,7 @@ import org.jlab.groot.data.H2F;
 import org.jlab.groot.fitter.DataFitter;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
+//import org.jlab.calib.temp.DataGroup;
 import org.jlab.groot.math.F1D;
 import org.jlab.io.base.DataEvent;
 import org.jlab.utils.groups.IndexedList;
@@ -71,20 +72,20 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				   fitOrder[RIGHT]*1.1);
 		
 		// get the effective velocity constants
-		DatabaseConstantProvider  dbprovider = new DatabaseConstantProvider(10,"default");
-		dbprovider.loadTable("/calibration/ftof/effective_velocity");
-		dbprovider.disconnect();
-		dbprovider.show();
-		
-		for(int loop = 0; loop < dbprovider.length("/calibration/ftof/effective_velocity/veff_left"); loop++){
-	        double value = dbprovider.getDouble("/calibration/ftof/effective_velocity/veff_left",loop);
-	        // for integer values use dbprovider.getInteger("/calibration/ftof/attenuation/y_offset",loop);
-	        System.out.println("loop "+loop+" value "+value);
-		}
-		
-		DetectorDescriptor desc = new DetectorDescriptor();
-		desc.setSectorLayerComponent(1, 1, 4);
-		System.out.println("desc "+desc);
+//		DatabaseConstantProvider  dbprovider = new DatabaseConstantProvider(10,"default");
+//		dbprovider.loadTable("/calibration/ftof/effective_velocity");
+//		dbprovider.disconnect();
+//		dbprovider.show();
+//		
+//		for(int loop = 0; loop < dbprovider.length("/calibration/ftof/effective_velocity/veff_left"); loop++){
+//	        double value = dbprovider.getDouble("/calibration/ftof/effective_velocity/veff_left",loop);
+//	        // for integer values use dbprovider.getInteger("/calibration/ftof/attenuation/y_offset",loop);
+//	        System.out.println("loop "+loop+" value "+value);
+//		}
+//		
+//		DetectorDescriptor desc = new DetectorDescriptor();
+//		desc.setSectorLayerComponent(1, 1, 4);
+//		System.out.println("desc "+desc);
 		
 
 	}

@@ -301,7 +301,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
     	
     	for (int i=0; i< engines.length; i++) {
-
+		
     		if (event.getType()==DataEventType.EVENT_START) {
     			engines[i].resetEventListener();
     			engines[i].processPaddleList(paddleList);
@@ -409,6 +409,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		
         if(group.hasItem(selectedSector,selectedLayer,selectedPaddle)==true){
             DataGroup dataGroup = group.getItem(selectedSector,selectedLayer,selectedPaddle);
+            this.canvas.clear();
             this.canvas.draw(dataGroup);
             canvas.getPad(0).setTitle(TOFCalibrationEngine.LAYER_NAME[selectedLayer-1]+" Sector "+selectedSector+" Paddle "+selectedPaddle);
             this.canvas.update();
@@ -425,6 +426,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		selectedLayer = shape.getDescriptor().getLayer();
 		selectedPaddle = 1;
 		
+		this.canvas.clear();
 		this.canvas.draw(getSelectedEngine().getSummary(selectedSector, selectedLayer));
 		canvas.getPad(0).setTitle("Calibration values for "
 				+TOFCalibrationEngine.LAYER_NAME[selectedLayer-1]+" Sector "+selectedSector);
