@@ -215,7 +215,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			System.out.println("Iteration "+iter+" start");
 
 			resetHists();
-			fitAll(iter);
+			//fitAll(iter);
 			
 			System.out.println("Iteration "+iter+" end");
 

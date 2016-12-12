@@ -46,8 +46,8 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 	// indices for override values
 	public final int LEFTRIGHT_OVERRIDE = 0;
 	
-	final double LEFT_RIGHT_RATIO = 0.3;
-	final double MAX_LEFTRIGHT = 0.1;
+	final double LEFT_RIGHT_RATIO = 0.4;
+	final double MAX_LEFTRIGHT = 10.0;
 	
 	public CtofLeftRightEventListener() {
 
@@ -72,14 +72,14 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 
 			// create all the histograms
 			H1F hist = new H1F("left_right","Left Right: Paddle "+paddle, 
-					200, -960.0, 960.0);
+					200, -75.0, 75.0);
 
 			hist.setTitle("Left Right  : " 
 					+ " Paddle "+paddle);
 
 			// create all the functions
 			F1D edgeToEdgeFunc = new F1D("edgeToEdgeFunc","[height]",
-					-960.0, 960.0);
+					-100.0, 100.0);
 
 			DataGroup dg = new DataGroup(1,1);
 			dg.addDataSet(hist, 0);
@@ -110,8 +110,11 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
 
-			dataGroups.getItem(sector,layer,component).getH1F("left_right").fill(
-					paddle.leftRight());
+			System.out.println("CTOF left right is "+paddle.leftRight());
+			//if (Math.abs(paddle.zPosCTOF()) < 2.0) {
+				dataGroups.getItem(sector,layer,component).getH1F("left_right").fill(
+						paddle.leftRight());
+			//}
 		}
 	}
 
@@ -120,6 +123,7 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 		H1F leftRightHist = dataGroups.getItem(sector,layer,paddle).getH1F("left_right");
 		
 		int nBin = leftRightHist.getXaxis().getNBins();
+		int maxBin = leftRightHist.getMaximumBin();
 
 		// calculate the 'average' of all bins
 		double averageAllBins=0;
@@ -129,13 +133,13 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 
 		// find the first points left and right of centre with bin content < average
 		int lowRangeFirstCut=0,highRangeFirstCut=0;
-		for(int i=nBin/2;i>=1;i--){
+		for(int i=maxBin;i>=1;i--){
 			if(leftRightHist.getBinContent(i)<averageAllBins){
 				lowRangeFirstCut=i;
 				break;
 			}
 		}
-		for(int i=nBin/2;i<=nBin;i++){
+		for(int i=maxBin;i<=nBin;i++){
 			if(leftRightHist.getBinContent(i)<averageAllBins){
 				highRangeFirstCut=i;
 				break;
@@ -152,13 +156,13 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 		double threshold=averageCentralRange*LEFT_RIGHT_RATIO;
 		//if(averageCentralRange<20) return;
 		int lowRangeSecondCut=0, highRangeSecondCut=0;
-		for(int i=nBin/2;i>=1;i--){
+		for(int i=maxBin;i>=1;i--){
 			if(leftRightHist.getBinContent(i)<threshold){
 				lowRangeSecondCut=i;
 				break;
 			}
 		}
-		for(int i=nBin/2;i<=nBin;i++){
+		for(int i=maxBin;i<=nBin;i++){
 			if(leftRightHist.getBinContent(i)<threshold){
 				highRangeSecondCut=i;
 				break;
@@ -170,13 +174,13 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 		// find the points left and right of centre with bin content < 0.3 * (average + sqrt of average)
 		double errorThreshold = (averageCentralRange + Math.sqrt(averageCentralRange))*LEFT_RIGHT_RATIO;
 		int lowRangeError=0, highRangeError=0;
-		for(int i=nBin/2;i>=1;i--){
+		for(int i=maxBin;i>=1;i--){
 			if(leftRightHist.getBinContent(i)<errorThreshold){
 				lowRangeError=i;
 				break;
 			}
 		}
-		for(int i=nBin/2;i<=nBin;i++){
+		for(int i=maxBin;i<=nBin;i++){
 			if(leftRightHist.getBinContent(i)<errorThreshold){
 				highRangeError=i;
 				break;
@@ -255,7 +259,7 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 			&&
 			getCentroid(sector,layer,paddle) <= MAX_LEFTRIGHT);
 	}
-
+	
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 

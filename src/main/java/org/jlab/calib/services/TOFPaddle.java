@@ -200,8 +200,7 @@ public class TOFPaddle {
     public double leftRight() {
     	double timeLeft=tdcToTime(TDCL);
 		double timeRight=tdcToTime(TDCR);
-		double vEff = 16.0; // default effective velocity to 16cm/ns
-		return (timeLeft-timeRight)*vEff;
+		return (timeLeft-timeRight);
     }
     
     public boolean isValidLeftRight() {
@@ -266,12 +265,27 @@ public class TOFPaddle {
     
     public double recHalfTimeDiff() {
     	
-    	return (TIMEL-TIMER)/2;
+    	return (TIMEL-TIMER 
+    			- leftRightAdjustment(desc.getSector(),
+				desc.getLayer(),
+				desc.getComponent()))/2;
     }
     
+	public double leftRightAdjustment(int sector, int layer, int paddle) {
+		
+		double lr = TOFCalibrationEngine.leftRightValues.getItem(sector, layer, paddle);
+		
+		return lr;
+		
+	}    
+    
     public double position() {
+    	
 		double vEff = 16; // default effective velocity to 16cm/ns
-		return ((tdcToTime(TDCL)-tdcToTime(TDCR))*vEff)/2.0;
+		double timeDiff = tdcToTime(TDCL)-tdcToTime(TDCR) - leftRightAdjustment(desc.getSector(),
+																				desc.getLayer(),
+																				desc.getComponent());
+		return (timeDiff*vEff)/2.0;
     }  
     
     public double paddleY() {
@@ -279,6 +293,10 @@ public class TOFPaddle {
     	int sector = desc.getSector();
     	double rotation = Math.toRadians((sector-1) * 60);
     	return YPOS*Math.cos(rotation) - XPOS*Math.sin(rotation);
+    }
+    
+    public double zPosCTOF() {
+    	return ZPOS - 10.0;
     }
     
     public double refTime(double targetCentre) {

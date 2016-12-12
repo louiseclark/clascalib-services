@@ -420,6 +420,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 	
 	public void outputGraph(int sector, int layer, int paddle) {
 		String outputFileName = "GraphSLC"+sector+layer+paddle;
+		String histFileName = "HistSLC"+sector+layer+paddle;
 
 		try { 
 
@@ -427,9 +428,12 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			File outputFile = new File(outputFileName);
 			FileWriter outputFw = new FileWriter(outputFile.getAbsoluteFile());
 			BufferedWriter outputBw = new BufferedWriter(outputFw);
+			File histFile = new File(histFileName);
+			FileWriter histFw = new FileWriter(histFile.getAbsoluteFile());
+			BufferedWriter histBw = new BufferedWriter(histFw);
 
 			H2F attenHist = dataGroups.getItem(sector,layer,paddle).getH2F("atten");
-
+			
 			for (int i=0; i<attenHist.getXAxis().getNBins(); i++) {
 				H1F h1 = attenHist.sliceX(i);
 				if (h1.integral()>1.0) {
@@ -439,9 +443,16 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 							h1.getRMS());
 					outputBw.newLine();
 				}
+				for (int j=0; j<attenHist.getYAxis().getNBins(); j++) {
+					
+					histBw.write(attenHist.getXAxis().getBinCenter(i)+" "+
+							attenHist.getYAxis().getBinCenter(j)+" "+
+							attenHist.getBinContent(i, j));
+				}
 			}
 
 			outputBw.close();
+			histBw.close();
 		}
 		catch(IOException ex) {
 			ex.printStackTrace();

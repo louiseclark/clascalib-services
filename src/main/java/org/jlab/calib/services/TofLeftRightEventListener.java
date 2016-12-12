@@ -2,6 +2,10 @@ package org.jlab.calib.services;
 
 
 import java.awt.BorderLayout;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -45,7 +49,7 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 	public final int LEFTRIGHT_OVERRIDE = 0;
 	
 	final double LEFT_RIGHT_RATIO = 0.3;
-	final double MAX_LEFTRIGHT = 0.1;
+	final double MAX_LEFTRIGHT = 10.0;
 	
 	public TofLeftRightEventListener() {
 
@@ -60,6 +64,50 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		calib.setPrecision(3);
 		
 		calib.addConstraint(3, -MAX_LEFTRIGHT, MAX_LEFTRIGHT);
+		
+		// read in the left right values from the text file
+		String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_15_files.txt";
+    	
+    	String line = null;
+    	try { 
+			
+            // Open the file
+            FileReader fileReader = 
+                new FileReader(inputFile);
+
+            // Always wrap FileReader in BufferedReader
+            BufferedReader bufferedReader = 
+                new BufferedReader(fileReader);            
+
+            line = bufferedReader.readLine();
+            
+            while (line != null) {
+            	
+            	int sector = Integer.parseInt(line.substring(0, 3).trim());
+            	int layer = Integer.parseInt(line.substring(3, 7).trim());
+            	int paddle = Integer.parseInt(line.substring(7, 11).trim());
+            	double lr = Double.parseDouble(line.substring(11).trim());
+            	
+            	leftRightValues.add(lr, sector, layer, paddle);
+            	
+            	line = bufferedReader.readLine();
+            }    
+            
+            bufferedReader.close();            
+        }
+		catch(FileNotFoundException ex) {
+			ex.printStackTrace();
+            System.out.println(
+                "Unable to open file '" + 
+                inputFile + "'");                
+        }
+        catch(IOException ex) {
+            System.out.println(
+                "Error reading file '" 
+                + inputFile + "'");                   
+            // Or we could just do this: 
+            // ex.printStackTrace();
+        }			
 
 	}
 
@@ -73,14 +121,14 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 
 					// create all the histograms
 					H1F hist = new H1F("left_right","Left Right: Paddle "+paddle, 
-							200, -960.0, 960.0);
+							201, -100.5, 100.5);
 
 					hist.setTitle("Left Right  : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
 					
 					// create all the functions
 					F1D edgeToEdgeFunc = new F1D("edgeToEdgeFunc","[height]",
-							-960.0, 960.0);
+							-100.0, 100.0);
 					edgeToEdgeFunc.setLineColor(FUNC_COLOUR);
 					edgeToEdgeFunc.setLineWidth(FUNC_LINE_WIDTH);
 
@@ -129,22 +177,23 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		H1F leftRightHist = dataGroups.getItem(sector,layer,paddle).getH1F("left_right");
 		
 		int nBin = leftRightHist.getXaxis().getNBins();
+		int maxBin = leftRightHist.getMaximumBin();
 
 		// calculate the 'average' of all bins
 		double averageAllBins=0;
 		for(int i=1;i<=nBin;i++)
 			averageAllBins+=leftRightHist.getBinContent(i);
 		averageAllBins/=nBin;
-
-		// find the first points left and right of centre with bin content < average
+		
+		// find the first points left and right of max bin with bin content < average
 		int lowRangeFirstCut=0,highRangeFirstCut=0;
-		for(int i=nBin/2;i>=1;i--){
+		for(int i=maxBin;i>=1;i--){
 			if(leftRightHist.getBinContent(i)<averageAllBins){
 				lowRangeFirstCut=i;
 				break;
 			}
 		}
-		for(int i=nBin/2;i<=nBin;i++){
+		for(int i=maxBin;i<=nBin;i++){
 			if(leftRightHist.getBinContent(i)<averageAllBins){
 				highRangeFirstCut=i;
 				break;
@@ -157,17 +206,17 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 			averageCentralRange+=leftRightHist.getBinContent(i);
 		averageCentralRange/=(highRangeFirstCut-lowRangeFirstCut+1);
 		
-		// find the first points left and right of centre with bin content < 0.3 * average in the range
+		// find the first points left and right of maxBin with bin content < 0.3 * average in the range
 		double threshold=averageCentralRange*LEFT_RIGHT_RATIO;
 		//if(averageCentralRange<20) return;
 		int lowRangeSecondCut=0, highRangeSecondCut=0;
-		for(int i=nBin/2;i>=1;i--){
+		for(int i=maxBin;i>=1;i--){
 			if(leftRightHist.getBinContent(i)<threshold){
 				lowRangeSecondCut=i;
 				break;
 			}
 		}
-		for(int i=nBin/2;i<=nBin;i++){
+		for(int i=maxBin;i<=nBin;i++){
 			if(leftRightHist.getBinContent(i)<threshold){
 				highRangeSecondCut=i;
 				break;
@@ -176,16 +225,16 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 
 		
 		// find error
-		// find the points left and right of centre with bin content < 0.3 * (average + sqrt of average)
+		// find the points left and right of maxBin with bin content < 0.3 * (average + sqrt of average)
 		double errorThreshold = (averageCentralRange + Math.sqrt(averageCentralRange))*LEFT_RIGHT_RATIO;
 		int lowRangeError=0, highRangeError=0;
-		for(int i=nBin/2;i>=1;i--){
+		for(int i=maxBin;i>=1;i--){
 			if(leftRightHist.getBinContent(i)<errorThreshold){
 				lowRangeError=i;
 				break;
 			}
 		}
-		for(int i=nBin/2;i<=nBin;i++){
+		for(int i=maxBin;i<=nBin;i++){
 			if(leftRightHist.getBinContent(i)<errorThreshold){
 				highRangeError=i;
 				break;
@@ -212,6 +261,8 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 	
 	@Override
 	public void customFit(int sector, int layer, int paddle){
+		
+		//System.out.println("Left right value from file is "+leftRightAdjustment(sector,layer,paddle));
 
 		String[] fields = { "Override centroid:" , "SPACE"};
 		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
@@ -247,9 +298,7 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 			
 			double min = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMin(); 
 			double max = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMax();
-			double centroid = (min+max)/2.0;
-			// convert to time in ns
-			leftRight = centroid / 16.0;
+			leftRight = (min+max)/2.0;
 		}
 
 		return leftRight;
@@ -272,7 +321,7 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 	@Override
 	public void setPlotTitle(int sector, int layer, int paddle) {
 		// reset hist title as may have been set to null by show all 
-		dataGroups.getItem(sector,layer,paddle).getH1F("left_right").setTitleX("(timeLeft-timeRight)*vEff (cm)");
+		dataGroups.getItem(sector,layer,paddle).getH1F("left_right").setTitleX("(timeLeft-timeRight) (ns)");
 	}
 	
 	@Override

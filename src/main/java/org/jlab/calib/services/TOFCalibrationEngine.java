@@ -1,6 +1,10 @@
 package org.jlab.calib.services;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -42,6 +46,9 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public String stepName = "Unknown";
 	public String fileNamePrefix = "Unknown";
 	public String filename = "Unknown.txt";
+	
+	// Left right values from text file
+	public static IndexedList<Double> leftRightValues = new IndexedList<Double>(3);
 
 	public TOFCalibrationEngine() {
 		// controlled by calibration step class

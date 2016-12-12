@@ -51,21 +51,21 @@ public class DataProvider {
 
 		List<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 
-//		if (test) {
-//			EvioDataEvent e = (EvioDataEvent) event;
-//	    	System.out.println("New event - dgtz NEW");
-//			e.show();
-//			
-//			if (event.hasBank("FTOF::dgtz")) {
-//				event.getBank("FTOF::dgtz").show();
-//			}
-//			if (event.hasBank("FTOFRec::ftofhits")) {
-//				event.getBank("FTOFRec::ftofhits").show();
-//			}
-//			if (event.hasBank("FTOFRec::rawhits")) {
-//				event.getBank("FTOFRec::rawhits").show();
-//			}
-//		}
+		if (test) {
+			EvioDataEvent e = (EvioDataEvent) event;
+	    	System.out.println("New event - dgtz NEW");
+			e.show();
+			
+			if (event.hasBank("FTOF::dgtz")) {
+				event.getBank("FTOF::dgtz").show();
+			}
+			if (event.hasBank("FTOFRec::ftofhits")) {
+				event.getBank("FTOFRec::ftofhits").show();
+			}
+			if (event.hasBank("FTOFRec::rawhits")) {
+				event.getBank("FTOFRec::rawhits").show();
+			}
+		}
 		
 //		if (event.hasBank("FTOF1A::dgtz")||event.hasBank("FTOF1B::dgtz")||event.hasBank("FTOF2B::dgtz")) {
 //			paddleList = getPaddleListDgtz(event);
