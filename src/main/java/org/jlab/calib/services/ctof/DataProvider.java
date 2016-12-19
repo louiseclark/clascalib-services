@@ -3,6 +3,7 @@ package org.jlab.calib.services.ctof;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jlab.calib.services.TOFCalibrationEngine;
 import org.jlab.calib.services.TOFPaddle;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.detector.base.GeometryFactory;
@@ -55,10 +56,10 @@ public class DataProvider {
 		int nonZeroHit = 0;
 		if (test) {
 			EvioDataEvent e = (EvioDataEvent) event;
-//			e.show();
-//			if (event.hasBank("CTOF::dgtz")) {
-//				event.getBank("CTOF::dgtz").show();
-//			}
+			e.show();
+			if (event.hasBank("CTOF::dgtz")) {
+				event.getBank("CTOF::dgtz").show();
+			}
 			
 			if (event.hasBank("CTOFRec::ctofhits")) {
 				//event.getBank("CTOFRec::ctofhits").show();
@@ -85,6 +86,8 @@ public class DataProvider {
 
 				int component = dgtzBank.getInt("paddle", dgtzIndex);
 				float zpos = 0; // lab hit co ords from SVT projection
+				float timeL = 0;
+				float timeR = 0;
 				
 				if (show) {
 					System.out.println("dgtz paddle_id "+component+" hitn "
@@ -109,12 +112,24 @@ public class DataProvider {
             				hitsBank.getFloat("tz", hitIndex) != 0) {
 							
 							zpos = hitsBank.getFloat("tz", hitIndex);
+							
+							if (event.hasBank("CTOFRec::rawhits")) {
+								// one to one correspondence between ftofhits and rawhits
+								EvioDataBank rawBank = (EvioDataBank) event.getBank("CTOFRec::rawhits");
+								timeL = rawBank.getFloat("time_up", hitIndex);
+								timeR = rawBank.getFloat("time_down", hitIndex);
+							}
 						}
 						
 					}
 
 				}
 
+				if (test) {
+					System.out.println("Creating paddle "+component);
+					System.out.println("TDCU/TDCD "+dgtzBank.getInt("TDCU", dgtzIndex)+" "+
+							dgtzBank.getInt("TDCD", dgtzIndex));
+				}
 				TOFPaddle  paddle = new TOFPaddle(
 						1,
 						1,
@@ -126,15 +141,30 @@ public class DataProvider {
 						0.0,
 						0.0,
 						zpos,
-						0.0,0.0);
+						timeL,timeR);
 				
 				if (show) {
 					System.out.println("Paddle "+component+" zpos "+zpos+
 							" tz "+event.getBank("CTOFRec::ctofhits").getFloat("tz", nonZeroHit));
 				}
 				
+				// set status to ok if at least one reading
+				if (paddle.ADCL!=0.0) {
+					CTOFCalibrationEngine.adcLeftStatus.add(0, 1,1,component);
+				}
+				if (paddle.ADCR!=0.0) {
+					CTOFCalibrationEngine.adcRightStatus.add(0, 1,1,component);
+				}
+				if (paddle.TDCL!=0.0) {
+					CTOFCalibrationEngine.tdcLeftStatus.add(0, 1,1,component);
+				}
+				if (paddle.TDCR!=0) {
+					CTOFCalibrationEngine.tdcRightStatus.add(0, 1,1,component);
+				}
+
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);
+					//System.out.println("Writing paddle");
 				}
 			}
 		}

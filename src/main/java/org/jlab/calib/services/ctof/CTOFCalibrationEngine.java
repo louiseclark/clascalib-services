@@ -26,7 +26,13 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 	public final static int[]		NUM_PADDLES = {48};
 	public final static int 	NUM_LAYERS = 1;
 	public final static double UNDEFINED_OVERRIDE = Double.NEGATIVE_INFINITY;
-	
+
+	// plot settings
+	public final static int		FUNC_COLOUR = 2;
+	public final static int		MARKER_SIZE = 3;
+	public final static int		FUNC_LINE_WIDTH = 2;
+	public final static int		MARKER_LINE_WIDTH = 1;
+
 	public IndexedList<Double[]> constants = new IndexedList<Double[]>(3);
 	
 	public CalibrationConstants calib;
@@ -35,9 +41,21 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 	public String stepName = "Unknown";
 	public String fileNamePrefix = "Unknown";
 	public String filename = "Unknown.txt";
+	
+	// Left right values from text file
+	public static IndexedList<Double> leftRightValues = new IndexedList<Double>(3);
+	// Veff values from text file
+	public static IndexedList<Double> veffValues = new IndexedList<Double>(3);	
+
+	// Calculated counter status values
+	public static IndexedList<Integer> adcLeftStatus = new IndexedList<Integer>(3);
+	public static IndexedList<Integer> adcRightStatus = new IndexedList<Integer>(3);
+	public static IndexedList<Integer> tdcLeftStatus = new IndexedList<Integer>(3);
+	public static IndexedList<Integer> tdcRightStatus = new IndexedList<Integer>(3);
 
 	public CTOFCalibrationEngine() {
 		// controlled by calibration step class
+		TOFPaddle.tof = "CTOF";
 	}
 	
 	@Override
@@ -74,6 +92,7 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 			fit(1, 1, paddle);
 		}
 		save();
+		saveCounterStatus();
 		calib.fireTableDataChanged();
 	}
 	
@@ -99,7 +118,48 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 		}
 		calib.save(filename);
 	}
-	
+
+	public void saveCounterStatus() {
+		
+		System.out.println("sector layer component stat_up stat_down");
+		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
+			
+			int adcLStat = adcLeftStatus.getItem(1,1,paddle);
+			int adcRStat = adcRightStatus.getItem(1,1,paddle);
+			int tdcLStat = tdcLeftStatus.getItem(1,1,paddle);
+			int tdcRStat = tdcRightStatus.getItem(1,1,paddle);					
+			int counterStatusLeft = 0;
+			int counterStatusRight = 0;
+			
+			if (adcLStat==1 && tdcLStat==1) {
+				counterStatusLeft = 3;
+			}
+			else if (adcLStat==1) {
+				counterStatusLeft = 1;
+			}
+			else if (tdcLStat==1) {
+				counterStatusLeft = 2;
+			}
+			
+			if (adcRStat==1 && tdcRStat==1) {
+				counterStatusRight = 3;
+			}
+			else if (adcRStat==1) {
+				counterStatusRight = 1;
+			}
+			else if (tdcRStat==1) {
+				counterStatusRight = 2;
+			}
+			
+			System.out.println(
+				"1 "+
+				"1 "+
+				paddle+" "+
+				counterStatusLeft+" "+
+				counterStatusRight+" ");
+		}
+	}
+
 	public String nextFileName() {
 
 		// Get the next file name

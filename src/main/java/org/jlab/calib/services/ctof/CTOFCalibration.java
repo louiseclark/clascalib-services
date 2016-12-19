@@ -140,14 +140,14 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
         processorPane.setUpdateRate(UPDATE_RATE);
         
         // only add the gui as listener so that extracting paddle list from event is only done once per event
-        this.processorPane.addEventListener(this);
+        //this.processorPane.addEventListener(this);
         
-//        this.processorPane.addEventListener(engines[0]);
-//        this.processorPane.addEventListener(this); // add gui listener second so detector view updates 
-//        										   // as soon as 1st analyze is done
-//        for (int i=1; i< engines.length; i++) {
-//        	this.processorPane.addEventListener(engines[i]);
-//        }
+        this.processorPane.addEventListener(engines[0]);
+        this.processorPane.addEventListener(this); // add gui listener second so detector view updates 
+        										   // as soon as 1st analyze is done
+        for (int i=1; i< engines.length; i++) {
+        	this.processorPane.addEventListener(engines[i]);
+        }
         
         pane.add(processorPane,BorderLayout.PAGE_END);
 		
@@ -214,26 +214,26 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 
     public void dataEventAction(DataEvent event) {
 
-		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
-    	
-    	for (int i=0; i< engines.length; i++) {
-
-    		if (event.getType()==DataEventType.EVENT_START) {
-    			engines[i].resetEventListener();
-    			engines[i].processPaddleList(paddleList);
-    		}
-    		else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
-    			engines[i].processPaddleList(paddleList);
-    		}
-    		else if (event.getType()==DataEventType.EVENT_STOP) {
-    			engines[i].analyze();
-    		} 
-
-    		if (event.getType()==DataEventType.EVENT_STOP) {
-    			this.updateDetectorView(false);
-    			this.updateCanvas();
-    		} 
-    	}
+//		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
+//    	
+//    	for (int i=0; i< engines.length; i++) {
+//
+//    		if (event.getType()==DataEventType.EVENT_START) {
+//    			engines[i].resetEventListener();
+//    			engines[i].processPaddleList(paddleList);
+//    		}
+//    		else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
+//    			engines[i].processPaddleList(paddleList);
+//    		}
+//    		else if (event.getType()==DataEventType.EVENT_STOP) {
+//    			engines[i].analyze();
+//    		} 
+//
+//    		if (event.getType()==DataEventType.EVENT_STOP) {
+//    			this.updateDetectorView(false);
+//    			this.updateCanvas();
+//    		} 
+//    	}
 	}
     
 	public void resetEventListener() {

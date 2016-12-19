@@ -21,6 +21,7 @@ import org.jlab.geom.prim.Path3D;
 import org.jlab.geom.prim.Point3D;
 import org.jlab.geom.prim.Vector3D;
 import org.jlab.groot.group.DataGroup;
+import org.jlab.io.base.DataBank;
 //import org.jlab.calib.temp.DataGroup;
 import org.jlab.io.base.DataEvent;
 import org.jlab.io.evio.EvioDataBank;
@@ -51,46 +52,176 @@ public class DataProvider {
 
 		List<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 
-		if (test) {
-			EvioDataEvent e = (EvioDataEvent) event;
-	    	System.out.println("New event - dgtz NEW");
-			e.show();
-			
-			if (event.hasBank("FTOF::dgtz")) {
-				event.getBank("FTOF::dgtz").show();
-			}
-			if (event.hasBank("FTOFRec::ftofhits")) {
-				event.getBank("FTOFRec::ftofhits").show();
-			}
-			if (event.hasBank("FTOFRec::rawhits")) {
-				event.getBank("FTOFRec::rawhits").show();
-			}
-		}
-		
-//		if (event.hasBank("FTOF1A::dgtz")||event.hasBank("FTOF1B::dgtz")||event.hasBank("FTOF2B::dgtz")) {
-//			paddleList = getPaddleListDgtz(event);
-//		}
+				if (test) {
+			    	System.out.println("New event - dgtz NEW");
+					//event.show();
+					
+//					if (event.hasBank("FTOF::dgtz")) {
+//						event.getBank("FTOF::dgtz").show();
+//					}
+//					if (event.hasBank("FTOF::hits")) {
+//						event.getBank("FTOF::hits").show();
+//					}
+//					if (event.hasBank("FTOF::rawhits")) {
+//						event.getBank("FTOF::rawhits").show();
+//					}
+//					if (event.hasBank("CTOF::dgtz")) {
+//						event.getBank("CTOF::dgtz").show();
+//					}
+//					if (event.hasBank("CTOF::hits")) {
+//						event.getBank("CTOF::hits").show();
+//					}
+//					if (event.hasBank("CTOF::rawhits")) {
+//						event.getBank("CTOF::rawhits").show();
+//					}
+				}
+
+		//		if (event.hasBank("FTOF1A::dgtz")||event.hasBank("FTOF1B::dgtz")||event.hasBank("FTOF2B::dgtz")) {
+		//			paddleList = getPaddleListDgtz(event);
+		//		}
 		if (event.hasBank("FTOF::dgtz")) {
 			paddleList = getPaddleListDgtzNew(event);
 		}
-//		else { 
-//        	paddleList = getPaddleListRaw(event);
-//		}
+		//		else { 
+		//        	paddleList = getPaddleListRaw(event);
+		//		}
 
 		//paddleList = getPaddleListTWTest(event);
 		return paddleList;
 
 	}
 
+	public static List<TOFPaddle> getPaddleListDgtzNew2(DataEvent event){
+
+		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
+
+		if (event.hasBank("FTOF::dgtz")) {
+			DataBank dgtzBank = event.getBank("FTOF::dgtz");
+			DataBank hitsBank = event.getBank("FTOF::hits");
+			DataBank rawhitsBank = event.getBank("FTOF::rawhits");
+			
+			TOFCalibration.hitsPerBankHist.fill(hitsBank.rows());
+
+			systemOut("dgtz rows "+ dgtzBank.rows());
+			for (int dgtzIndex = 0; dgtzIndex < dgtzBank.rows(); dgtzIndex++) {
+
+				int sector = (int) dgtzBank.getByte("sector", dgtzIndex);
+				int layer = (int) dgtzBank.getByte("layer", dgtzIndex);
+				int component = (int) dgtzBank.getShort("component", dgtzIndex);
+				float xpos = 0;
+				float ypos = 0;
+				float timeL = 0;
+				float timeR = 0;
+				
+				systemOut("dgtz SLC "+sector+layer+component);
+				if (event.hasBank("FTOF::hits")) {
+					systemOut("Hits bank");
+
+					// find the corresponding row in the ftofhits bank
+					// to get the hit position from tracking
+
+					//systemOut("Hits rows"+hitsBank.rows());
+					
+					for (int hitIndex = 0; hitIndex < hitsBank.rows(); hitIndex++) {
+
+						int hitSector = (int) hitsBank.getByte("sector",hitIndex);
+						int hitLayer = (int) hitsBank.getByte("layer",hitIndex);
+						int hitComponent = (int) hitsBank.getShort("component",hitIndex);
+						int hitID = (int) hitsBank.getShort("id",hitIndex);
+						
+						systemOut("Hits SLCID "+hitSector+hitLayer+hitComponent+hitID);
+						
+						if (sector==hitSector && layer==hitLayer && component==hitComponent 
+							&& dgtzIndex+1==hitID) {
+							
+							if (hitsBank.getFloat("tx", hitIndex)!=0 && 
+									hitsBank.getFloat("ty", hitIndex)!=0) {
+
+								xpos = hitsBank.getFloat("tx", hitIndex);
+								ypos = hitsBank.getFloat("ty", hitIndex);
+								timeL = rawhitsBank.getFloat("time_left", hitIndex);
+								timeR = rawhitsBank.getFloat("time_right", hitIndex);
+
+							} // tracking non zero
+							
+						} // dgtz match to hit
+						
+					} // for hitsBank
+
+				} // hasBank FTOF::hits
+					
+				systemOut("Creating paddle");
+				systemOut("Created paddle SLC "+sector+layer+component);
+				//dgtzBank.show();
+				systemOut("ADCL "+dgtzBank.getInt("ADCL", dgtzIndex)+
+						" ADCR "+dgtzBank.getInt("ADCR", dgtzIndex)+
+						" TDCL "+dgtzBank.getInt("TDCL", dgtzIndex)+
+						" TDCR "+dgtzBank.getInt("TDCR", dgtzIndex)+
+						" xpos "+xpos+" ypos "+ypos);
+
+				TOFPaddle  paddle = new TOFPaddle(
+						sector,
+						layer,
+						component,
+						dgtzBank.getInt("ADCL", dgtzIndex),
+						dgtzBank.getInt("ADCR", dgtzIndex),
+						dgtzBank.getInt("TDCL", dgtzIndex),
+						dgtzBank.getInt("TDCR", dgtzIndex),
+						xpos,
+						ypos,
+						timeL,
+						timeR);
+				
+				// set status to ok if at least one reading
+				if (paddle.ADCL!=0.0) {
+					TOFCalibrationEngine.adcLeftStatus.add(0, sector,layer,component);
+				}
+				if (paddle.ADCR!=0.0) {
+					TOFCalibrationEngine.adcRightStatus.add(0, sector,layer,component);
+				}
+				if (paddle.TDCL!=0.0) {
+					TOFCalibrationEngine.tdcLeftStatus.add(0, sector,layer,component);
+				}
+				if (paddle.TDCR!=0) {
+					TOFCalibrationEngine.tdcRightStatus.add(0, sector,layer,component);
+				}
+
+				if (paddle.includeInCalib()) {
+					systemOut("Adding paddle");
+					paddleList.add(paddle);
+					
+					systemOut("SLC "+sector+layer+component);
+					systemOut("ADCL "+dgtzBank.getInt("ADCL", dgtzIndex)+
+							" ADCR "+dgtzBank.getInt("ADCR", dgtzIndex)+
+							" TDCL "+dgtzBank.getInt("TDCL", dgtzIndex)+
+							" TDCR "+dgtzBank.getInt("TDCR", dgtzIndex)+
+							" xpos "+xpos+" ypos "+ypos);
+					systemOut("Louise test 5");
+				}
+				systemOut("Louise test 6");
+			}
+			systemOut("Louise test 7");
+		}
+		systemOut("Louise test 8");
+		return paddleList;
+	}
+
+	public static void systemOut(String text) {
+		boolean test = false;
+		if (test) {
+			System.out.println(text);
+		}
+	}
+	
 	public static List<TOFPaddle> getPaddleListDgtzNew(DataEvent event){
 
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 
 		if (test) {
-			EvioDataEvent e = (EvioDataEvent) event;
-	    	System.out.println("New event - dgtz NEW");
-			e.show();
-			
+			DataEvent e = (DataEvent) event;
+			System.out.println("New event - dgtz NEW");
+			//e.show();
+
 			if (event.hasBank("FTOF::dgtz")) {
 				event.getBank("FTOF::dgtz").show();
 			}
@@ -114,28 +245,30 @@ public class DataProvider {
 				float ypos = 0;
 				float timeL = 0;
 				float timeR = 0;
-				
+
 				if (event.hasBank("FTOFRec::ftofhits")) {
 					
 					// find the corresponding row in the ftofhits bank
 					// to get the hit position from tracking
 					EvioDataBank hitsBank = (EvioDataBank) event.getBank("FTOFRec::ftofhits");
+					TOFCalibration.hitsPerBankHist.fill(hitsBank.rows());
+
 					for (int hitIndex = 0; hitIndex < hitsBank.rows(); hitIndex++) {
-				
+
 						if (sector==hitsBank.getInt("sector",hitIndex)
-            				&&
-            				layer==hitsBank.getInt("panel_id",hitIndex)
-            				&&
-            				component==hitsBank.getInt("paddle_id",hitIndex)
-            				&&
-            				dgtzBank.getInt("hitn",dgtzIndex)==hitsBank.getInt("id", hitIndex)) {
-							
+								&&
+								layer==hitsBank.getInt("panel_id",hitIndex)
+								&&
+								component==hitsBank.getInt("paddle_id",hitIndex)
+								&&
+								dgtzBank.getInt("hitn",dgtzIndex)==hitsBank.getInt("id", hitIndex)) {
+
 							if (hitsBank.getFloat("tx", hitIndex)!=0 && 
-								hitsBank.getFloat("ty", hitIndex)!=0) {
-								
+									hitsBank.getFloat("ty", hitIndex)!=0) {
+
 								xpos = hitsBank.getFloat("tx", hitIndex);
 								ypos = hitsBank.getFloat("ty", hitIndex);
-								
+
 								if (event.hasBank("FTOFRec::rawhits")) {
 									// one to one correspondence between ftofhits and rawhits
 									EvioDataBank rawBank = (EvioDataBank) event.getBank("FTOFRec::rawhits");
@@ -146,7 +279,7 @@ public class DataProvider {
 						}
 					}
 				}
-				
+
 				TOFPaddle  paddle = new TOFPaddle(
 						sector,
 						layer,
@@ -160,9 +293,32 @@ public class DataProvider {
 						timeL,
 						timeR);
 
+				// set status to ok if at least one reading
+				if (paddle.ADCL!=0.0) {
+					TOFCalibrationEngine.adcLeftStatus.add(0, sector,layer,component);
+				}
+				if (paddle.ADCR!=0.0) {
+					TOFCalibrationEngine.adcRightStatus.add(0, sector,layer,component);
+				}
+				if (paddle.TDCL!=0.0) {
+					TOFCalibrationEngine.tdcLeftStatus.add(0, sector,layer,component);
+				}
+				if (paddle.TDCR!=0) {
+					TOFCalibrationEngine.tdcRightStatus.add(0, sector,layer,component);
+				}
+				
+//				System.out.println("SLC "+sector+layer+component);
+//				System.out.println("TDCL "+paddle.TDCL+" ADCL "+paddle.ADCL);
+//				System.out.println("lamL "+paddle.lamL()+" ordL "+paddle.ordL());
+//				System.out.println("timeL tw "+paddle.timeLeftAfterTW());
+//				System.out.println("TDCR "+paddle.TDCR+" ADCR "+paddle.ADCR);
+//				System.out.println("lamR "+paddle.lamR()+" ordR "+paddle.ordR());
+//				System.out.println("timeR tw "+paddle.timeRightAfterTW());
+//				System.out.println("leftRight "+paddle.leftRight());
+
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);
-					
+
 					if (layer==1) {
 						TOFCalibration.adcLeftHist1A.fill(dgtzBank.getInt("ADCL", dgtzIndex));
 						TOFCalibration.adcRightHist1A.fill(dgtzBank.getInt("ADCR", dgtzIndex));
@@ -185,20 +341,20 @@ public class DataProvider {
 						TOFCalibration.trackingPaddleHist.fill(((layer-1)*100)+component);
 					}
 
-					
+
 					if (test) {
 						System.out.println("SLC "+sector+layer+component);
 						System.out.println("ADCL "+dgtzBank.getInt("ADCL", dgtzIndex)+
-										   " ADCR "+dgtzBank.getInt("ADCR", dgtzIndex)+
-										   " TDCL "+dgtzBank.getInt("TDCL", dgtzIndex)+
-										   " TDCR "+dgtzBank.getInt("TDCR", dgtzIndex)+
-										   " xpos "+xpos+" ypos "+ypos);
+								" ADCR "+dgtzBank.getInt("ADCR", dgtzIndex)+
+								" TDCL "+dgtzBank.getInt("TDCL", dgtzIndex)+
+								" TDCR "+dgtzBank.getInt("TDCR", dgtzIndex)+
+								" xpos "+xpos+" ypos "+ypos);
 					}
 
 				}
 			}
 		}
-		
+
 		if ((event.hasBank("FTOFRec::ftofhits"))) {
 
 			EvioDataBank hitsBank = (EvioDataBank) event.getBank("FTOFRec::ftofhits");
@@ -206,21 +362,20 @@ public class DataProvider {
 
 				int l = hitsBank.getInt("panel_id",hitIndex);
 				int s = hitsBank.getInt("sector",hitIndex);
-				
+
 				TOFCalibration.totalStatHist.fill(((l-1)*10)+s);
 				if ((hitsBank.getFloat("tx", hitIndex) == 0 ) &&
-				    (hitsBank.getFloat("ty", hitIndex) == 0))
+						(hitsBank.getFloat("ty", hitIndex) == 0))
 					TOFCalibration.trackingZeroStatHist.fill(((l-1)*10)+s);
 				else {
 					TOFCalibration.trackingStatHist.fill(((l-1)*10)+s);
 				}
 			}
 		}
-		
+
 		return paddleList;
 	}
 
-	
 	public static List<TOFPaddle> getPaddleListRaw(DataEvent event){
 
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
@@ -250,10 +405,10 @@ public class DataProvider {
 					//System.out.println("New FTOF bank");
 					System.out.println(order+" "+sector+" "+layer+" "+component);
 
-//					System.out.println("ORDER "+order);
-//					System.out.println("SLC "+sector+layer+component);
-//					System.out.println("ADCSize "+bank.getADCSize());
-//					System.out.println("TDCSize "+bank.getTDCSize());
+					//					System.out.println("ORDER "+order);
+					//					System.out.println("SLC "+sector+layer+component);
+					//					System.out.println("ADCSize "+bank.getADCSize());
+					//					System.out.println("TDCSize "+bank.getTDCSize());
 					if (bank.getADCSize()>0) {
 						System.out.println("getADC0 "+bank.getADCData(0).getADC());
 						System.out.println("getIntegral0 "+bank.getADCData(0).getIntegral());
@@ -261,8 +416,8 @@ public class DataProvider {
 					if (bank.getTDCSize()>0) {
 						System.out.println("getTDC0 "+bank.getTDCData(0).getTime());
 					}
-//					System.out.println("TDCL "+bank.getTDCData(0).getTime());
-//					System.out.println("TDCR "+bank.getTDCData(1).getTime());
+					//					System.out.println("TDCL "+bank.getTDCData(0).getTime());
+					//					System.out.println("TDCR "+bank.getTDCData(1).getTime());
 
 				}
 
@@ -306,7 +461,7 @@ public class DataProvider {
 
 		return paddleList;
 	}	
-	
+
 
 	public static List<TOFPaddle> getPaddleListTWTest(DataEvent event){
 
@@ -358,16 +513,16 @@ public class DataProvider {
 		return paddleList;
 	}	
 
-	
+
 	public static List<TOFPaddle> getPaddleListDgtz(DataEvent event){
 
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
 
 		if (test) {
 			//EvioDataEvent e = (EvioDataEvent) event;
-	    	System.out.println("New event - dgtz");
+			System.out.println("New event - dgtz");
 			//e.show();
-			
+
 			if (event.hasBank("FTOF1A::dgtz")) {
 				event.getBank("FTOF1A::dgtz").show();
 			}
@@ -401,28 +556,28 @@ public class DataProvider {
 					float timeR = 0;
 					int rawIndex =0;
 					TOFCalibration.totalStatHist.fill(((layer-1)*10)+sector);
-					
+
 					if (event.hasBank("FTOFRec::ftofhits")) {
-						
+
 						// find the corresponding row in the ftofhits bank
 						// to get the hit position from tracking
 						EvioDataBank hitsBank = (EvioDataBank) event.getBank("FTOFRec::ftofhits");
 						for (int hitIndex = 0; hitIndex < hitsBank.rows(); hitIndex++) {
-					
+
 							if (sector==hitsBank.getInt("sector",hitIndex)
-	            				&&
-	            				layer==hitsBank.getInt("panel_id",hitIndex)
-	            				&&
-	            				component==hitsBank.getInt("paddle_id",hitIndex)
-	            				&&
-	            				dgtzBank.getInt("hitn",dgtzIndex)==hitsBank.getInt("id", hitIndex)) {
-								
+									&&
+									layer==hitsBank.getInt("panel_id",hitIndex)
+									&&
+									component==hitsBank.getInt("paddle_id",hitIndex)
+									&&
+									dgtzBank.getInt("hitn",dgtzIndex)==hitsBank.getInt("id", hitIndex)) {
+
 								if (hitsBank.getFloat("tx", hitIndex)!=0 && 
-									hitsBank.getFloat("ty", hitIndex)!=0) {
-									
+										hitsBank.getFloat("ty", hitIndex)!=0) {
+
 									xpos = hitsBank.getFloat("tx", hitIndex);
 									ypos = hitsBank.getFloat("ty", hitIndex);
-									
+
 									if (event.hasBank("FTOFRec::rawhits")) {
 										// one to one correspondence between ftofhits and rawhits
 										EvioDataBank rawBank = (EvioDataBank) event.getBank("FTOFRec::rawhits");
@@ -433,7 +588,7 @@ public class DataProvider {
 							}
 						}
 					}
-					
+
 					TOFPaddle  paddle = new TOFPaddle(
 							sector,
 							layer,
@@ -466,26 +621,26 @@ public class DataProvider {
 								TOFCalibration.trackingAdcRightHist1B.fill(dgtzBank.getInt("ADCR", dgtzIndex));
 							}
 						}
-						
+
 						TOFCalibration.paddleHist.fill(((layer-1)*100)+component);
 						if (xpos!=0.0 || ypos!=0.0) {
 							TOFCalibration.trackingPaddleHist.fill(((layer-1)*100)+component);
 						}
-						
+
 						if (test) {
 							System.out.println("SLC "+sector+layer+component);
 							System.out.println("ADCL "+dgtzBank.getInt("ADCL", dgtzIndex)+
-											   " ADCR "+dgtzBank.getInt("ADCR", dgtzIndex)+
-											   " TDCL "+dgtzBank.getInt("TDCL", dgtzIndex)+
-											   " TDCR "+dgtzBank.getInt("TDCR", dgtzIndex)+
-											   " xpos "+xpos+" ypos "+ypos);
+									" ADCR "+dgtzBank.getInt("ADCR", dgtzIndex)+
+									" TDCL "+dgtzBank.getInt("TDCL", dgtzIndex)+
+									" TDCR "+dgtzBank.getInt("TDCR", dgtzIndex)+
+									" xpos "+xpos+" ypos "+ypos);
 						}
 					}
 				}
 
 			}
 		}
-		
+
 		if ((event.hasBank("FTOFRec::ftofhits")) && (test)) {
 
 			EvioDataBank hitsBank = (EvioDataBank) event.getBank("FTOFRec::ftofhits");
@@ -493,9 +648,9 @@ public class DataProvider {
 
 				int l = hitsBank.getInt("panel_id",hitIndex);
 				int s = hitsBank.getInt("sector",hitIndex);
-				
+
 				if ((hitsBank.getFloat("tx", hitIndex) == 0 ) &&
-				    (hitsBank.getFloat("ty", hitIndex) == 0))
+						(hitsBank.getFloat("ty", hitIndex) == 0))
 					TOFCalibration.trackingZeroStatHist.fill(((l-1)*10)+s);
 				else {
 					TOFCalibration.trackingStatHist.fill(((l-1)*10)+s);
@@ -506,5 +661,5 @@ public class DataProvider {
 		return paddleList;
 	}
 
-	
+
 }

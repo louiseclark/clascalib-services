@@ -105,7 +105,10 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 			F1D attenFunc = new F1D("attenFunc", "[a]+[b]*x", -50.0, 50.0);
 			GraphErrors meanGraph = new GraphErrors();
 			meanGraph.setName("meanGraph");
-			//attenFunc.setLineColor(1);
+			attenFunc.setLineColor(FUNC_COLOUR);
+			attenFunc.setLineWidth(FUNC_LINE_WIDTH);
+			meanGraph.setMarkerSize(MARKER_SIZE);
+			meanGraph.setLineThickness(MARKER_LINE_WIDTH);
 
 			DataGroup dg = new DataGroup(2,1);
 			dg.addDataSet(hist, 0);
@@ -352,13 +355,11 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 		GraphErrors attSumm = new GraphErrors("attSumm", paddleNumbers,
 				Attlens, paddleUncs, AttlenUncs);
 		
-//		summary.setTitle("Attenuation Length: "
-//				+ LAYER_NAME[paddle - 1] + " Sector "
-//				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("Attenuation Length (cm)");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
+		attSumm.setTitle("Attenuation Length");
+		attSumm.setTitleX("Paddle Number");
+		attSumm.setTitleY("Attenuation Length (cm)");
+		attSumm.setMarkerSize(MARKER_SIZE);
+		attSumm.setLineThickness(MARKER_LINE_WIDTH);
 		
 		DataGroup dg = new DataGroup(1,1);
 		dg.addDataSet(attSumm, 0);

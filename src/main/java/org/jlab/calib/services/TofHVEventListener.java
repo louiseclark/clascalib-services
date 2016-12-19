@@ -77,6 +77,19 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			calib.addConstraint(4, EXPECTED_MIP_CHANNEL[i]-ALLOWED_MIP_DIFF, 
 					   EXPECTED_MIP_CHANNEL[i]+ALLOWED_MIP_DIFF, 1, layer);
 		}
+		
+		// initialize the counter status
+		for (int sector=1; sector<=6; sector++) {
+			for (int layer=1; layer<=3; layer++) {
+				int layer_index = layer - 1;
+				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
+					adcLeftStatus.add(1, sector, layer, paddle);
+					adcRightStatus.add(1, sector, layer, paddle);
+					tdcLeftStatus.add(1, sector, layer, paddle);
+					tdcRightStatus.add(1, sector, layer, paddle);
+				}
+			}
+		}
 	}
 
 	@Override
@@ -156,6 +169,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			if (paddle.isValidLogRatio()) {
 				dataGroups.getItem(sector,layer,component).getH1F("logratio").fill(paddle.logRatio());
 			}
+			
 		}
 	}	
 

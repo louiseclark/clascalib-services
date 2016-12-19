@@ -108,6 +108,14 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 			// Logratio, log ratio unc, override values
 
 			constants.add(consts, 1, 1, paddle);
+			
+			// initialize the counter status
+			for (paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
+				adcLeftStatus.add(1, 1, 1, paddle);
+				adcRightStatus.add(1, 1, 1, paddle);
+				tdcLeftStatus.add(1, 1, 1, paddle);
+				tdcRightStatus.add(1, 1, 1, paddle);
+			}
 		}
 	}
 

@@ -1,6 +1,10 @@
 package org.jlab.calib.services.ctof; 
 
 import java.awt.BorderLayout;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -67,6 +71,50 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 		calib.addConstraint(4, EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF),
 							   EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 		
+		// read in the veff values from the text file
+		String inputFile = "/home/louise/workspace/clascalib-services/CTOF_CALIB_VEFF_20161214_1M_events.txt";
+    	
+    	String line = null;
+    	try { 
+			
+            // Open the file
+            FileReader fileReader = 
+                new FileReader(inputFile);
+
+            // Always wrap FileReader in BufferedReader
+            BufferedReader bufferedReader = 
+                new BufferedReader(fileReader);            
+
+            line = bufferedReader.readLine();
+            line = bufferedReader.readLine(); // skip header
+            
+            while (line != null) {
+            	
+            	int sector = Integer.parseInt(line.substring(0, 3).trim());
+            	int layer = Integer.parseInt(line.substring(3, 7).trim());
+            	int paddle = Integer.parseInt(line.substring(7, 11).trim());
+            	double veff = Double.parseDouble(line.substring(11,26).trim());
+            	
+            	veffValues.add(veff, sector, layer, paddle);
+            	
+            	line = bufferedReader.readLine();
+            }    
+            
+            bufferedReader.close();            
+        }
+		catch(FileNotFoundException ex) {
+			ex.printStackTrace();
+            System.out.println(
+                "Unable to open file '" + 
+                inputFile + "'");                
+        }
+        catch(IOException ex) {
+            System.out.println(
+                "Error reading file '" 
+                + inputFile + "'");                   
+            // Or we could just do this: 
+            // ex.printStackTrace();
+        }			
 	}
 	
 	@Override
@@ -93,9 +141,14 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 			hist.setTitleY("Half Time Diff (ns)");
 
 			// create all the functions and graphs
-			F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
+			F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", 0.0, 40.0);
 			GraphErrors veffGraph = new GraphErrors();
 			veffGraph.setName("veffGraph");
+
+			veffFunc.setLineColor(FUNC_COLOUR);
+			veffFunc.setLineWidth(FUNC_LINE_WIDTH);
+			veffGraph.setMarkerSize(MARKER_SIZE);
+			veffGraph.setLineThickness(MARKER_LINE_WIDTH);
 
 			DataGroup dg = new DataGroup(2,1);
 			dg.addDataSet(hist, 0);
@@ -129,9 +182,9 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
 
-			if (paddle.includeInVeff()) {
+			if (paddle.includeInCtofVeff()) {
 				dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
-					paddle.ZPOS, paddle.halfTimeDiff());
+					paddle.zPosCTOF(), paddle.recHalfTimeDiff());
 			}
 		}
 	}
@@ -155,7 +208,8 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 			lowLimit = minRange;
 		}
 		else {
-			lowLimit = paddleLength(sector,layer,paddle) * -0.4;
+//			lowLimit = paddleLength(sector,layer,paddle) * -0.4;
+			lowLimit = 0.0;
 		}
 		
 		if (maxRange != UNDEFINED_OVERRIDE) {
@@ -308,13 +362,11 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 		GraphErrors summ = new GraphErrors("summ", paddleNumbers,
 				veffs, paddleUncs, veffUncs);
 		
-//		summary.setTitle("Effective Velocity: "
-//				+ LAYER_NAME[layer - 1] + " Sector "
-//				+ sector);
-//		summary.setXTitle("Paddle Number");
-//		summary.setYTitle("Effective Velocity (cm/ns)");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
+		summ.setTitle("Effective Velocity");
+		summ.setTitleX("Paddle Number");
+		summ.setTitleY("Effective velocity (cm/ns)");
+		summ.setMarkerSize(MARKER_SIZE);
+		summ.setLineThickness(MARKER_LINE_WIDTH);
 		
 		DataGroup dg = new DataGroup(1,1);
 		dg.addDataSet(summ, 0);

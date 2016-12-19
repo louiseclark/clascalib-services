@@ -48,7 +48,7 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 	// indices for override values
 	public final int LEFTRIGHT_OVERRIDE = 0;
 	
-	final double LEFT_RIGHT_RATIO = 0.3;
+	final double LEFT_RIGHT_RATIO = 0.15;
 	final double MAX_LEFTRIGHT = 10.0;
 	
 	public TofLeftRightEventListener() {
@@ -59,14 +59,14 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		filename = nextFileName();
 		
 		calib = new CalibrationConstants(3,
-				"left_right/F");
+				"left_right/F:paddle2paddle/F");
 		calib.setName("/calibration/ftof/timing_offset");
 		calib.setPrecision(3);
 		
 		calib.addConstraint(3, -MAX_LEFTRIGHT, MAX_LEFTRIGHT);
 		
 		// read in the left right values from the text file
-		String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_15_files.txt";
+		String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20161215_1M_events_after_tw.txt";
     	
     	String line = null;
     	try { 
@@ -86,7 +86,7 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
             	int sector = Integer.parseInt(line.substring(0, 3).trim());
             	int layer = Integer.parseInt(line.substring(3, 7).trim());
             	int paddle = Integer.parseInt(line.substring(7, 11).trim());
-            	double lr = Double.parseDouble(line.substring(11).trim());
+            	double lr = Double.parseDouble(line.substring(11,26).trim());
             	
             	leftRightValues.add(lr, sector, layer, paddle);
             	
@@ -121,7 +121,7 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 
 					// create all the histograms
 					H1F hist = new H1F("left_right","Left Right: Paddle "+paddle, 
-							201, -100.5, 100.5);
+							2001, -100.05, 100.05);
 
 					hist.setTitle("Left Right  : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
@@ -308,6 +308,8 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 	public void saveRow(int sector, int layer, int paddle) {
 		calib.setDoubleValue(getCentroid(sector,layer,paddle),
 				"left_right", sector, layer, paddle);
+		calib.setDoubleValue(0.0,
+				"paddle2paddle", sector, layer, paddle);
 	}
 	
 	@Override

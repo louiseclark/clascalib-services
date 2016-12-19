@@ -1,6 +1,10 @@
 package org.jlab.calib.services;
 
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -22,7 +26,7 @@ import org.jlab.utils.groups.IndexedList;
 
 public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
-	public final int NUM_ITERATIONS = 5;
+	public final int NUM_ITERATIONS = 10;
 
 	private List<TOFPaddle>     allPaddleList = new ArrayList<TOFPaddle>();
 	
@@ -39,8 +43,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 	private final double[]		ADC_MIN = {0.0, 100.0, 200.0, 100.0};
 	private final double[]		ADC_MAX = {0.0,	3000.0,	5000.0,	3000.0};
-	private final double[]		FIT_MIN = {0.0,	500.0, 	1200.0, 500.0};
-	private final double[]		FIT_MAX = {0.0, 1300.0,	2500.0, 1500.0};
+	private final double[]		FIT_MIN = {0.0,	200.0, 	500.0, 200.0};
+	private final double[]		FIT_MAX = {0.0, 1500.0,	2500.0, 1500.0};
 
 	final double[] fitLambda = {40.0,40.0};  // default values for the constants
 	final double[] fitOrder = {0.5,0.5};  // default values for the constants
@@ -86,7 +90,58 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 //		DetectorDescriptor desc = new DetectorDescriptor();
 //		desc.setSectorLayerComponent(1, 1, 4);
 //		System.out.println("desc "+desc);
-		
+	
+		// read in the left right values from the text file
+		String inputFile = "/home/louise/workspace/clascalib-services/ftof.time_walk.smeared.txt";
+    	
+    	String line = null;
+    	try { 
+			
+            // Open the file
+            FileReader fileReader = 
+                new FileReader(inputFile);
+
+            // Always wrap FileReader in BufferedReader
+            BufferedReader bufferedReader = 
+                new BufferedReader(fileReader);            
+
+            line = bufferedReader.readLine();
+            
+            while (line != null) {
+
+            	String[] lineValues;
+            	lineValues = line.split(" ");
+            	
+            	int sector = Integer.parseInt(lineValues[0]);
+            	int layer = Integer.parseInt(lineValues[1]);
+            	int paddle = Integer.parseInt(lineValues[2]);
+            	double lamL = Double.parseDouble(lineValues[3]);
+            	double ordL = Double.parseDouble(lineValues[4]);
+            	double lamR = Double.parseDouble(lineValues[6]);
+            	double ordR = Double.parseDouble(lineValues[7]);
+            	
+            	double[] twValues = {lamL,ordL,lamR,ordR};
+            	
+            	timeWalkValues.add(twValues, sector, layer, paddle);
+            	
+            	line = bufferedReader.readLine();
+            }    
+            
+            bufferedReader.close();            
+        }
+		catch(FileNotFoundException ex) {
+			ex.printStackTrace();
+            System.out.println(
+                "Unable to open file '" + 
+                inputFile + "'");                
+        }
+        catch(IOException ex) {
+            System.out.println(
+                "Error reading file '" 
+                + inputFile + "'");                   
+            // Or we could just do this: 
+            // ex.printStackTrace();
+        }			
 
 	}
 	
@@ -132,12 +187,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 							"Time residual vs ADC LEFT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
-							100, -2.0, 6.0);
+							200, -4.0, 20.0);
 					H2F rightHist = new H2F("trRightHist",
 							"Time residual vs ADC RIGHT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
-							100, -2.0, 6.0);
+							200, -4.0, 20.0);
 
 					leftHist.setTitle("Time residual vs ADC LEFT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
@@ -215,7 +270,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			System.out.println("Iteration "+iter+" start");
 
 			resetHists();
-			//fitAll(iter);
+			System.out.println("Iteration "+iter+"middle");
+			fitAll(iter);
 			
 			System.out.println("Iteration "+iter+" end");
 
@@ -226,6 +282,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 	public void fitAll(int iter) {
 		
+		System.out.println("Looping over paddles, iteration "+iter);
 		for(TOFPaddle paddle : allPaddleList){
 			
 			// Fill the histograms
@@ -262,10 +319,10 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 					fit(sector,layer,paddle,0.0,0.0);
 		
-//					System.out.println("SLC "+sector+layer+paddle+" Lambda left is "+getLambdaLeft(sector,layer,paddle));
-//					System.out.println("SLC "+sector+layer+paddle+" Lambda right is "+getLambdaRight(sector,layer,paddle));
-//					System.out.println("SLC "+sector+layer+paddle+" Order left is "+getOrderLeft(sector,layer,paddle));
-//					System.out.println("SLC "+sector+layer+paddle+" Order right is "+getOrderRight(sector,layer,paddle));
+					System.out.println("SLC "+sector+layer+paddle+" Lambda left is "+getLambdaLeft(sector,layer,paddle));
+					System.out.println("SLC "+sector+layer+paddle+" Lambda right is "+getLambdaRight(sector,layer,paddle));
+					System.out.println("SLC "+sector+layer+paddle+" Order left is "+getOrderLeft(sector,layer,paddle));
+					System.out.println("SLC "+sector+layer+paddle+" Order right is "+getOrderRight(sector,layer,paddle));
 
 				}
 			}
@@ -344,7 +401,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		twLFunc.setParameter(1, fitLambda[LEFT]/2.0);
 		twLFunc.setParameter(2, fitOrder[LEFT]);
 		try {
-			DataFitter.fit(twLFunc, twLGraph, "RNQ");
+			DataFitter.fit(twLFunc, twLGraph, "RN");
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -360,20 +417,20 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				DataFitter.fit(twRFunc, twRGraph, "RN");
 			}
 			else {
-				DataFitter.fit(twRFunc, twRGraph, "RNQ");
+				DataFitter.fit(twRFunc, twRGraph, "RN");
 			}
 			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		//System.out.println("Fitting "+sector+layer+paddle+" end");
+		System.out.println("Fitting "+sector+layer+paddle+" end");
 	}
 
 	public double[] getLambdas(int sector, int layer, int paddle, int iter) {
 		// leave as default for first iteration
 		// take values from function for subsequent iterations
-		double[] lambdas = {40.0, 40.0}; //fitLambda; //{0.0,0.0};
+		double[] lambdas = {40.0, 40.0}; 
 		if (iter>0) {
 			lambdas[0] = getLambdaLeft(sector,layer,paddle);
 			lambdas[1] = getLambdaRight(sector,layer,paddle);

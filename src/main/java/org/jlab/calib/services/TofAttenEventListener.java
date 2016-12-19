@@ -149,8 +149,17 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
 
+			// dgtz data only
 			dataGroups.getItem(sector,layer,component).getH2F("atten").fill(
 					paddle.position(), paddle.logRatio());
+			
+			// cooked data - position from timing and veff
+//			if (paddle.recPosition()!=0) {
+//				dataGroups.getItem(sector,layer,component).getH2F("atten").fill(
+//						paddle.recPosition(), paddle.logRatio());
+//			}
+			
+			
 		}
 	}
     
@@ -227,6 +236,12 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 	}
 
 	public void customFit(int sector, int layer, int paddle){
+		
+		// draw the stats
+		TCanvas c1 = new TCanvas("Hits per bank",1200,800);
+		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		c1.cd(0);
+		c1.draw(TOFCalibration.hitsPerBankHist);
 		
 		outputGraph(sector, layer, paddle);
 

@@ -49,9 +49,21 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	
 	// Left right values from text file
 	public static IndexedList<Double> leftRightValues = new IndexedList<Double>(3);
+	// Veff values from text file
+	public static IndexedList<Double> veffValues = new IndexedList<Double>(3);
+	// Time walk values from text file
+	public static IndexedList<double[]> timeWalkValues = new IndexedList<double[]>(3);
+	
+	// Calculated counter status values
+	public static IndexedList<Integer> adcLeftStatus = new IndexedList<Integer>(3);
+	public static IndexedList<Integer> adcRightStatus = new IndexedList<Integer>(3);
+	public static IndexedList<Integer> tdcLeftStatus = new IndexedList<Integer>(3);
+	public static IndexedList<Integer> tdcRightStatus = new IndexedList<Integer>(3);
+	
 
 	public TOFCalibrationEngine() {
 		// controlled by calibration step class
+		TOFPaddle.tof = "FTOF";
 		
 	}
 
@@ -92,6 +104,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 			}
 		}
 		save();
+		saveCounterStatus();
 		calib.fireTableDataChanged();
 	}
 
@@ -109,6 +122,52 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		// overridden in calibration step class
 	}
 
+	public void saveCounterStatus() {
+		
+		System.out.println("sector layer component stat_left stat_right");
+		for (int sector = 1; sector <= 6; sector++) {
+			for (int layer = 1; layer <= 3; layer++) {
+				int layer_index = layer - 1;
+				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
+					
+					int adcLStat = adcLeftStatus.getItem(sector,layer,paddle);
+					int adcRStat = adcRightStatus.getItem(sector,layer,paddle);
+					int tdcLStat = tdcLeftStatus.getItem(sector,layer,paddle);
+					int tdcRStat = tdcRightStatus.getItem(sector,layer,paddle);					
+					int counterStatusLeft = 0;
+					int counterStatusRight = 0;
+					
+					if (adcLStat==1 && tdcLStat==1) {
+						counterStatusLeft = 3;
+					}
+					else if (adcLStat==1) {
+						counterStatusLeft = 1;
+					}
+					else if (tdcLStat==1) {
+						counterStatusLeft = 2;
+					}
+					
+					if (adcRStat==1 && tdcRStat==1) {
+						counterStatusRight = 3;
+					}
+					else if (adcRStat==1) {
+						counterStatusRight = 1;
+					}
+					else if (tdcRStat==1) {
+						counterStatusRight = 2;
+					}
+					
+					System.out.println(
+						sector+" "+
+						layer+" "+
+						paddle+" "+
+						counterStatusLeft+" "+
+						counterStatusRight+" ");
+				}
+			}
+		}
+	}
+	
 	public void save() {
 
 		for (int sector = 1; sector <= 6; sector++) {

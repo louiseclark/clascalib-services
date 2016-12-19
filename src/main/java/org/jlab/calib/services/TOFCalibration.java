@@ -102,6 +102,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public static H1F trackingAdcRightHist1B;
 	public static H1F paddleHist;
 	public static H1F trackingPaddleHist;
+	public static H1F hitsPerBankHist;
 	
 	//public static EventDecoder decoder = new EventDecoder();
 	
@@ -110,6 +111,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		DataProvider.init();
 		
 		// create histogram of stats per layer / sector
+		hitsPerBankHist = new H1F("hitsPerBank","hitsPerBank", 500,0.0,1000.0);
 		totalStatHist = new H1F("totalStatHist","totalStatHist", 30,0.0,30.0);
 		totalStatHist.setTitle("Total number of hits");
 		totalStatHist.getXaxis().setTitle("Sector");
@@ -301,6 +303,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
     	
     	for (int i=0; i< engines.length; i++) {
+		//for (int i=4; i<5; i++) { //only timewalk
 		
     		if (event.getType()==DataEventType.EVENT_START) {
     			engines[i].resetEventListener();
@@ -327,6 +330,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public void timerUpdate() {
 
     	for (int i=0; i< engines.length; i++) {
+		//for (int i=4; i< 5; i++) {
     		engines[i].timerUpdate();
     	}
 		

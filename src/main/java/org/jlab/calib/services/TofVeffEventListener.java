@@ -1,6 +1,10 @@
 package org.jlab.calib.services; 
 
 import java.awt.BorderLayout;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -68,7 +72,52 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 							   EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 		calib.addConstraint(4, EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF),
 							   EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
-		
+
+		// read in the veff values from the text file
+		String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_VEFF_20161215_1M_events_after_tw.txt";
+    	
+    	String line = null;
+    	try { 
+			
+            // Open the file
+            FileReader fileReader = 
+                new FileReader(inputFile);
+
+            // Always wrap FileReader in BufferedReader
+            BufferedReader bufferedReader = 
+                new BufferedReader(fileReader);            
+
+            line = bufferedReader.readLine();
+            line = bufferedReader.readLine(); // skip header
+            
+            while (line != null) {
+            	
+            	int sector = Integer.parseInt(line.substring(0, 3).trim());
+            	int layer = Integer.parseInt(line.substring(3, 7).trim());
+            	int paddle = Integer.parseInt(line.substring(7, 11).trim());
+            	double veff = Double.parseDouble(line.substring(11,26).trim());
+            	
+            	veffValues.add(veff, sector, layer, paddle);
+            	
+            	line = bufferedReader.readLine();
+            }    
+            
+            bufferedReader.close();            
+        }
+		catch(FileNotFoundException ex) {
+			ex.printStackTrace();
+            System.out.println(
+                "Unable to open file '" + 
+                inputFile + "'");                
+        }
+        catch(IOException ex) {
+            System.out.println(
+                "Error reading file '" 
+                + inputFile + "'");                   
+            // Or we could just do this: 
+            // ex.printStackTrace();
+        }			
+
 	}
 	
 	@Override
@@ -156,7 +205,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 //					paddle.paddleY(), paddle.recHalfTimeDiff());
 				dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
 						paddle.paddleY() + (paddleLength(sector,layer,component)/2), 
-						paddle.recHalfTimeDiff() + 15.0);
+						paddle.halfTimeDiff() + 15.0);
 				veffStatHist.fill(((layer-1)*10)+sector);
 			}
 		}
