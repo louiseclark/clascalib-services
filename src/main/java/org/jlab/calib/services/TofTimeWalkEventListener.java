@@ -91,7 +91,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 //		desc.setSectorLayerComponent(1, 1, 4);
 //		System.out.println("desc "+desc);
 	
-		// read in the left right values from the text file
+		// read in the time walk values from the text file
 		String inputFile = "/home/louise/workspace/clascalib-services/ftof.time_walk.smeared.txt";
     	
     	String line = null;

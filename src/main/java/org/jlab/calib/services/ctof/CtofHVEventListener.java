@@ -79,10 +79,12 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 
 	@Override
 	public void resetEventListener() {
-
+		System.out.println("CtofHVEventListener resetEventListener");
+		System.out.println("Num paddles "+NUM_PADDLES[0]);
 		// LC perform init processing
 
 		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
+			System.out.println("Creating HV hists paddle "+paddle);
 
 			// create all the histograms
 			TOFH1F geoMeanHist = new TOFH1F("geomean",
@@ -90,6 +92,8 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 					GM_HIST_BINS, 0.0, GM_HIST_MAX);
 			H1F logRatioHist = new TOFH1F("logratio",
 					"Log Ratio Paddle "+paddle, 75,-6.0,6.0);
+
+			System.out.println("Creating HV funcs paddle "+paddle);
 
 			// create all the functions
 			F1D gmFunc = new F1D("gmFunc", "[amp]*landau(x,[mean],[sigma]) +[exp_amp]*exp([p]*x)",
@@ -102,6 +106,11 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 			dg.addDataSet(gmFunc, GEOMEAN);
 			dg.addDataSet(lrFunc, LOGRATIO);
 			dataGroups.add(dg, 1,1,paddle);
+			
+			System.out.println("geomean bins "+dataGroups.getItem(1,1,paddle).getH1F("geomean").getMaximumBin());
+			System.out.println("logratio bins "+dataGroups.getItem(1,1,paddle).getH1F("logratio").getMaximumBin());
+			System.out.println("gmFunc max "+dataGroups.getItem(1,1,paddle).getF1D("gmFunc").getMax());
+			System.out.println("lrFunc max "+dataGroups.getItem(1,1,paddle).getF1D("lrFunc").getMax());
 
 			// initialize the constants array
 			Double[] consts = {0.0, 0.0, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
@@ -110,11 +119,11 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 			constants.add(consts, 1, 1, paddle);
 			
 			// initialize the counter status
-			for (paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
-				adcLeftStatus.add(1, 1, 1, paddle);
-				adcRightStatus.add(1, 1, 1, paddle);
-				tdcLeftStatus.add(1, 1, 1, paddle);
-				tdcRightStatus.add(1, 1, 1, paddle);
+			for (int p = 1; p <= NUM_PADDLES[0]; p++) {
+				adcLeftStatus.add(1, 1, 1, p);
+				adcRightStatus.add(1, 1, 1, p);
+				tdcLeftStatus.add(1, 1, 1, p);
+				tdcRightStatus.add(1, 1, 1, p);
 			}
 		}
 	}
@@ -155,14 +164,17 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 	@Override
 	public void fit(int sector, int layer, int paddle,
 			double minRange, double maxRange){
+		System.out.println("Fitting paddle "+paddle);
 		fitGeoMean(sector, layer, paddle, minRange, maxRange);
+		System.out.println("Fitting log ratio "+paddle);
 		fitLogRatio(sector, layer, paddle, minRange, maxRange);
 	}
 	
 	public void fitGeoMean(int sector, int layer, int paddle,
 			double minRange, double maxRange){
 
-		TOFH1F h = (TOFH1F) dataGroups.getItem(sector,layer,paddle).getH1F("geomean");;
+		TOFH1F h = (TOFH1F) dataGroups.getItem(sector,layer,paddle).getH1F("geomean");
+		System.out.println("fitGeoMean1 "+paddle);
 		
 		// First rebin depending on number of entries
 		int nEntries = h.getEntries(); 
@@ -177,6 +189,8 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 				h.rebin(nRebin);
 			}		
 		}		
+
+		System.out.println("fitGeoMean2 "+paddle);
 		// Work out the range for the fit
 		double maxChannel = h.getAxis().getBinCenter(h.getAxis().getNBins()-1);
 		double startChannelForFit = 0.0;
@@ -197,6 +211,8 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 			// custom value
 			endChannelForFit = maxRange;
 		}
+
+		System.out.println("fitGeoMean3 "+paddle);
 
 		// find the maximum bin after the start channel for the fit
 		int startBinForFit = h.getxAxis().getBin(startChannelForFit);
@@ -224,6 +240,7 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 				endChannelForFit = 0.9*GM_HIST_MAX;
 			}	
 		}
+		System.out.println("fitGeoMean4 "+paddle);
 
 		F1D gmFunc = dataGroups.getItem(sector,layer,paddle).getF1D("gmFunc");
 		gmFunc.setRange(startChannelForFit, endChannelForFit);
@@ -236,7 +253,11 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 		gmFunc.setParameter(4, -0.001);
 
 		try {	
-			DataFitter.fit(gmFunc, h, "RNQ");
+			System.out.println("fitGeoMean5 "+paddle);
+
+			DataFitter.fit(gmFunc, h, "RN");
+			System.out.println("fitGeoMean6 "+paddle);
+
 
 		} catch (Exception e) {
 			System.out.println("Fit error with sector "+sector+" layer "+layer+" paddle "+paddle);

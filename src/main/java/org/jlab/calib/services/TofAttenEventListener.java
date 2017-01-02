@@ -148,6 +148,8 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			int sector = paddle.getDescriptor().getSector();
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
+			
+			
 
 			// dgtz data only
 			dataGroups.getItem(sector,layer,component).getH2F("atten").fill(

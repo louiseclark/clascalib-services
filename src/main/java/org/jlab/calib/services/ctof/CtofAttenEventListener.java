@@ -84,10 +84,13 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 
 	@Override
 	public void resetEventListener() {
+		
+		System.out.println("CtofAtten resetEventListener");
 
 		// LC perform init processing
 		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 
+			System.out.println("Creating Atten hists paddle "+paddle);
 			// create all the histograms
 			int numBins = (int) (paddleLength(1,1,paddle)*0.6);  // 1 bin per 2cm + 10% either side
 			double min = paddleLength(1,1,paddle) * -0.6;
@@ -100,6 +103,8 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 					+ " Paddle "+paddle);
 			hist.setTitleX("Position");
 			hist.setTitleY("Log ratio");
+
+			System.out.println("Creating Atten funcs paddle "+paddle);
 
 			// create all the functions and graphs
 			F1D attenFunc = new F1D("attenFunc", "[a]+[b]*x", -50.0, 50.0);

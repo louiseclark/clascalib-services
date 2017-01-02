@@ -158,7 +158,7 @@ public class DataProvider {
 				if (paddle.TDCL!=0.0) {
 					CTOFCalibrationEngine.tdcLeftStatus.add(0, 1,1,component);
 				}
-				if (paddle.TDCR!=0) {
+				if (paddle.TDCR!=0.0) {
 					CTOFCalibrationEngine.tdcRightStatus.add(0, 1,1,component);
 				}
 

@@ -89,6 +89,8 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 
 	public void analyze() {
 		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
+			
+			System.out.println("CTOFCalibrationEngine analyze "+stepName+" "+paddle);
 			fit(1, 1, paddle);
 		}
 		save();

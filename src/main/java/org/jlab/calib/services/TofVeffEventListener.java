@@ -88,7 +88,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
                 new BufferedReader(fileReader);            
 
             line = bufferedReader.readLine();
-            line = bufferedReader.readLine(); // skip header
+            //line = bufferedReader.readLine(); // skip header
             
             while (line != null) {
             	

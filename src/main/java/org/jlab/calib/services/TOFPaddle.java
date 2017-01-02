@@ -106,8 +106,8 @@ public class TOFPaddle {
 
 	public boolean includeInVeff() {
 		// exclude if position is zero or veff is unrealistic
-		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0);
-//				&& (Math.abs(position() - paddleY()) < 20.0);
+		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0)
+				&& (Math.abs(position() - paddleY()) < 20.0);
 		// &&
 		// (this.paddleY()/this.halfTimeDiff() > 4.0)
 		// &&
@@ -225,11 +225,21 @@ public class TOFPaddle {
 	}
 	
 	public double timeLeftAfterTW() {
-		return tdcToTime(TDCL) - (lamL() / Math.pow(ADCL, ordL()));
+		if (tof=="FTOF") {
+			return tdcToTime(TDCL) - (lamL() / Math.pow(ADCL, ordL()));
+		}
+		else {
+			return tdcToTime(TDCL);
+		}
 	}
 	
 	public double timeRightAfterTW() {
-		return tdcToTime(TDCR) - (lamR() / Math.pow(ADCR, ordR()));
+		if (tof=="FTOF") {
+			return tdcToTime(TDCR) - (lamR() / Math.pow(ADCR, ordR()));
+		}
+		else {
+			return tdcToTime(TDCR);
+		}
 	}
 	
 	public double timeTWCorr(double time, double adc) {
