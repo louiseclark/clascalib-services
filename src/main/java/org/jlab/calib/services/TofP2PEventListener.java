@@ -20,21 +20,38 @@ import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
 //import org.jlab.calib.temp.DataGroup;
 import org.jlab.groot.math.F1D;
+import org.jlab.groot.ui.TCanvas;
 import org.jlab.io.base.DataEvent;
 import org.jlab.utils.groups.IndexedList;
 
 public class TofP2PEventListener extends TOFCalibrationEngine {
 
+
+	// Test hists from Raffaella's macro
+	// PID
+	public static H1F hi_vertex_dt = new H1F("hi_vertex_dt", "hi_vertex_dt", 200, -3.0, 3.0); 
+	public static H1F hi_elec_t0 = new H1F("hi_elec_t0", "hi_elec_t0", 200, -3.0, 3.0); 
+	public static H1F hi_pion_t0 = new H1F("hi_pion_t0", "hi_pion_t0", 200, -3.0, 3.0); 
+
+	public static H2F hPaddles = new H2F("hPaddles", "hPaddles", 600, 0.0, 600.0, 600, 0.0, 600.0);
+	public static H1F eSect1 = new H1F("eSect1","eSect1",6,0.5,6.5);
+	public static H1F eSect = new H1F("eSect","eSect",6, 0.5,6.5);
+	public static H1F pSect = new H1F("pSect","pSect",6, 0.5,6.5);
+
+
+	private static final int ELECTRON = 0;
+	private static final int PION = 1;
+
 	public final int NUM_ITERATIONS = 5;
 
-	private List<TOFPaddlePair>     allPaddleList = new ArrayList<TOFPaddlePair>();
+	public static List<TOFPaddlePair>     allPaddleList = new ArrayList<TOFPaddlePair>();
 
 	// constants for indexing the histograms
-	public final int FINE = 0;
-	public final int CRUDE_FIRST = 1;
-	public final int SECTOR = 1;
-	public final int CRUDE_LAST = 1;
-	public final int CRUDE_FIRST_AGAIN = 1;
+	//	public final int FINE = 0;
+	//	public final int CRUDE_FIRST = 1;
+	//	public final int SECTOR = 1;
+	//	public final int CRUDE_LAST = 1;
+	//	public final int CRUDE_FIRST_AGAIN = 1;
 
 	//	// indices for constants
 	public final int CUMUL_OFFSET = 0;
@@ -47,8 +64,8 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 	// *** change to 1a later
 	public final int REF_PADDLE = 28;
 	public final int REF_LAYER = 2;
-	public final int NUM_FIRST_PADDLES = 10;
-	
+	public final int NUM_FIRST_PADDLES = 25;
+
 	final double MAX_OFFSET = 0.1;
 
 	public TofP2PEventListener() {
@@ -85,6 +102,15 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 
 	public void createHists() {
 
+		// Raffaellas test hists
+		hi_vertex_dt.setOptStat(1111);       
+		hi_vertex_dt.setTitleX("#DeltaT (ns)"); 
+		hi_vertex_dt.setTitleY("Counts");
+		hi_elec_t0.setOptStat(1111);       hi_elec_t0.setTitleX("#DeltaT (ns)"); hi_elec_t0.setTitleY("Counts");
+		hi_pion_t0.setOptStat(1111);       hi_pion_t0.setTitleX("#DeltaT (ns)"); hi_pion_t0.setTitleY("Counts");
+
+
+
 		// LC perform init processing
 		for (int sector = 1; sector <= 6; sector++) {
 			for (int layer = 1; layer <= 3; layer++) {
@@ -110,28 +136,28 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 					// these will be corrected to one reference paddle
 					// crudeFirstAgain hists also for first 10 paddles in each sector in reference sector
 					//if (layer==REF_LAYER && paddle <= NUM_FIRST_PADDLES) {
-						H1F crudeFirstHist = 
-								new H1F("crudeFirstHist","Crude First Offset Sector "+sector+" Paddle "+paddle, 
-										99,-49.5*RF_STRUCTURE,49.5*RF_STRUCTURE);
-						crudeFirstHist.setTitleX("Offset (ns)");
-						dg.addDataSet(crudeFirstHist,1);
+					H1F crudeFirstHist = 
+							new H1F("crudeFirstHist","Crude First Offset Sector "+sector+" Paddle "+paddle, 
+									99,-49.5*RF_STRUCTURE,49.5*RF_STRUCTURE);
+					crudeFirstHist.setTitleX("Offset (ns)");
+					dg.addDataSet(crudeFirstHist,1);
 
-						H1F crudeFirstAgainHist = 
-								new H1F("crudeFirstAgainHist","Crude First Again Offset Sector "+sector+" Paddle "+paddle, 
-										99,-49.5*RF_STRUCTURE,49.5*RF_STRUCTURE);
-						crudeFirstAgainHist.setTitleX("Offset (ns)");
-						dg.addDataSet(crudeFirstAgainHist, 4);
+					H1F crudeFirstAgainHist = 
+							new H1F("crudeFirstAgainHist","Crude First Again Offset Sector "+sector+" Paddle "+paddle, 
+									99,-49.5*RF_STRUCTURE,49.5*RF_STRUCTURE);
+					crudeFirstAgainHist.setTitleX("Offset (ns)");
+					dg.addDataSet(crudeFirstAgainHist, 4);
 
 					//}
 
 					// crudeLast offset hists for paddles other than first 10 in each sector for layer 1
 					// these will be corrected to one reference paddle
 					//if (paddle > NUM_FIRST_PADDLES || layer != REF_LAYER) {
-						H1F crudeLastHist = 
-								new H1F("crudeLastHist","Crude Last Offset Sector "+sector+" Paddle "+paddle, 
-										99,-49.5*RF_STRUCTURE,49.5*RF_STRUCTURE);
-						crudeLastHist.setTitleX("Offset (ns)");
-						dg.addDataSet(crudeLastHist, 3);
+					H1F crudeLastHist = 
+							new H1F("crudeLastHist","Crude Last Offset Sector "+sector+" Paddle "+paddle, 
+									99,-49.5*RF_STRUCTURE,49.5*RF_STRUCTURE);
+					crudeLastHist.setTitleX("Offset (ns)");
+					dg.addDataSet(crudeLastHist, 3);
 
 					//}
 
@@ -175,12 +201,52 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 	@Override
 	public void processPaddleList(List<TOFPaddle> paddleList) {
 
-		// do nothing for the moment
-		// will read text file at analyze step
+		// store the paddle pairs so we can iterate through them
+		//		System.out.println("processPaddleList start");
+		//		for (TOFPaddle pad : paddleList) {
+		//			System.out.println("SLC "+pad.getDescriptor().getSector()+pad.getDescriptor().getLayer()+pad.getDescriptor().getComponent()+
+		//								" particle_id "+pad.PARTICLE_ID);
+		//		}
 
-		// store the paddle so we can iterate through them
+		//		for (TOFPaddle ePaddle : paddleList) {
+		//			if (ePaddle.PARTICLE_ID == 0) {
+		//				// create a pair with each of the pions
+		//				for (TOFPaddle pPaddle : paddleList) {
+		//					if (pPaddle.PARTICLE_ID ==1) {
+		//						TOFPaddlePair paddlePair = new TOFPaddlePair();
+		//						paddlePair.electronPaddle = ePaddle;
+		//						paddlePair.pionPaddle = pPaddle;
+		//
+		//						allPaddleList.add(paddlePair);
+		//						
+		//					}
+		//				}
+		//			}
+		//		}
+
+		//		int eIndex = -1;
+		//		int pIndex = -1;
+		//
 		//		for (TOFPaddle paddle : paddleList) {
-		//			allPaddleList.add(paddle);
+		//
+		//			if (paddle.PARTICLE_ID == 0) {
+		//				//				System.out.println("Found electron");
+		//				eIndex = paddleList.indexOf(paddle);
+		//			}
+		//			if (paddle.PARTICLE_ID == 1) {
+		//				//				System.out.println("Found pion");
+		//				pIndex = paddleList.indexOf(paddle);			
+		//			}
+		//		}
+		//
+		//		if (eIndex != -1 && pIndex != -1) {
+		//			// we have an electron and pion, therefore store the pair
+		//
+		//			TOFPaddlePair paddlePair = new TOFPaddlePair();
+		//			paddlePair.electronPaddle = paddleList.get(eIndex);
+		//			paddlePair.pionPaddle = paddleList.get(pIndex);
+		//
+		//			allPaddleList.add(paddlePair);
 		//		}
 	}	
 
@@ -189,190 +255,232 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 	// require to iterate through all events several times
 	public void analyze() {
 
-		processTextFile();
-		//createHists();
+		//processTextFile();
 		fitAll();
+
+		// Raffaella's test hists
+		TCanvas vt = new TCanvas("vt", 700, 1000);
+		vt.divide(1,3);
+		vt.getCanvas().setGridX(false); vt.getCanvas().setGridY(false);
+		vt.getCanvas().setAxisFontSize(18);
+		vt.getCanvas().setAxisTitleSize(24);
+		vt.cd(0);
+		F1D f1 = new F1D("f1","[amp]*gaus(x,[mean],[sigma])", -1.0, 1.0);
+		f1.setParameter(0, 100.0);
+		f1.setParameter(1, 0.0);
+		f1.setParameter(2, 0.3);
+		f1.setLineWidth(2);
+		f1.setLineColor(2);
+		f1.setOptStat("1111");
+		DataFitter.fit(f1, hi_vertex_dt, "Q"); //No options uses error for sigma
+		vt.draw(hi_vertex_dt);
+		vt.cd(1);
+		vt.draw(hi_elec_t0);
+		vt.cd(2);
+		vt.draw(hi_pion_t0);
+
+		TCanvas paddles = new TCanvas("paddles", 800, 800);
+		paddles.cd(0);
+		paddles.draw(hPaddles);
+
+		TCanvas sects = new TCanvas("sects", 800, 800);
+		sects.divide(1, 3);
+		sects.cd(0);
+		sects.draw(eSect);
+		sects.cd(1);
+		sects.draw(pSect);
+		sects.cd(2);
+		sects.draw(eSect1);
+
 
 		save();
 		calib.fireTableDataChanged();
 	}
-	
-    private void processTextFile() {
-    	
-    	String inputFile = "/home/louise/FTOF_calib_rewrite/input_files/p2p_run37665.txt";
+
+	private void processTextFile() {
+
+		String inputFile = "/home/louise/FTOF_calib_rewrite/input_files/p2p_run37665.txt";
 		// store list of paddle pairs for P2P step
-    	
-    	String line = null;
-    	int maxLines=0;   
-    	
-    	System.out.println("Opening text file");
-    	
-    	try { 
-			
-            // Open the file
-            FileReader fileReader = 
-                new FileReader(inputFile);
 
-            // Always wrap FileReader in BufferedReader
-            BufferedReader bufferedReader = 
-                new BufferedReader(fileReader);            
+		String line = null;
+		int maxLines=0;   
 
-            // Read each line of the file up to a maximum count
-            int lineNum=0;
-            line = bufferedReader.readLine();
-            line = bufferedReader.readLine(); // skip the header line
-            
-            while ((maxLines==0 || lineNum<maxLines) && (line != null)) {
+		System.out.println("Opening text file");
 
-            	//                    0       1             2                 3                    4                 5
-            	// Each line contains RF_time target_center electron_TOF_time electron_flight_time electron_vertex_z electron_paddle_index 
-            	//											pion_TOF_time pion_flight_time pion_vertex_z pion_paddle_index
-            	//                                          6             7                8             9
-            	
-            	if (line.contains("inf")) {
-            		line = bufferedReader.readLine();
-                	lineNum++;
-            		continue;
-            	}
-            	
-            	String[] lineValues;
-            	lineValues = line.split(" ");
-            	
-            	int electronSector = Integer.parseInt(lineValues[5])/100;
-            	int electronPaddle = Integer.parseInt(lineValues[5])%100;
-            	double RFTime = Double.parseDouble(lineValues[0]);
-            	double electronTOFTime = Double.parseDouble(lineValues[2]);
-            	double electronFlightTime = Double.parseDouble(lineValues[3]);
-            	double electronVertexZ = Double.parseDouble(lineValues[4]);
-            	
-            	int pionSector = Integer.parseInt(lineValues[9])/100;
-            	int pionPaddle = Integer.parseInt(lineValues[9])%100;
-            	double pionTOFTime = Double.parseDouble(lineValues[6]);
-            	double pionFlightTime = Double.parseDouble(lineValues[7]);
-            	double pionVertexZ = Double.parseDouble(lineValues[8]);
-            	
-            	TOFPaddle  electronTOFPaddle = new TOFPaddle(electronSector, 2, electronPaddle);
-            	electronTOFPaddle.RF_TIME = RFTime;
-            	electronTOFPaddle.TOF_TIME = electronTOFTime;
-            	electronTOFPaddle.FLIGHT_TIME = electronFlightTime;
-            	electronTOFPaddle.VERTEX_Z = electronVertexZ;
-            	
-            	TOFPaddle  pionTOFPaddle = new TOFPaddle(pionSector, 2, pionPaddle);
-            	pionTOFPaddle.RF_TIME = RFTime;
-            	pionTOFPaddle.TOF_TIME = pionTOFTime;
-            	pionTOFPaddle.FLIGHT_TIME = pionFlightTime;
-            	pionTOFPaddle.VERTEX_Z = pionVertexZ;
-            	
-            	TOFPaddlePair paddlePair = new TOFPaddlePair();
-            	paddlePair.electronPaddle = electronTOFPaddle;
-            	paddlePair.pionPaddle = pionTOFPaddle;
-            	
-                allPaddleList.add(paddlePair);
-            	
-            	line = bufferedReader.readLine();
-            	lineNum++;
-            }    
+		try { 
+
+			// Open the file
+			FileReader fileReader = 
+					new FileReader(inputFile);
+
+			// Always wrap FileReader in BufferedReader
+			BufferedReader bufferedReader = 
+					new BufferedReader(fileReader);            
+
+			// Read each line of the file up to a maximum count
+			int lineNum=0;
+			line = bufferedReader.readLine();
+			line = bufferedReader.readLine(); // skip the header line
+
+			while ((maxLines==0 || lineNum<maxLines) && (line != null)) {
+
+				//                    0       1             2                 3                    4                 5
+				// Each line contains RF_time target_center electron_TOF_time electron_flight_time electron_vertex_z electron_paddle_index 
+				//											pion_TOF_time pion_flight_time pion_vertex_z pion_paddle_index
+				//                                          6             7                8             9
+
+				if (line.contains("inf")) {
+					line = bufferedReader.readLine();
+					lineNum++;
+					continue;
+				}
+
+				String[] lineValues;
+				lineValues = line.split(" ");
+
+				int electronSector = Integer.parseInt(lineValues[5])/100;
+				int electronPaddle = Integer.parseInt(lineValues[5])%100;
+				double RFTime = Double.parseDouble(lineValues[0]);
+				double electronTOFTime = Double.parseDouble(lineValues[2]);
+				double electronFlightTime = Double.parseDouble(lineValues[3]);
+				double electronVertexZ = Double.parseDouble(lineValues[4]);
+
+				int pionSector = Integer.parseInt(lineValues[9])/100;
+				int pionPaddle = Integer.parseInt(lineValues[9])%100;
+				double pionTOFTime = Double.parseDouble(lineValues[6]);
+				double pionFlightTime = Double.parseDouble(lineValues[7]);
+				double pionVertexZ = Double.parseDouble(lineValues[8]);
+
+				TOFPaddle  electronTOFPaddle = new TOFPaddle(electronSector, 2, electronPaddle);
+				electronTOFPaddle.RF_TIME = RFTime;
+				electronTOFPaddle.TOF_TIME = electronTOFTime;
+				electronTOFPaddle.FLIGHT_TIME = electronFlightTime;
+				electronTOFPaddle.VERTEX_Z = electronVertexZ;
+
+				TOFPaddle  pionTOFPaddle = new TOFPaddle(pionSector, 2, pionPaddle);
+				pionTOFPaddle.RF_TIME = RFTime;
+				pionTOFPaddle.TOF_TIME = pionTOFTime;
+				pionTOFPaddle.FLIGHT_TIME = pionFlightTime;
+				pionTOFPaddle.VERTEX_Z = pionVertexZ;
+
+				TOFPaddlePair paddlePair = new TOFPaddlePair();
+				paddlePair.electronPaddle = electronTOFPaddle;
+				paddlePair.pionPaddle = pionTOFPaddle;
+
+				allPaddleList.add(paddlePair);
+
+				line = bufferedReader.readLine();
+				lineNum++;
+			}    
 
 
-            bufferedReader.close();            
-        }
+			bufferedReader.close();            
+		}
 		catch(FileNotFoundException ex) {
 			ex.printStackTrace();
-            System.out.println(
-                "Unable to open file '" + 
-                inputFile + "'");                
-        }
-        catch(IOException ex) {
-            System.out.println(
-                "Error reading file '" 
-                + inputFile + "'");                   
-            // Or we could just do this: 
-            // ex.printStackTrace();
-        }		
-    	
-    }
-    
+			System.out.println(
+					"Unable to open file '" + 
+							inputFile + "'");                
+		}
+		catch(IOException ex) {
+			System.out.println(
+					"Error reading file '" 
+							+ inputFile + "'");                   
+			// Or we could just do this: 
+			// ex.printStackTrace();
+		}		
+
+	}
+
 
 
 	public void fitAll() {
 
 		System.out.println("fitAll for allPaddleList "+allPaddleList.size());
 		// fill the fineHists
-		for(TOFPaddlePair paddlePair : allPaddleList){
+		boolean doFineHists = true;
+		if (doFineHists) {
+			for(TOFPaddlePair paddlePair : allPaddleList){
 
-			int eSector = paddlePair.electronPaddle.getDescriptor().getSector();
-			int eLayer = paddlePair.electronPaddle.getDescriptor().getLayer();
-			int eComponent = paddlePair.electronPaddle.getDescriptor().getComponent();
-			int pSector = paddlePair.pionPaddle.getDescriptor().getSector();
-			int pLayer = paddlePair.pionPaddle.getDescriptor().getLayer();
-			int pComponent = paddlePair.pionPaddle.getDescriptor().getComponent();
+				int eSector = paddlePair.electronPaddle.getDescriptor().getSector();
+				int eLayer = paddlePair.electronPaddle.getDescriptor().getLayer();
+				int eComponent = paddlePair.electronPaddle.getDescriptor().getComponent();
+				int pSector = paddlePair.pionPaddle.getDescriptor().getSector();
+				int pLayer = paddlePair.pionPaddle.getDescriptor().getLayer();
+				int pComponent = paddlePair.pionPaddle.getDescriptor().getComponent();
 
-			// Fill the first set of histograms
-			dataGroups.getItem(eSector,eLayer,eComponent).getH1F("fineHist").fill(
-					(paddlePair.electronPaddle.refTime(TARGET_CENTRE) + (1000*RF_STRUCTURE) + (0.5*RF_STRUCTURE))%RF_STRUCTURE - (0.5*RF_STRUCTURE));
-			// find the "fine" offset within the RF pulse width
+				// Fill the first set of histograms
+				dataGroups.getItem(eSector,eLayer,eComponent).getH1F("fineHist").fill(
+						//(paddlePair.electronPaddle.refTime(TARGET_CENTRE) + (1000*RF_STRUCTURE) + (0.5*RF_STRUCTURE))%RF_STRUCTURE - (0.5*RF_STRUCTURE));
+						paddlePair.electronPaddle.refTime(TARGET_CENTRE));
+				// find the "fine" offset within the RF pulse width
 
-			// Fill the first set of histograms
-			dataGroups.getItem(pSector,pLayer,pComponent).getH1F("fineHist").fill(
-					(paddlePair.pionPaddle.refTime(TARGET_CENTRE) + (1000*RF_STRUCTURE) + (0.5*RF_STRUCTURE))%RF_STRUCTURE - (0.5*RF_STRUCTURE));
-			// find the "fine" offset within the RF pulse width
+				// Fill the first set of histograms
+				dataGroups.getItem(pSector,pLayer,pComponent).getH1F("fineHist").fill(
+						//(paddlePair.pionPaddle.refTime(TARGET_CENTRE) + (1000*RF_STRUCTURE) + (0.5*RF_STRUCTURE))%RF_STRUCTURE - (0.5*RF_STRUCTURE));
+						paddlePair.pionPaddle.refTime(TARGET_CENTRE));
+				// find the "fine" offset within the RF pulse width
 
-		}
+			}
 
-		// calculate the fine offsets
-		for(int sector = 1; sector <= 6; sector++){
-			for (int layer = 1; layer <= 3; layer++) {
-				int layer_index = layer-1;
-				for(int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++){
-					fitFineHist(sector, layer, paddle);
+			// calculate the fine offsets
+			for(int sector = 1; sector <= 6; sector++){
+				for (int layer = 1; layer <= 3; layer++) {
+					int layer_index = layer-1;
+					for(int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++){
+						fitFineHist(sector, layer, paddle);
+					}
 				}
 			}
 		}
 
 		// fill the crudeFirst histograms 
-		for(TOFPaddlePair paddlePair : allPaddleList){
+		boolean doCrudeFirst = false;
+		if (doCrudeFirst) {		
+			for(TOFPaddlePair paddlePair : allPaddleList){
 
-			// Fill the crude first set of histograms
-			// electron hit in paddle 1-10 of layer 1
-			// pion hit in ref paddle of layer 1 for electron sector+4
-			// find offset of paddles 1-10 using these data
+				// Fill the crude first set of histograms
+				// electron hit in paddle 1-10 of layer 1
+				// pion hit in ref paddle of layer 1 for electron sector+4
+				// find offset of paddles 1-10 using these data
 
-			int eComp = paddlePair.electronPaddle.getDescriptor().getComponent();
-			int piComp = paddlePair.pionPaddle.getDescriptor().getComponent();
-			int eSect = paddlePair.electronPaddle.getDescriptor().getSector();
-			int piSect = paddlePair.pionPaddle.getDescriptor().getSector();
-			int eLayer = paddlePair.electronPaddle.getDescriptor().getLayer();
-			int piLayer = paddlePair.pionPaddle.getDescriptor().getLayer();
+				int eComp = paddlePair.electronPaddle.getDescriptor().getComponent();
+				int piComp = paddlePair.pionPaddle.getDescriptor().getComponent();
+				int eSect = paddlePair.electronPaddle.getDescriptor().getSector();
+				int piSect = paddlePair.pionPaddle.getDescriptor().getSector();
+				int eLayer = paddlePair.electronPaddle.getDescriptor().getLayer();
+				int piLayer = paddlePair.pionPaddle.getDescriptor().getLayer();
 
-			if (eLayer == REF_LAYER && eComp <= NUM_FIRST_PADDLES && piLayer == REF_LAYER && piComp == REF_PADDLE && (piSect+6 - eSect)%6 == 4) {
+				if (eLayer == REF_LAYER && eComp <= NUM_FIRST_PADDLES && piLayer == REF_LAYER && piComp == REF_PADDLE && (piSect+6 - eSect)%6 == 4) {
 
-				// correct the electron and pion time with the fine offset
-				double eCorrTime = paddlePair.electronPaddle.refTime(TARGET_CENTRE) - getOffset(eSect, eLayer, eComp);
-				double piCorrTime = paddlePair.pionPaddle.refTime(TARGET_CENTRE) - getOffset(piSect, piLayer, piComp);
+					// correct the electron and pion time with the fine offset
+					double eCorrTime = paddlePair.electronPaddle.refTime(TARGET_CENTRE) - getOffset(eSect, eLayer, eComp);
+					double piCorrTime = paddlePair.pionPaddle.refTime(TARGET_CENTRE) - getOffset(piSect, piLayer, piComp);
 
-				dataGroups.getItem(eSect,eLayer,eComp).getH1F("crudeFirstHist").fill(eCorrTime - piCorrTime);
+					dataGroups.getItem(eSect,eLayer,eComp).getH1F("crudeFirstHist").fill(eCorrTime - piCorrTime);
 
+				}
 			}
+
+			// calculate the crudeFirst offsets
+			for(int sector = 1; sector <= 6; sector++){
+				for(int paddle = 1; paddle <= NUM_FIRST_PADDLES; paddle++){
+
+					H1F crudeFirstHist = 
+							dataGroups.getItem(sector,REF_LAYER,paddle).getH1F("crudeFirstHist");
+
+					int maxBin = crudeFirstHist.getMaximumBin();
+					double offset = crudeFirstHist.getXaxis().getBinCenter(maxBin);
+					crudeFirstHist.setTitle(crudeFirstHist.getTitle() + " Offset = " + formatDouble(offset));
+
+					double newOffset = getOffset(sector, REF_LAYER, paddle) + offset;
+
+					Double[] consts = constants.getItem(sector, REF_LAYER, paddle);
+					consts[CUMUL_OFFSET] = newOffset;
+
+				}
+			}	
 		}
-
-		// calculate the crudeFirst offsets
-		for(int sector = 1; sector <= 6; sector++){
-			for(int paddle = 1; paddle <= NUM_FIRST_PADDLES; paddle++){
-
-				H1F crudeFirstHist = 
-						dataGroups.getItem(sector,REF_LAYER,paddle).getH1F("crudeFirstHist");
-				
-				int maxBin = crudeFirstHist.getMaximumBin();
-				double offset = crudeFirstHist.getXaxis().getBinCenter(maxBin);
-				crudeFirstHist.setTitle(crudeFirstHist.getTitle() + " Offset = " + formatDouble(offset));
-
-				double newOffset = getOffset(sector, REF_LAYER, paddle) + offset;
-				
-				Double[] consts = constants.getItem(sector, REF_LAYER, paddle);
-				consts[CUMUL_OFFSET] = newOffset;
-
-			}
-		}	
 
 		// fill the crudeSect histograms 
 		for(TOFPaddlePair paddlePair : allPaddleList){
@@ -401,7 +509,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 
 		// calculate the crudeSect offsets and then apply them to all paddles in each sector
 		for(int sector = 1; sector <= 6; sector++){
-			
+
 			H1F sectorHist = 
 					dataGroups.getItem(sector,1,1).getH1F("sectorHist");
 			int maxBin = sectorHist.getMaximumBin();
@@ -416,7 +524,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 
 					Double[] consts = constants.getItem(sector, layer, paddle);
 					consts[CUMUL_OFFSET] = newOffset;
-					
+
 				}
 			}
 		}	
@@ -455,7 +563,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 				for(int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++){
 
 					if (layer != REF_LAYER || paddle > NUM_FIRST_PADDLES) {
-						
+
 						H1F crudeLastHist = 
 								dataGroups.getItem(sector,layer,paddle).getH1F("crudeLastHist");
 						int maxBin = crudeLastHist.getMaximumBin();
@@ -637,7 +745,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
-				
+
 		int layer_index = layer-1;
 		double[] paddleNumbers = new double[NUM_PADDLES[layer_index]];
 		double[] paddleUncs = new double[NUM_PADDLES[layer_index]];
@@ -654,19 +762,19 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 
 		GraphErrors summ = new GraphErrors("summ", paddleNumbers,
 				values, paddleUncs, valueUncs);
-		
-//		summary.setTitle("Left Right centroids: "
-//				+ LAYER_NAME[layer - 1] + " Sector "
-//				+ sector);
-//		summary.setTitleX("Paddle Number");
-//		summary.setYTitle("Centroid (cm)");
-//		summary.setMarkerSize(5);
-//		summary.setMarkerStyle(2);
-		
+
+		//		summary.setTitle("Left Right centroids: "
+		//				+ LAYER_NAME[layer - 1] + " Sector "
+		//				+ sector);
+		//		summary.setTitleX("Paddle Number");
+		//		summary.setYTitle("Centroid (cm)");
+		//		summary.setMarkerSize(5);
+		//		summary.setMarkerStyle(2);
+
 		DataGroup dg = new DataGroup(1,1);
 		dg.addDataSet(summ, 0);
 		return dg;
-		
+
 	}
 
 

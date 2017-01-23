@@ -74,7 +74,8 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 							   EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 
 		// read in the veff values from the text file
-		String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_VEFF_20161215_1M_events_after_tw.txt";
+		//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_VEFF_20161215_1M_events_after_tw.txt";
+		String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_VEFF_20170103.test2.txt";
     	
     	String line = null;
     	try { 
@@ -193,7 +194,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 
 	@Override
 	public void processPaddleList(List<TOFPaddle> paddleList) {
-
+		
 		for (TOFPaddle paddle : paddleList) {
 
 			int sector = paddle.getDescriptor().getSector();

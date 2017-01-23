@@ -24,12 +24,13 @@ public class TOFPaddle {
 	public double XPOS = 0.0;
 	public double YPOS = 0.0;
 	public double ZPOS = 0.0;
-	public double RF_TIME = 0.0;
+	public double RF_TIME = 124.25;
 	public double TOF_TIME = 0.0;
 	public double FLIGHT_TIME = 0.0;
 	public double VERTEX_Z = 0.0;
-	public int PARTICLE_ID = 0;
-
+	public int PARTICLE_ID = -1;
+	public double START_TIME = 0.0;
+	
 	public final int ELECTRON = 0;
 	public final int PION = 1;
 	private final double C = 29.98;
@@ -100,14 +101,14 @@ public class TOFPaddle {
 	}
 
 	public boolean includeInCalib() {
-		// return (ADCR != 0 || ADCL != 0);
+		//return (ADCR != 0 || ADCL != 0);
 		return (this.geometricMean() > 100.0 && ADCR != ADCL);
 	}
 
 	public boolean includeInVeff() {
 		// exclude if position is zero or veff is unrealistic
-		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0)
-				&& (Math.abs(position() - paddleY()) < 20.0);
+		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0);
+//				&& (Math.abs(position() - paddleY()) < 40.0);
 		// &&
 		// (this.paddleY()/this.halfTimeDiff() > 4.0)
 		// &&
@@ -122,9 +123,9 @@ public class TOFPaddle {
 
 	public boolean includeInTimeWalk() {
 		// exclude if position is zero or veff is unrealistic
-		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0)
-				&& (this.paddleY() / this.halfTimeDiff() > 8.0)
-				&& (this.paddleY() / this.halfTimeDiff() < 24.0);
+		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0);
+//				&& (this.paddleY() / this.halfTimeDiff() > 8.0)
+//				&& (this.paddleY() / this.halfTimeDiff() < 24.0);
 	}
 
 	public boolean isValidLogRatio() {
@@ -183,6 +184,9 @@ public class TOFPaddle {
 		return veff;
 	}
 
+	// timeResidualsOrig
+	// rename to timeResiduals to use the original time walk algorithm
+	// also need to change number of iterations in TofTimeWalkEventListener to 5 (or however many iterations required)
 	public double[] timeResiduals(double[] lambda, double[] order) {
 		double[] tr = { 0.0, 0.0 };
 
@@ -194,6 +198,29 @@ public class TOFPaddle {
 		double timeLCorr = timeL - (lambda[LEFT] / Math.pow(ADCL, order[LEFT]));
 		double timeRCorr = timeR
 				- (lambda[RIGHT] / Math.pow(ADCR, order[RIGHT]));
+
+		tr[LEFT] = ((timeL - timeRCorr - leftRightAdjustment(desc.getSector(),
+				desc.getLayer(), desc.getComponent())) / 2)
+				- (paddleY() / veff());
+		tr[RIGHT] = -(((timeLCorr - timeR - leftRightAdjustment(
+				desc.getSector(), desc.getLayer(), desc.getComponent())) / 2) - (paddleY() / veff()));
+
+		return tr;
+	}
+
+	// timeResidualsCheat
+	// rename to timeResiduals to use this version which uses the known correction for the opposite TDC
+	// may as well also change number of iterations to 1 in TofTimeWalkEventListener
+	public double[] timeResidualsCheat(double[] lambda, double[] order) {
+		double[] tr = { 0.0, 0.0 };
+
+		double timeL = tdcToTime(TDCL);
+		double timeR = tdcToTime(TDCR);
+		// double timeL = getTWTimeL();
+		// double timeR = getTWTimeR();
+
+		double timeLCorr = timeLeftAfterTW();
+		double timeRCorr = timeRightAfterTW();
 
 		tr[LEFT] = ((timeL - timeRCorr - leftRightAdjustment(desc.getSector(),
 				desc.getLayer(), desc.getComponent())) / 2)
@@ -368,8 +395,9 @@ public class TOFPaddle {
 	}
 
 	public double refTime(double targetCentre) {
-		return (this.TOF_TIME - this.FLIGHT_TIME
-				- ((this.VERTEX_Z - targetCentre) / C) - this.RF_TIME);
+		return this.START_TIME - this.RF_TIME;
+//		return (this.TOF_TIME - this.FLIGHT_TIME
+//				- ((this.VERTEX_Z - targetCentre) / C) - this.RF_TIME);
 	}
 
 	public DetectorDescriptor getDescriptor() {

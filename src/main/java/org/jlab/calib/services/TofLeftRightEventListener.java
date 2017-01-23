@@ -66,7 +66,8 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		calib.addConstraint(3, -MAX_LEFTRIGHT, MAX_LEFTRIGHT);
 		
 		// read in the left right values from the text file
-		String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20161215_1M_events_after_tw.txt";
+		//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20161215_1M_events_after_tw.txt";
+		String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20170103.test2.txt";
     	
     	String line = null;
     	try { 
@@ -121,7 +122,7 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 
 					// create all the histograms
 					H1F hist = new H1F("left_right","Left Right: Paddle "+paddle, 
-							2001, -100.05, 100.05);
+							4001, -100.05, 100.05);
 
 					hist.setTitle("Left Right  : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
@@ -298,7 +299,10 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 			
 			double min = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMin(); 
 			double max = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMax();
-			leftRight = (min+max)/2.0;
+			//leftRight = (min+max)/2.0;
+			
+			leftRight = dataGroups.getItem(sector,layer,paddle).getH1F("left_right").getMean();
+			
 		}
 
 		return leftRight;

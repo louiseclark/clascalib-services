@@ -104,7 +104,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 			}
 		}
 		save();
-		saveCounterStatus();
+		//saveCounterStatus();
 		calib.fireTableDataChanged();
 	}
 
