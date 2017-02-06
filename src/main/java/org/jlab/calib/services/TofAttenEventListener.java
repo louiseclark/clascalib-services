@@ -55,36 +55,38 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 	public final int ATTEN_OVERRIDE = 0;
 	public final int ATTEN_UNC_OVERRIDE = 1;
 	public final int OFFSET_OVERRIDE = 2;
-	
+
 	public TofAttenEventListener() {
 
 		stepName = "Attenuation Length";
 		fileNamePrefix = "FTOF_CALIB_ATTEN_";
 		// get file name here so that each timer update overwrites it
 		filename = nextFileName();
-		
+
 		calib = new CalibrationConstants(3,
 				"attlen_left/F:attlen_right/F:attlen_left_err/F:attlen_right_err/F:y_offset/F");
 		calib.setName("/calibration/ftof/attenuation");
 		calib.setPrecision(3);
-		
+
 		// assign constraints corresponding to layer 1 values for now
 		// need addConstraint to be able to check layer and paddle
 		for (int paddle=1; paddle<=23; paddle++) {
 			calib.addConstraint(3, expectedAttlen(1,1,paddle)*0.9,
-								   expectedAttlen(1,1,paddle)*1.1,
-								   2,
-								   paddle);
+					expectedAttlen(1,1,paddle)*1.1,
+					2,
+					paddle);
 			calib.addConstraint(4, expectedAttlen(1,1,paddle)*0.9,
-					   expectedAttlen(1,1,paddle)*1.1,
-					   2,
-					   paddle);
+					expectedAttlen(1,1,paddle)*1.1,
+					2,
+					paddle);
 		}
 
 	}
 
 	@Override
 	public void resetEventListener() {
+
+		System.out.println("Atten resetEventListener");
 
 		// LC perform init processing
 		for (int sector = 1; sector <= 6; sector++) {
@@ -97,14 +99,14 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 					double min = paddleLength(sector,layer,paddle) * -0.6;
 					double max = paddleLength(sector,layer,paddle) * 0.6;
 					H2F hist = new H2F("atten", "Log Ratio vs Position : Paddle "
- 									+ paddle, numBins, min, max, 100, -3.0, 3.0);
+							+ paddle, numBins, min, max, 100, -3.0, 3.0);
 
 					hist.setName("atten");
 					hist.setTitle("Log Ratio vs Position : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
 					hist.setTitleX("Position (cm)");
 					hist.setTitleY("ln(ADC R / ADC L)");
-					
+
 					// create all the functions and graphs
 					F1D attenFunc = new F1D("attenFunc", "[a]+[b]*x", -250.0, 250.0);
 					GraphErrors meanGraph = new GraphErrors();
@@ -113,34 +115,33 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 					attenFunc.setLineWidth(FUNC_LINE_WIDTH);
 					meanGraph.setMarkerSize(MARKER_SIZE);
 					meanGraph.setLineThickness(MARKER_LINE_WIDTH);
-				
+
 					DataGroup dg = new DataGroup(2,1);
 					dg.addDataSet(hist, 0);
 					dg.addDataSet(meanGraph, 1);
 					dg.addDataSet(attenFunc, 1);
 					dataGroups.add(dg, sector,layer,paddle);
-					
+
 					setPlotTitle(sector,layer,paddle);
-					
+
 					// initialize the constants array
 					Double[] consts = {UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
-					// override values
-					
 					constants.add(consts, sector, layer, paddle);
-					
+
 				}
 			}
 		}
 	}
 
-    @Override
+	@Override
 	public void processEvent(DataEvent event) {
 
+		//DataProvider dp = new DataProvider();
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
 		processPaddleList(paddleList);
 	}
-    
-    @Override
+
+	@Override
 	public void processPaddleList(List<TOFPaddle> paddleList) {
 
 		for (TOFPaddle paddle : paddleList) {
@@ -148,33 +149,33 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			int sector = paddle.getDescriptor().getSector();
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
-			
-			
+
+
 
 			// dgtz data only
 			dataGroups.getItem(sector,layer,component).getH2F("atten").fill(
 					paddle.position(), paddle.logRatio());
-			
+
 			// cooked data - position from timing and veff
-//			if (paddle.recPosition()!=0) {
-//				dataGroups.getItem(sector,layer,component).getH2F("atten").fill(
-//						paddle.recPosition(), paddle.logRatio());
-//			}
-			
-			
+			//			if (paddle.recPosition()!=0) {
+			//				dataGroups.getItem(sector,layer,component).getH2F("atten").fill(
+			//						paddle.recPosition(), paddle.logRatio());
+			//			}
+
+
 		}
 	}
-    
-    @Override
+
+	@Override
 	public void fit(int sector, int layer, int paddle, double minRange,
 			double maxRange) {
 
 		H2F attenHist = dataGroups.getItem(sector,layer,paddle).getH2F("atten");
-		
+
 		// fit function to the graph of means
 		GraphErrors meanGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("meanGraph");
 		meanGraph.copy(attenHist.getProfileX());
-		
+
 		double lowLimit;
 		double highLimit;
 
@@ -187,7 +188,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			lowLimit = minRange;
 		}
 
-		
+
 		if (maxRange == UNDEFINED_OVERRIDE) {
 			// default value
 			highLimit = paddleLength(sector,layer,paddle) * 0.4;
@@ -197,9 +198,9 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			highLimit = maxRange;
 		}
 
-//		System.out.println("SLC "+sector+layer+paddle);
-//		System.out.println("paddleLength "+paddleLength(sector,layer,paddle));
-		
+		//		System.out.println("SLC "+sector+layer+paddle);
+		//		System.out.println("paddleLength "+paddleLength(sector,layer,paddle));
+
 		F1D attenFunc = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc");
 		attenFunc.setRange(lowLimit, highLimit);
 		attenFunc.setParameter(0, 0.0);
@@ -222,34 +223,34 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		else {
 			DataFitter.fit(attenFunc, meanGraph, "RNQ");
 		}
-		
-		
-//		if (sector==1 && layer==1 && paddle==10) {
-//			TCanvas c1 = new TCanvas("c1",1,1);
-//			c1.draw(meanGraph);
-//			c1.draw(attenFunc,"same");
-//
-//			System.out.println("SLC "+sector+layer+paddle);
-//			System.out.println("Param 1 is "+ attenFunc.getParameter(1));
-//			System.out.println("Param 1 error is "+ attenFunc.parameter(1).error());
-//
-//		}
-		
+
+
+		//		if (sector==1 && layer==1 && paddle==10) {
+		//			TCanvas c1 = new TCanvas("c1",1,1);
+		//			c1.draw(meanGraph);
+		//			c1.draw(attenFunc,"same");
+		//
+		//			System.out.println("SLC "+sector+layer+paddle);
+		//			System.out.println("Param 1 is "+ attenFunc.getParameter(1));
+		//			System.out.println("Param 1 error is "+ attenFunc.parameter(1).error());
+		//
+		//		}
+
 	}
 
 	public void customFit(int sector, int layer, int paddle){
-		
+
 		// draw the stats
 		TCanvas c1 = new TCanvas("Hits per bank",1200,800);
 		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
 		c1.cd(0);
 		c1.draw(TOFCalibration.hitsPerBankHist);
-		
+
 		outputGraph(sector, layer, paddle);
 
 		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
 				"Override Attenuation Length:", "Override Attenuation Length uncertainty:",
-				"Override offset:" };
+		"Override offset:" };
 		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
@@ -261,22 +262,22 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			double overrideValue = toDouble(panel.textFields[2].getText());
 			double overrideUnc = toDouble(panel.textFields[3].getText());			
 			double overrideOffset = toDouble(panel.textFields[4].getText());		
-			
+
 			// save the override values
 			Double[] consts = constants.getItem(sector, layer, paddle);
 			consts[ATTEN_OVERRIDE] = overrideValue;
 			consts[ATTEN_UNC_OVERRIDE] = overrideUnc;
 			consts[OFFSET_OVERRIDE] = overrideOffset;
-			
+
 			fit(sector, layer, paddle, minRange, maxRange);
 
 			// update the table
 			saveRow(sector,layer,paddle);
 			calib.fireTableDataChanged();
-			
+
 		}	 
 	}
-    
+
 	public Double getAttlen(int sector, int layer, int paddle) {
 
 		double attLen = 0.0;
@@ -320,12 +321,12 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		}
 		return attLenUnc;
 	}
-	
+
 	public Double getOffset(int sector, int layer, int paddle) {
-		
+
 		double offset = 0.0;
 		double overrideVal = constants.getItem(sector, layer, paddle)[OFFSET_OVERRIDE];
-		
+
 		if (overrideVal != UNDEFINED_OVERRIDE) {
 			offset = overrideVal;
 		}
@@ -333,11 +334,11 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			offset = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
 					.getParameter(0);
 		}
-		
+
 		return offset;
 
 	}
-	
+
 	@Override
 	public void saveRow(int sector, int layer, int paddle) {
 		calib.setDoubleValue(getAttlen(sector,layer,paddle),
@@ -352,11 +353,11 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 				"y_offset", sector, layer, paddle);
 
 	}
-		
+
 	public double expectedAttlen(int sector, int layer, int paddle) {
-		
+
 		double expAttlen = 0.0;
-		
+
 		if (layer==1) {
 			expAttlen = (0.251*paddleLength(sector,layer,paddle)) + 124.96;
 		}
@@ -366,42 +367,43 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		else if (layer==3) {
 			expAttlen = (0.251*paddleLength(sector,layer,paddle)) + 124.96;
 		}
-		
+
 		return expAttlen;
 	}
-	
+
 	@Override
 	public boolean isGoodPaddle(int sector, int layer, int paddle) {
 
 		double attlen = getAttlen(sector,layer,paddle);
 		double expAttlen = expectedAttlen(sector,layer,paddle);
-		
+
 		return (attlen >= (0.9*expAttlen)) && (attlen <= (1.1*expAttlen));
 
 	}
-	
+
 	@Override
 	public void setPlotTitle(int sector, int layer, int paddle) {
 		// reset hist title as may have been set to null by show all 
 		dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph").setTitleX("Position (cm)");
 		dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph").setTitleY("ln(ADC R / ADC L)");
-		
+
 	}
-	
+
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
 		GraphErrors meanGraph = dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph");
-		meanGraph.setTitleX("");
-		meanGraph.setTitleY("");
-		canvas.draw(meanGraph);
-		canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc"), "same");
-
+		if (meanGraph.getDataSize(0) != 0) {
+			meanGraph.setTitleX("");
+			meanGraph.setTitleY("");
+			canvas.draw(meanGraph);
+			canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc"), "same");
+		}
 	}
 
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
-				
+
 		int layer_index = layer-1;
 		double[] paddleNumbers = new double[NUM_PADDLES[layer_index]];
 		double[] paddleUncs = new double[NUM_PADDLES[layer_index]];
@@ -413,14 +415,14 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			paddleNumbers[p - 1] = (double) p;
 			paddleUncs[p - 1] = 0.0;
 			Attlens[p - 1] = getAttlen(sector, layer, p);
-//			AttlenUncs[p - 1] = getAttlenError(sector, layer, p);
+			//			AttlenUncs[p - 1] = getAttlenError(sector, layer, p);
 			AttlenUncs[p - 1] = 0.0;
 
 		}
 
 		GraphErrors attSumm = new GraphErrors("attSumm", paddleNumbers,
 				Attlens, paddleUncs, AttlenUncs);
-		
+
 		attSumm.setTitle("Attenuation Length: "
 				+ LAYER_NAME[layer - 1] + " Sector "
 				+ sector);
@@ -428,13 +430,13 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		attSumm.setTitleY("Attenuation Length (cm)");
 		attSumm.setMarkerSize(MARKER_SIZE);
 		attSumm.setLineThickness(MARKER_LINE_WIDTH);
-		
+
 		DataGroup dg = new DataGroup(1,1);
 		dg.addDataSet(attSumm, 0);
 		return dg;
-		
+
 	}
-	
+
 	public void outputGraph(int sector, int layer, int paddle) {
 		String outputFileName = "GraphSLC"+sector+layer+paddle;
 		String histFileName = "HistSLC"+sector+layer+paddle;
@@ -450,7 +452,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			BufferedWriter histBw = new BufferedWriter(histFw);
 
 			H2F attenHist = dataGroups.getItem(sector,layer,paddle).getH2F("atten");
-			
+
 			for (int i=0; i<attenHist.getXAxis().getNBins(); i++) {
 				H1F h1 = attenHist.sliceX(i);
 				if (h1.integral()>1.0) {
@@ -461,7 +463,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 					outputBw.newLine();
 				}
 				for (int j=0; j<attenHist.getYAxis().getNBins(); j++) {
-					
+
 					histBw.write(attenHist.getXAxis().getBinCenter(i)+" "+
 							attenHist.getYAxis().getBinCenter(j)+" "+
 							attenHist.getBinContent(i, j));

@@ -259,38 +259,38 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 		fitAll();
 
 		// Raffaella's test hists
-		TCanvas vt = new TCanvas("vt", 700, 1000);
-		vt.divide(1,3);
-		vt.getCanvas().setGridX(false); vt.getCanvas().setGridY(false);
-		vt.getCanvas().setAxisFontSize(18);
-		vt.getCanvas().setAxisTitleSize(24);
-		vt.cd(0);
-		F1D f1 = new F1D("f1","[amp]*gaus(x,[mean],[sigma])", -1.0, 1.0);
-		f1.setParameter(0, 100.0);
-		f1.setParameter(1, 0.0);
-		f1.setParameter(2, 0.3);
-		f1.setLineWidth(2);
-		f1.setLineColor(2);
-		f1.setOptStat("1111");
-		DataFitter.fit(f1, hi_vertex_dt, "Q"); //No options uses error for sigma
-		vt.draw(hi_vertex_dt);
-		vt.cd(1);
-		vt.draw(hi_elec_t0);
-		vt.cd(2);
-		vt.draw(hi_pion_t0);
-
-		TCanvas paddles = new TCanvas("paddles", 800, 800);
-		paddles.cd(0);
-		paddles.draw(hPaddles);
-
-		TCanvas sects = new TCanvas("sects", 800, 800);
-		sects.divide(1, 3);
-		sects.cd(0);
-		sects.draw(eSect);
-		sects.cd(1);
-		sects.draw(pSect);
-		sects.cd(2);
-		sects.draw(eSect1);
+//		TCanvas vt = new TCanvas("vt", 700, 1000);
+//		vt.divide(1,3);
+//		vt.getCanvas().setGridX(false); vt.getCanvas().setGridY(false);
+//		vt.getCanvas().setAxisFontSize(18);
+//		vt.getCanvas().setAxisTitleSize(24);
+//		vt.cd(0);
+//		F1D f1 = new F1D("f1","[amp]*gaus(x,[mean],[sigma])", -1.0, 1.0);
+//		f1.setParameter(0, 100.0);
+//		f1.setParameter(1, 0.0);
+//		f1.setParameter(2, 0.3);
+//		f1.setLineWidth(2);
+//		f1.setLineColor(2);
+//		f1.setOptStat("1111");
+//		DataFitter.fit(f1, hi_vertex_dt, "Q"); //No options uses error for sigma
+//		vt.draw(hi_vertex_dt);
+//		vt.cd(1);
+//		vt.draw(hi_elec_t0);
+//		vt.cd(2);
+//		vt.draw(hi_pion_t0);
+//
+//		TCanvas paddles = new TCanvas("paddles", 800, 800);
+//		paddles.cd(0);
+//		paddles.draw(hPaddles);
+//
+//		TCanvas sects = new TCanvas("sects", 800, 800);
+//		sects.divide(1, 3);
+//		sects.cd(0);
+//		sects.draw(eSect);
+//		sects.cd(1);
+//		sects.draw(pSect);
+//		sects.cd(2);
+//		sects.draw(eSect1);
 
 
 		save();
@@ -411,14 +411,12 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 
 				// Fill the first set of histograms
 				dataGroups.getItem(eSector,eLayer,eComponent).getH1F("fineHist").fill(
-						//(paddlePair.electronPaddle.refTime(TARGET_CENTRE) + (1000*RF_STRUCTURE) + (0.5*RF_STRUCTURE))%RF_STRUCTURE - (0.5*RF_STRUCTURE));
-						paddlePair.electronPaddle.refTime(TARGET_CENTRE));
-				// find the "fine" offset within the RF pulse width
+						(paddlePair.electronPaddle.refTime(TARGET_CENTRE) + (1000*RF_STRUCTURE) + (0.5*RF_STRUCTURE))%RF_STRUCTURE - (0.5*RF_STRUCTURE));
 
 				// Fill the first set of histograms
 				dataGroups.getItem(pSector,pLayer,pComponent).getH1F("fineHist").fill(
-						//(paddlePair.pionPaddle.refTime(TARGET_CENTRE) + (1000*RF_STRUCTURE) + (0.5*RF_STRUCTURE))%RF_STRUCTURE - (0.5*RF_STRUCTURE));
-						paddlePair.pionPaddle.refTime(TARGET_CENTRE));
+						(paddlePair.pionPaddle.refTime(TARGET_CENTRE) + (1000*RF_STRUCTURE) + (0.5*RF_STRUCTURE))%RF_STRUCTURE - (0.5*RF_STRUCTURE));
+						
 				// find the "fine" offset within the RF pulse width
 
 			}
@@ -435,7 +433,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 		}
 
 		// fill the crudeFirst histograms 
-		boolean doCrudeFirst = false;
+		boolean doCrudeFirst = true;
 		if (doCrudeFirst) {		
 			for(TOFPaddlePair paddlePair : allPaddleList){
 

@@ -130,7 +130,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 					dg.addDataSet(geoMeanHist, GEOMEAN);
 					dg.addDataSet(logRatioHist, LOGRATIO);
 					dg.addDataSet(gmFunc, GEOMEAN);
-					dg.addDataSet(lrFunc, LOGRATIO);
+					//dg.addDataSet(lrFunc, LOGRATIO);
 					dataGroups.add(dg, sector,layer,paddle);
 					setPlotTitle(sector,layer,paddle);
 
@@ -147,6 +147,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	@Override
 	public void processEvent(DataEvent event) {
 		
+		//DataProvider dp = new DataProvider();
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
 		processPaddleList(paddleList);
 
@@ -326,10 +327,10 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		}
 		
 		// store the function showing the width over which mean is calculated
-		F1D lrFunc = dataGroups.getItem(sector,layer,paddle).getF1D("lrFunc");
-		lrFunc.setRange(h.getAxis().getBinCenter(lowThresholdBin), h.getAxis().getBinCenter(highThresholdBin));
-
-		lrFunc.setParameter(0, LR_THRESHOLD_FRACTION*maxCounts); // height to draw line at
+//		F1D lrFunc = dataGroups.getItem(sector,layer,paddle).getF1D("lrFunc");
+//		lrFunc.setRange(h.getAxis().getBinCenter(lowThresholdBin), h.getAxis().getBinCenter(highThresholdBin));
+//
+//		lrFunc.setParameter(0, LR_THRESHOLD_FRACTION*maxCounts); // height to draw line at
 
 		// put the constants in the list
 		Double[] consts = constants.getItem(sector, layer, paddle);
@@ -425,7 +426,9 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			logRatio = overrideVal;
 		}
 		else  {	
-			logRatio = constants.getItem(sector, layer, paddle)[LR_CENTROID];
+			logRatio = dataGroups.getItem(sector,layer,paddle).getH1F("logratio").getMean();
+			
+//			logRatio = constants.getItem(sector, layer, paddle)[LR_CENTROID];
 		}		
 		return logRatio;
 		
@@ -442,6 +445,8 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		}
 		else {
 			logRatioUnc = constants.getItem(sector, layer, paddle)[LR_ERROR];
+			//logRatioUnc = dataGroups.getItem(sector,layer,paddle).getH1F("logratio").getRMS();
+			
 		}		
 		return logRatioUnc;
 	}	
@@ -549,78 +554,78 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	public DataGroup getSummary(int sector, int layer) {
 		
 //		// draw the stats
-		TCanvas c1 = new TCanvas("HV Stats",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(hvStatHist);
-		
-		// draw the stats
-		c1 = new TCanvas("Total Stats",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.totalStatHist);
-		
-		// draw the stats
-		c1 = new TCanvas("Tracking Stats (non zero)",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.trackingStatHist);
-
-		// draw the stats
-		c1 = new TCanvas("Tracking Stats (zero)",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.trackingZeroStatHist);
-		
-		c1 = new TCanvas("FTOF 1A ADCL all events",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.adcLeftHist1A);
-
-		c1 = new TCanvas("FTOF 1A ADCR all events",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.adcRightHist1A);
-
-		c1 = new TCanvas("FTOF 1A ADCL events with tracking",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.trackingAdcLeftHist1A);
-
-		c1 = new TCanvas("FTOF 1A ADCR events with tracking",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.trackingAdcRightHist1A);
-
-		c1 = new TCanvas("FTOF 1B ADCL all events",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.adcLeftHist1B);
-
-		c1 = new TCanvas("FTOF 1B ADCR all events",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.adcRightHist1B);
-
-		c1 = new TCanvas("FTOF 1B ADCL events with tracking",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.trackingAdcLeftHist1B);
-
-		c1 = new TCanvas("FTOF 1B ADCR events with tracking",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.trackingAdcRightHist1B);
-
-		c1 = new TCanvas("Total events per paddle",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.paddleHist);
-
-		c1 = new TCanvas("Events with tracking per paddle",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.trackingPaddleHist);
+//		TCanvas c1 = new TCanvas("HV Stats",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(hvStatHist);
+//		
+//		// draw the stats
+//		c1 = new TCanvas("Total Stats",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.totalStatHist);
+//		
+//		// draw the stats
+//		c1 = new TCanvas("Tracking Stats (non zero)",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.trackingStatHist);
+//
+//		// draw the stats
+//		c1 = new TCanvas("Tracking Stats (zero)",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.trackingZeroStatHist);
+//		
+//		c1 = new TCanvas("FTOF 1A ADCL all events",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.adcLeftHist1A);
+//
+//		c1 = new TCanvas("FTOF 1A ADCR all events",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.adcRightHist1A);
+//
+//		c1 = new TCanvas("FTOF 1A ADCL events with tracking",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.trackingAdcLeftHist1A);
+//
+//		c1 = new TCanvas("FTOF 1A ADCR events with tracking",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.trackingAdcRightHist1A);
+//
+//		c1 = new TCanvas("FTOF 1B ADCL all events",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.adcLeftHist1B);
+//
+//		c1 = new TCanvas("FTOF 1B ADCR all events",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.adcRightHist1B);
+//
+//		c1 = new TCanvas("FTOF 1B ADCL events with tracking",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.trackingAdcLeftHist1B);
+//
+//		c1 = new TCanvas("FTOF 1B ADCR events with tracking",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.trackingAdcRightHist1B);
+//
+//		c1 = new TCanvas("Total events per paddle",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.paddleHist);
+//
+//		c1 = new TCanvas("Events with tracking per paddle",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(TOFCalibration.trackingPaddleHist);
 		
 		
 		int layer_index = layer-1;
@@ -700,8 +705,8 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			fitHist.setTitleX("");
 			canvas.draw(fitHist);
 			
-			F1D fitFunc = dataGroups.getItem(sector,layer,paddle).getF1D("lrFunc");
-			canvas.draw(fitFunc, "same");
+			//F1D fitFunc = dataGroups.getItem(sector,layer,paddle).getF1D("lrFunc");
+			//canvas.draw(fitFunc, "same");
 			
 		}
 			

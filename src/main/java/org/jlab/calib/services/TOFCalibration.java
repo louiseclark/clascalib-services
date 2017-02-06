@@ -300,14 +300,18 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
     public void dataEventAction(DataEvent event) {
 
+    	//DataProvider dp = new DataProvider();
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
     	
     	for (int i=0; i< engines.length; i++) {
 		//for (int i=4; i<5; i++) { //only timewalk
 		
     		if (event.getType()==DataEventType.EVENT_START) {
+    			//System.out.println("resetEventListener engine "+i);
     			engines[i].resetEventListener();
+    			//System.out.println("resetEventListener engine middle "+i);
     			engines[i].processPaddleList(paddleList);
+    			//System.out.println("resetEventListener engine end "+i);
     		}
     		else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
     			engines[i].processPaddleList(paddleList);

@@ -135,7 +135,7 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 
 					DataGroup dg = new DataGroup(1,1);
 					dg.addDataSet(hist, 0);
-					dg.addDataSet(edgeToEdgeFunc, 0);
+					//dg.addDataSet(edgeToEdgeFunc, 0);
 					dataGroups.add(dg, sector,layer,paddle);
 					
 					setPlotTitle(sector,layer,paddle);
@@ -153,6 +153,7 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 	@Override
 	public void processEvent(DataEvent event) {
 
+		//DataProvider dp = new DataProvider();
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
 		processPaddleList(paddleList);
 	}
@@ -243,11 +244,11 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		}
 		
 		// create the function showing the width of the spread
-		F1D edgeToEdgeFunc = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc");
-		edgeToEdgeFunc.setRange(leftRightHist.getAxis().getBinCenter(lowRangeSecondCut), 
-							leftRightHist.getAxis().getBinCenter(highRangeSecondCut));
-
-		edgeToEdgeFunc.setParameter(0, averageCentralRange*LEFT_RIGHT_RATIO); // height to draw line at
+		//F1D edgeToEdgeFunc = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc");
+//		edgeToEdgeFunc.setRange(leftRightHist.getAxis().getBinCenter(lowRangeSecondCut), 
+//							leftRightHist.getAxis().getBinCenter(highRangeSecondCut));
+//
+//		edgeToEdgeFunc.setParameter(0, averageCentralRange*LEFT_RIGHT_RATIO); // height to draw line at
 
 		// create the function with range = error values
 		// not currently used for calibration
@@ -297,8 +298,8 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		}
 		else {
 			
-			double min = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMin(); 
-			double max = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMax();
+			//double min = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMin(); 
+			//double max = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMax();
 			//leftRight = (min+max)/2.0;
 			
 			leftRight = dataGroups.getItem(sector,layer,paddle).getH1F("left_right").getMean();
@@ -336,7 +337,7 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		H1F hist = dataGroups.getItem(sector,layer,paddle).getH1F("left_right");
 		hist.setTitleX("");
 		canvas.draw(hist);
-		canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc"), "same");
+		//canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc"), "same");
 
 	}
 	

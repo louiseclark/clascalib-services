@@ -47,6 +47,13 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public String fileNamePrefix = "Unknown";
 	public String filename = "Unknown.txt";
 	
+
+	// configuration - previous calibration values
+	public static int calDBSource = 1;
+	public static final int CAL_DEFAULT = 0;
+	public static final int CAL_FILE = 1;
+	public static final int CAL_DB = 2;
+	
 	// Left right values from text file
 	public static IndexedList<Double> leftRightValues = new IndexedList<Double>(3);
 	// Veff values from text file

@@ -30,7 +30,7 @@ public class TOFPaddle {
 	public double VERTEX_Z = 0.0;
 	public int PARTICLE_ID = -1;
 	public double START_TIME = 0.0;
-	
+
 	public final int ELECTRON = 0;
 	public final int PION = 1;
 	private final double C = 29.98;
@@ -102,13 +102,13 @@ public class TOFPaddle {
 
 	public boolean includeInCalib() {
 		//return (ADCR != 0 || ADCL != 0);
-		return (this.geometricMean() > 100.0 && ADCR != ADCL);
+		return (this.geometricMean() > 100.0 && ADCR>0 && ADCL>0 && TDCL>0 && TDCR>0);
 	}
 
 	public boolean includeInVeff() {
 		// exclude if position is zero or veff is unrealistic
 		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0);
-//				&& (Math.abs(position() - paddleY()) < 40.0);
+		//				&& (Math.abs(position() - paddleY()) < 40.0);
 		// &&
 		// (this.paddleY()/this.halfTimeDiff() > 4.0)
 		// &&
@@ -124,8 +124,8 @@ public class TOFPaddle {
 	public boolean includeInTimeWalk() {
 		// exclude if position is zero or veff is unrealistic
 		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0);
-//				&& (this.paddleY() / this.halfTimeDiff() > 8.0)
-//				&& (this.paddleY() / this.halfTimeDiff() < 24.0);
+		//				&& (this.paddleY() / this.halfTimeDiff() > 8.0)
+		//				&& (this.paddleY() / this.halfTimeDiff() < 24.0);
 	}
 
 	public boolean isValidLogRatio() {
@@ -169,13 +169,13 @@ public class TOFPaddle {
 		return 410.0;
 	}
 
-	private double veff() {
-		// return 16.0; // get from calibration database, store locally to save
-		// going to database for every event
-		double veff = 0.0;
+	public double veff() {
+		double veff = 16.0;
 		if (tof == "FTOF") {
-			veff = TOFCalibrationEngine.veffValues.getItem(desc.getSector(),
-					desc.getLayer(), desc.getComponent());
+			if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_FILE) {
+				veff = TOFCalibrationEngine.veffValues.getItem(desc.getSector(),
+						desc.getLayer(), desc.getComponent());
+			}
 		} else {
 			veff = CTOFCalibrationEngine.veffValues.getItem(desc.getSector(),
 					desc.getLayer(), desc.getComponent());
@@ -250,7 +250,7 @@ public class TOFPaddle {
 	public double leftRight() {
 		return (timeLeftAfterTW() - timeRightAfterTW());
 	}
-	
+
 	public double timeLeftAfterTW() {
 		if (tof=="FTOF") {
 			return tdcToTime(TDCL) - (lamL() / Math.pow(ADCL, ordL()));
@@ -259,7 +259,7 @@ public class TOFPaddle {
 			return tdcToTime(TDCL);
 		}
 	}
-	
+
 	public double timeRightAfterTW() {
 		if (tof=="FTOF") {
 			return tdcToTime(TDCR) - (lamR() / Math.pow(ADCR, ordR()));
@@ -268,7 +268,7 @@ public class TOFPaddle {
 			return tdcToTime(TDCR);
 		}
 	}
-	
+
 	public double timeTWCorr(double time, double adc) {
 
 		return time - (40.0 / Math.pow(adc, 0.5));
@@ -330,17 +330,24 @@ public class TOFPaddle {
 
 	public double recHalfTimeDiff() {
 
-//		return (TIMEL - TIMER - leftRightAdjustment(desc.getSector(),
-//				desc.getLayer(), desc.getComponent())) / 2;
+		//		return (TIMEL - TIMER - leftRightAdjustment(desc.getSector(),
+		//				desc.getLayer(), desc.getComponent())) / 2;
 		return (TIMEL - TIMER) / 2;
 	}
 
 	public double leftRightAdjustment(int sector, int layer, int paddle) {
 
 		double lr = 0.0;
+
 		if (tof == "FTOF") {
-			lr = TOFCalibrationEngine.leftRightValues.getItem(sector, layer,
-					paddle);
+			if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_DEFAULT) {
+				lr = 0.0;
+			}
+			else {
+				lr = TOFCalibrationEngine.leftRightValues.getItem(sector, layer,
+						paddle);				
+			}
+
 		} else {
 			lr = CTOFCalibrationEngine.leftRightValues.getItem(sector, layer,
 					paddle);
@@ -349,28 +356,40 @@ public class TOFPaddle {
 		return lr;
 
 	}
-	
+
 	public double lamL() {
-		double lamL = 
-			TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[0];
+		double lamL = 40.0;
+		if (TOFCalibrationEngine.calDBSource == TOFCalibrationEngine.CAL_FILE) {
+			lamL = 
+					TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[0];
+		}
 		return lamL;			
 	}
-	
+
 	public double ordL() {
-		double ordL = 
-			TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[1];
+		double ordL = 0.5;
+		if (TOFCalibrationEngine.calDBSource == TOFCalibrationEngine.CAL_FILE) {
+			ordL = 
+					TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[1];
+		}			
 		return ordL;			
 	}
-	
+
 	public double lamR() {
-		double lamR = 
-			TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[2];
+		double lamR = 40.0;
+		if (TOFCalibrationEngine.calDBSource == TOFCalibrationEngine.CAL_FILE) {
+			lamR = 
+					TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[2];
+		}
 		return lamR;			
 	}
-	
+
 	public double ordR() {
-		double ordR = 
-			TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[3];
+		double ordR = 0.5;
+		if (TOFCalibrationEngine.calDBSource == TOFCalibrationEngine.CAL_FILE) {
+			ordR = 
+					TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[3];
+		}
 		return ordR;			
 	}
 
@@ -382,7 +401,7 @@ public class TOFPaddle {
 	public double recPosition() {
 		return recHalfTimeDiff() * veff();
 	} 
-	
+
 	public double paddleY() {
 
 		int sector = desc.getSector();
@@ -396,8 +415,8 @@ public class TOFPaddle {
 
 	public double refTime(double targetCentre) {
 		return this.START_TIME - this.RF_TIME;
-//		return (this.TOF_TIME - this.FLIGHT_TIME
-//				- ((this.VERTEX_Z - targetCentre) / C) - this.RF_TIME);
+		//		return (this.TOF_TIME - this.FLIGHT_TIME
+		//				- ((this.VERTEX_Z - targetCentre) / C) - this.RF_TIME);
 	}
 
 	public DetectorDescriptor getDescriptor() {
