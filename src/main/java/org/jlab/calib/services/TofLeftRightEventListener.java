@@ -68,7 +68,8 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		// read in the left right values from the text file
 		//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20161215_1M_events_after_tw.txt";
 		String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20170103.test2.txt";
-    	
+		//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20170210.1.txt";
+		
     	String line = null;
     	try { 
 			
@@ -87,7 +88,9 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
             	int sector = Integer.parseInt(line.substring(0, 3).trim());
             	int layer = Integer.parseInt(line.substring(3, 7).trim());
             	int paddle = Integer.parseInt(line.substring(7, 11).trim());
-            	double lr = Double.parseDouble(line.substring(11,26).trim());
+            	double lr = Double.parseDouble(line.substring(11,27).trim());
+            	
+            	//System.out.println("SLC "+sector+layer+paddle+" "+lr);
             	
             	leftRightValues.add(lr, sector, layer, paddle);
             	

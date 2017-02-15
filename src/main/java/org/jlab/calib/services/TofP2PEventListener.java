@@ -85,6 +85,53 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 		// assign constraints
 		calib.addConstraint(3, -MAX_OFFSET, MAX_OFFSET);
 
+		// read in the time walk values from the text file
+		String inputFile = "/home/louise/workspace/clascalib-services/ftof.timing_offset.smeared.txt";
+
+		String line = null;
+		try { 
+
+			// Open the file
+			FileReader fileReader = 
+					new FileReader(inputFile);
+
+			// Always wrap FileReader in BufferedReader
+			BufferedReader bufferedReader = 
+					new BufferedReader(fileReader);            
+
+			line = bufferedReader.readLine();
+
+			while (line != null) {
+
+				String[] lineValues;
+				lineValues = line.split(" ");
+
+				int sector = Integer.parseInt(lineValues[0]);
+				int layer = Integer.parseInt(lineValues[1]);
+				int paddle = Integer.parseInt(lineValues[2]);
+				double p2p = Double.parseDouble(lineValues[4]);
+
+				p2pValues.add(p2p, sector, layer, paddle);
+
+				line = bufferedReader.readLine();
+			}    
+
+			bufferedReader.close();            
+		}
+		catch(FileNotFoundException ex) {
+			ex.printStackTrace();
+			System.out.println(
+					"Unable to open file '" + 
+							inputFile + "'");                
+		}
+		catch(IOException ex) {
+			System.out.println(
+					"Error reading file '" 
+							+ inputFile + "'");                   
+			// Or we could just do this: 
+			// ex.printStackTrace();
+		}
+
 	}
 
 	@Override

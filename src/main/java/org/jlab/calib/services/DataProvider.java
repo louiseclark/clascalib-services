@@ -120,8 +120,7 @@ public class DataProvider {
 						tdcBank.getInt("TDC", hitsBank.getShort("tdc_idx2", hitIndex)),
 						hitsBank.getFloat("tx", hitIndex),
 						hitsBank.getFloat("ty", hitIndex),
-						0.0, //rawHitsBank.getFloat("time_left", hitIndex),
-						0.0); //rawHitsBank.getFloat("time_right", hitIndex));
+						0.0); 
 
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);
@@ -294,8 +293,11 @@ public class DataProvider {
 			if (event.hasBank("FTOFRec::ftofhits")) {
 				event.getBank("FTOFRec::ftofhits").show();
 			}
-			if (event.hasBank("FTOFRec::rawhits")) {
-				event.getBank("FTOFRec::rawhits").show();
+			if (event.hasBank("HitBasedTrkg::HBTracks")) {
+				event.getBank("HitBasedTrkg::HBTracks").show();
+			}
+			if (event.hasBank("HitBasedTrkg::HBHits")) {
+				event.getBank("HitBasedTrkg::HBHits").show();
 			}
 		}
 
@@ -309,8 +311,8 @@ public class DataProvider {
 				int component = dgtzBank.getInt("paddle", dgtzIndex);
 				float xpos = 0;
 				float ypos = 0;
-				float timeL = 0;
-				float timeR = 0;
+				float zpos = 0;
+				double path = 0.0;
 
 				//				if (sector==1 && layer==1 && component==11) {
 				//					System.out.println("Louise 1 ypos = "+ypos);
@@ -321,6 +323,8 @@ public class DataProvider {
 					// find the corresponding row in the ftofhits bank
 					// to get the hit position from tracking
 					EvioDataBank hitsBank = (EvioDataBank) event.getBank("FTOFRec::ftofhits");
+					EvioDataBank tracksBank = (EvioDataBank) event.getBank("HitBasedTrkg::HBTracks");
+//					EvioDataBank dchitsBank = (EvioDataBank) event.getBank("HitBasedTrkg::HBHits");
 					TOFCalibration.hitsPerBankHist.fill(hitsBank.rows());
 
 					for (int hitIndex = 0; hitIndex < hitsBank.rows(); hitIndex++) {
@@ -338,6 +342,7 @@ public class DataProvider {
 
 								xpos = hitsBank.getFloat("tx", hitIndex);
 								ypos = hitsBank.getFloat("ty", hitIndex);
+								zpos = hitsBank.getFloat("tz", hitIndex);
 								//								
 								//								if (sector==1 && layer==1 && component==11) {
 								//									System.out.println("Louise 2 ypos = "+ypos);
@@ -346,13 +351,24 @@ public class DataProvider {
 								//										hitsBank.show();
 								//									}
 								//								}
-
-								if (event.hasBank("FTOFRec::rawhits")) {
-									// one to one correspondence between ftofhits and rawhits
-									EvioDataBank rawBank = (EvioDataBank) event.getBank("FTOFRec::rawhits");
-									timeL = rawBank.getFloat("time_left", hitIndex);
-									timeR = rawBank.getFloat("time_right", hitIndex);
-								}								
+								
+								// Find the path length from DC
+								// = DC pathlength + (pathlength region 3 -> tof)
+								int trk_id = hitsBank.getInt("trkId", hitIndex);
+								double c3x  = (double) tracksBank.getFloat("c3_x",trk_id);
+								double c3y  = (double) tracksBank.getFloat("c3_y",trk_id);
+								double c3z  = (double) tracksBank.getFloat("c3_z",trk_id);
+								path = tracksBank.getFloat("pathlength", trk_id) + 
+										Math.sqrt((xpos-c3x)*(xpos-c3x)+(ypos-c3y)*(ypos-c3y)+(zpos-c3z)*(zpos-c3z));
+//								// Get the associated hit
+//								double dcTime = 0.0;
+//								for (int hbhidx=0; hbhidx<dchitsBank.rows(); hbhidx++) {
+//									if (trk_id==dchitsBank.getInt("trkID", hbhidx)) {
+//										dcTime = dchitsBank.getFloat("time", hbhidx);
+//									}
+//								}
+//								hitTime = dcTime + path / 29.97;
+							
 							}
 						}
 					}
@@ -368,9 +384,8 @@ public class DataProvider {
 						dgtzBank.getInt("TDCR", dgtzIndex),
 						xpos,
 						ypos,
-						timeL,
-						timeR);
-
+						path);
+				
 				// set status to ok if at least one reading
 				if (paddle.ADCL!=0.0) {
 					TOFCalibrationEngine.adcLeftStatus.add(0, sector,layer,component);
@@ -427,7 +442,8 @@ public class DataProvider {
 								" ADCR "+dgtzBank.getInt("ADCR", dgtzIndex)+
 								" TDCL "+dgtzBank.getInt("TDCL", dgtzIndex)+
 								" TDCR "+dgtzBank.getInt("TDCR", dgtzIndex)+
-								" xpos "+xpos+" ypos "+ypos);
+								" xpos "+xpos+" ypos "+ypos+
+								" path "+path);
 					}
 
 				}
@@ -796,8 +812,7 @@ public class DataProvider {
 						dgtzBank.getInt("TDCR", dgtzIndex),
 						xpos,
 						ypos,
-						timeL,
-						timeR);
+						0.0);
 
 				// set status to ok if at least one reading
 				if (paddle.ADCL!=0.0) {
@@ -881,7 +896,7 @@ public class DataProvider {
 						bank.getInt("TDCL", loop),
 						bank.getInt("TDCR", loop),
 						xpos,
-						ypos, 0.0, 0.0
+						ypos, 0.0
 						);
 				paddleList.add(paddle);
 			}
@@ -976,8 +991,7 @@ public class DataProvider {
 							dgtzBank.getInt("TDCR", dgtzIndex),
 							xpos,
 							ypos,
-							timeL,
-							timeR);
+							0.0);
 
 					if (paddle.includeInCalib()) {
 						paddleList.add(paddle);

@@ -31,7 +31,7 @@ import org.jlab.utils.groups.IndexedList;
 
 public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
-	public final int NUM_ITERATIONS = 10;
+	public final int NUM_ITERATIONS = 1;
 
 	public boolean calibChallTest = true;
 
@@ -50,8 +50,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 	private final double[]		ADC_MIN = {0.0, 50.0, 50.0, 50.0};
 	private final double[]		ADC_MAX = {0.0,	3000.0,	5000.0,	3000.0};
-	private final double[]		FIT_MIN = {0.0,	100.0, 	100.0, 100.0};
-	private final double[]		FIT_MAX = {0.0, 1500.0,	2500.0, 1500.0};
+	private final double[]		FIT_MIN = {0.0,	500.0,	1300.0, 500.0};
+	private final double[]		FIT_MAX = {0.0, 1500.0,	3000.0, 1500.0};
 
 	final double[] fitLambda = {40.0,40.0};  // default values for the constants
 	final double[] fitOrder = {0.5,0.5};  // default values for the constants
@@ -65,9 +65,11 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	private IndexedList<String> testResultsBefore = new IndexedList<String>(4);
 	private IndexedList<String> testResultsAfter = new IndexedList<String>(4);
 
-	int testLayers[] = {1,1,2,2,2,2};
-	int testPaddles[] = {11,21,12,14,19,22};
-
+	// test paddles (show all iterations)
+	int testSectors[] = {1,3,6,1,1,4,5,6};
+	int testLayers[] = {1,2,2,1,2,1,2,2};
+	int testPaddles[] = {20,50,13,15,46,21,10,7};
+	
 	// Output histogram data for one paddle
 	private BufferedWriter testBw;
 
@@ -209,12 +211,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 							"Time residual vs ADC LEFT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
-							200, -4.0, 20.0);
+							200, -2.0, 10.0);
 					H2F rightHist = new H2F("trRightHist",
 							"Time residual vs ADC RIGHT Sector "+sector+
 							" Paddle "+paddle,
 							100, 0.0, ADC_MAX[layer],
-							200, -4.0, 20.0);
+							200, -2.0, 10.0);
 
 					leftHist.setTitle("Time residual vs ADC LEFT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
@@ -229,12 +231,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					dg.addDataSet(rightHist, 1);
 
 					// create all the functions and graphs
-					//F1D trLeftFunc = new F1D("trLeftFunc", "[a]+([b]/(x^[c]))", ADC_MIN[layer], ADC_MAX[layer]);
-					F1D trLeftFunc = new F1D("trLeftFunc", "([b]/(x^[c]))", ADC_MIN[layer], ADC_MAX[layer]);
+					F1D trLeftFunc = new F1D("trLeftFunc", "([b]/(x^0.5))+[a]", FIT_MIN[layer], FIT_MAX[layer]);
+					//F1D trLeftFunc = new F1D("trLeftFunc", "([b]/(x^[c]))", FIT_MIN[layer], FIT_MAX[layer]);
 					GraphErrors trLeftGraph = new GraphErrors();
 					trLeftGraph.setName("trLeftGraph");					
-					//F1D trRightFunc = new F1D("trRightFunc", "[a]+([b]/(x^[c]))", ADC_MIN[layer], ADC_MAX[layer]);
-					F1D trRightFunc = new F1D("trRightFunc", "([b]/(x^[c]))", ADC_MIN[layer], ADC_MAX[layer]);
+					F1D trRightFunc = new F1D("trRightFunc", "([b]/(x^0.5))+[a]", FIT_MIN[layer], FIT_MAX[layer]);
+					//F1D trRightFunc = new F1D("trRightFunc", "([b]/(x^[c]))", FIT_MIN[layer], FIT_MAX[layer]);
 					GraphErrors trRightGraph = new GraphErrors();
 					trRightGraph.setName("trRightGraph");
 
@@ -260,13 +262,13 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 					smearedLeftFunc.setParameter(0, 0.0);
 					smearedLeftFunc.setParameter(1, 		
-							TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[0]/2.0);
+							TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[0]); ///2.0);
 					smearedLeftFunc.setParameter(2, 		
 							TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[1]);
 
 					smearedRightFunc.setParameter(0, 0.0);
 					smearedRightFunc.setParameter(1, 		
-							TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[2]/2.0);
+							TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[2]); ///2.0);
 					smearedRightFunc.setParameter(2, 		
 							TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[3]);
 
@@ -296,9 +298,9 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 	public void createTestHists() {
 
-		int sector = 1;
 		for (int i=0; i < testPaddles.length; i++) {
 
+			int sector = testSectors[i];
 			int layer = testLayers[i];
 			int paddle = testPaddles[i];
 
@@ -316,12 +318,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 						"Time residual vs ADC LEFT Layer "+layer+
 						" Paddle "+paddle +" Iteration "+iter,
 						100, 0.0, ADC_MAX[layer],
-						200, -4.0, 20.0);
+						200, -2.0, 10.0);
 				H2F rightHist = new H2F("trRightHist",
 						"Time residual vs ADC RIGHT Layer "+layer+
 						" Paddle "+paddle+" Iteration "+iter,
 						100, 0.0, ADC_MAX[layer],
-						200, -4.0, 20.0);
+						200, -2.0, 10.0);
 
 				leftHist.setTitleX("ADC LEFT");
 				leftHist.setTitleY("Time residual (ns)");
@@ -329,12 +331,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				rightHist.setTitleY("Time residual (ns)");
 
 				// create all the functions and graphs
-				//F1D trLeftFunc = new F1D("trLeftFunc", "[a]+([b]/(x^[c]))", ADC_MIN[layer], ADC_MAX[layer]);
-				F1D trLeftFunc = new F1D("trLeftFunc", "([b]/(x^[c]))", FIT_MIN[layer], FIT_MAX[layer]);
+				F1D trLeftFunc = new F1D("trLeftFunc", "([b]/(x^0.5))+[a]", FIT_MIN[layer], FIT_MAX[layer]);
+				//F1D trLeftFunc = new F1D("trLeftFunc", "([b]/(x^[c]))", FIT_MIN[layer], FIT_MAX[layer]);
 				GraphErrors trLeftGraph = new GraphErrors();
 				trLeftGraph.setName("trLeftGraph");					
-				//F1D trRightFunc = new F1D("trRightFunc", "[a]+([b]/(x^[c]))", ADC_MIN[layer], ADC_MAX[layer]);
-				F1D trRightFunc = new F1D("trRightFunc", "([b]/(x^[c]))", FIT_MIN[layer], FIT_MAX[layer]);
+				F1D trRightFunc = new F1D("trRightFunc", "([b]/(x^0.5))+[a]", FIT_MIN[layer], FIT_MAX[layer]);
+				//F1D trRightFunc = new F1D("trRightFunc", "([b]/(x^[c]))", FIT_MIN[layer], FIT_MAX[layer]);
 				GraphErrors trRightGraph = new GraphErrors();
 				trRightGraph.setName("trRightGraph");
 
@@ -389,7 +391,14 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 		// store the paddle so we can iterate through them
 		for (TOFPaddle paddle : paddleList) {
-			allPaddleList.add(paddle);
+			
+			// just one paddle for testing
+			//if (paddle.getDescriptor().getSector()==2 && 
+			//	paddle.getDescriptor().getLayer()==2 &&
+			//	paddle.getDescriptor().getComponent()==32) {
+				
+				allPaddleList.add(paddle);
+			//}
 		}
 	}	
 
@@ -422,9 +431,9 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 		if (!calibChallTest) return;
 		
-		int sector = 1;
 		for (int i=0; i < testPaddles.length; i++) {
 
+			int sector = testSectors[i];
 			int layer = testLayers[i];
 			int paddle = testPaddles[i];
 
@@ -462,9 +471,9 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		adcCanvas = new EmbeddedCanvas();
 		adcCanvas.divide(2, 3);
 
-		int sector = 1;
 		for (int i=0; i < testPaddles.length; i++) {
 
+			int sector = testSectors[i];
 			int layer = testLayers[i];
 			int paddle = testPaddles[i];
 
@@ -479,13 +488,13 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 			smearedLeftFunc.setParameter(0, 0.0);
 			smearedLeftFunc.setParameter(1, 		
-					TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[0]/2.0);
+					TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[0]); ///2.0);
 			smearedLeftFunc.setParameter(2, 		
 					TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[1]);
 
 			smearedRightFunc.setParameter(0, 0.0);
 			smearedRightFunc.setParameter(1, 		
-					TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[2]/2.0);
+					TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[2]); ///2.0);
 			smearedRightFunc.setParameter(2, 		
 					TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[3]);
 
@@ -537,14 +546,13 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 	public void fitAll(int iter) {
 
-		//System.out.println("Looping over paddles, iteration "+iter);
 		for(TOFPaddle paddle : allPaddleList){
 
 			// Fill the histograms
 			int sector = paddle.getDescriptor().getSector();
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
-
+			
 			// fill timeResidual vs ADC
 			boolean test = false;
 			if (test) {
@@ -558,7 +566,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 				if (paddle.includeInTimeWalk()) {
 					double [] tr = paddle.timeResiduals(getLambdas(sector,layer,component,iter), 
-							getOrders(sector,layer,component,iter));
+							getOrders(sector,layer,component,iter),iter);
 
 					// output test data
 					if (sector==1 && layer==1 && component==11) {
@@ -567,13 +575,13 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 								paddle.leftRightAdjustment(sector, layer, component)) / 2.0;
 						double timeDiffTracking = (paddle.paddleY() / paddle.veff());
 
-						try {
-							testBw.write(timeDiff+" "+timeDiffTracking+" "+paddle.paddleY()+" "+paddle.ADCL+" "+paddle.ADCR);
-							testBw.newLine();
-						} 
-						catch (IOException e) {
-							e.printStackTrace();
-						}
+//						try {
+//							testBw.write(timeDiff+" "+timeDiffTracking+" "+paddle.paddleY()+" "+paddle.ADCL+" "+paddle.ADCR);
+//							testBw.newLine();
+//						} 
+//						catch (IOException e) {
+//							e.printStackTrace();
+//						}
 					}
 
 
@@ -589,7 +597,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					boolean useThisPaddle = false;
 
 					for (int i=0; i<testPaddles.length; i++) {
-						if (sector==1 && layer==testLayers[i] && component==testPaddles[i]) {
+						if (sector==testSectors[i] && layer==testLayers[i] && component==testPaddles[i]) {
 							useThisPaddle = true;
 						}
 					}
@@ -630,7 +638,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		boolean useThisPaddle = false;
 
 		for (int i=0; i<testPaddles.length; i++) {
-			if (sector==1 && layer==testLayers[i] && paddle==testPaddles[i]) {
+			if (sector==testSectors[i] && layer==testLayers[i] && paddle==testPaddles[i]) {
 				useThisPaddle = true;
 			}
 		}
@@ -729,8 +737,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		//twLFunc.setParameter(0, 1.0);
 		//twLFunc.setParameter(1, fitLambda[LEFT]/2.0);
 		//twLFunc.setParameter(2, fitOrder[LEFT]);
-		twLFunc.setParameter(0, fitLambda[LEFT]/2.0);
-		twLFunc.setParameter(1, fitOrder[LEFT]);
+		twLFunc.setParameter(0, fitLambda[LEFT]); ///2.0);
+		//twLFunc.setParameter(1, fitOrder[LEFT]);
+		twLFunc.setParameter(1, 5.0);
+		//twLFunc.setParLimits(1, 0.2, 0.85);
+		twLFunc.setParLimits(0, 20, 100);
+		//twLFunc.setParLimits(1, 0.4999, 0.5001);
 		try {
 			DataFitter.fit(twLFunc, twLGraph, "RN");
 		}
@@ -743,8 +755,13 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		//		twRFunc.setParameter(0, 1.0);
 		//		twRFunc.setParameter(1, fitLambda[RIGHT]/2.0);
 		//		twRFunc.setParameter(2, fitOrder[RIGHT]);
-		twRFunc.setParameter(0, fitLambda[RIGHT]/2.0);
-		twRFunc.setParameter(1, fitOrder[RIGHT]);
+		twRFunc.setParameter(0, fitLambda[RIGHT]); ///2.0);
+		//twRFunc.setParameter(1, fitOrder[RIGHT]);
+		twRFunc.setParameter(1, 5.0);
+		//twRFunc.setParLimits(1, 0.2, 0.85);
+		twRFunc.setParLimits(0, 20, 100);
+		//twRFunc.setParLimits(1, 0.45, 0.55);
+		//twRFunc.setParLimits(1, 0.4999, 0.5001);
 		try {
 			if (paddle==20) {
 				DataFitter.fit(twRFunc, twRGraph, "RN");
@@ -775,7 +792,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	public double[] getOrders(int sector, int layer, int paddle, int iter) {
 		// leave as zero for first iteration
 		// take values from function for subsequent iterations
-		double[] orders = {0.5, 0.5}; // fitOrder; //{0.0,0.0};
+		double[] orders = {0.5, 0.5}; // fitOrder; //{0.0,0.0};		
 		if (iter>0) {
 			orders[0] = getOrderLeft(sector,layer,paddle);
 			orders[1] = getOrderRight(sector,layer,paddle);
@@ -826,7 +843,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		}
 		else {
 			//lambdaLeft = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc").getParameter(1) * 2.0;
-			lambdaLeft = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc").getParameter(0) * 2.0;
+			lambdaLeft = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc").getParameter(0); // * 2.0;
 		}
 		return lambdaLeft;
 	}	
@@ -856,7 +873,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		}
 		else {
 			//lambdaRight = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc").getParameter(1) * 2.0;
-			lambdaRight = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc").getParameter(0) * 2.0;
+			lambdaRight = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc").getParameter(0); // * 2.0;
 		}
 		return lambdaRight;
 	}	

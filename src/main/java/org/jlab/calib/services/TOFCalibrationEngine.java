@@ -56,6 +56,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	
 	// Left right values from text file
 	public static IndexedList<Double> leftRightValues = new IndexedList<Double>(3);
+	public static IndexedList<Double> p2pValues = new IndexedList<Double>(3);
 	// Veff values from text file
 	public static IndexedList<Double> veffValues = new IndexedList<Double>(3);
 	// Time walk values from text file

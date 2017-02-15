@@ -24,6 +24,7 @@ public class TOFPaddle {
 	public double XPOS = 0.0;
 	public double YPOS = 0.0;
 	public double ZPOS = 0.0;
+	public double PATH_LENGTH = 0.0;
 	public double RF_TIME = 124.25;
 	public double TOF_TIME = 0.0;
 	public double FLIGHT_TIME = 0.0;
@@ -49,8 +50,7 @@ public class TOFPaddle {
 	}
 
 	public TOFPaddle(int sector, int layer, int paddle, int adcL, int adcR,
-			int tdcL, int tdcR, double xpos, double ypos, double timeL,
-			double timeR) {
+			int tdcL, int tdcR, double xpos, double ypos, double pathlength) {
 		this.desc.setSectorLayerComponent(sector, layer, paddle);
 		this.ADCL = adcL;
 		this.ADCR = adcR;
@@ -58,8 +58,7 @@ public class TOFPaddle {
 		this.TDCR = tdcR;
 		this.XPOS = xpos;
 		this.YPOS = ypos;
-		this.TIMEL = timeL;
-		this.TIMER = timeR;
+		this.PATH_LENGTH = pathlength;
 	}
 
 	public TOFPaddle(int sector, int layer, int paddle, int adcL, int adcR,
@@ -97,7 +96,7 @@ public class TOFPaddle {
 
 	public boolean isValidGeoMean() {
 		// return includeInCalib();
-		return (this.geometricMean() > 300.0);
+		return (this.geometricMean() > 100.0);
 	}
 
 	public boolean includeInCalib() {
@@ -123,7 +122,26 @@ public class TOFPaddle {
 
 	public boolean includeInTimeWalk() {
 		// exclude if position is zero or veff is unrealistic
-		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0);
+		int layer = this.getDescriptor().getLayer();
+		int[] TW_ADC_MIN = {0,450,1250,450};
+		int[] TW_ADC_MAX = {0,1550,3050,1550};
+		
+		double[] MIP = {0.0, 800.0, 2000.0, 800.0};
+		double[] MIP_DELTA = {0.0, 200.0, 500.0, 200.0};
+		double mip = MIP[this.getDescriptor().getLayer()];
+		double mipDelta = MIP_DELTA[this.getDescriptor().getLayer()];
+
+		return ((this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0) &&
+				(this.geometricMean() > mip - mipDelta) &&
+				(this.geometricMean() < mip + mipDelta)
+			    );
+//		return (
+//				(this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0) &&
+//				(ADCL > TW_ADC_MIN[layer]) &&
+//				(ADCL < TW_ADC_MAX[layer]) &&
+//				(ADCR > TW_ADC_MIN[layer]) &&
+//				(ADCR < TW_ADC_MAX[layer])
+//				);
 		//				&& (this.paddleY() / this.halfTimeDiff() > 8.0)
 		//				&& (this.paddleY() / this.halfTimeDiff() < 24.0);
 	}
@@ -187,13 +205,17 @@ public class TOFPaddle {
 	// timeResidualsOrig
 	// rename to timeResiduals to use the original time walk algorithm
 	// also need to change number of iterations in TofTimeWalkEventListener to 5 (or however many iterations required)
-	public double[] timeResiduals(double[] lambda, double[] order) {
+	public double[] timeResidualsOrig(double[] lambda, double[] order, int iter) {
 		double[] tr = { 0.0, 0.0 };
 
 		double timeL = tdcToTime(TDCL);
 		double timeR = tdcToTime(TDCR);
 		// double timeL = getTWTimeL();
 		// double timeR = getTWTimeR();
+
+		//double corrFrac = 1.0;
+		//if (iter<3) corrFrac = 0.5;
+		//if (iter<7) corrFrac = 0.75;
 
 		double timeLCorr = timeL - (lambda[LEFT] / Math.pow(ADCL, order[LEFT]));
 		double timeRCorr = timeR
@@ -206,6 +228,47 @@ public class TOFPaddle {
 				desc.getSector(), desc.getLayer(), desc.getComponent())) / 2) - (paddleY() / veff()));
 
 		return tr;
+	}
+
+	// timeResidualsVertex
+	// rename to timeResiduals to use this version using the TDC time - RF start time - flight and path
+	public double[] timeResiduals(double[] lambda, double[] order, int iter) {
+		double[] tr = { 0.0, 0.0 };
+
+		double lr = leftRightAdjustment(desc.getSector(), desc.getLayer(), desc.getComponent());
+		double p2p = TOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
+		double timeL = tdcToTime(TDCL) - (lr/2) - p2p 
+				- ((0.5*paddleLength() + YPOS)/this.veff())
+				- (PATH_LENGTH/29.98)
+				- this.RF_TIME ; 
+		double timeR = tdcToTime(TDCR) + (lr/2) - p2p
+				- ((0.5*paddleLength() - YPOS)/this.veff())
+				- (PATH_LENGTH/29.98)
+				- this.RF_TIME;
+
+		tr[LEFT] = timeL;
+		tr[RIGHT] = timeR;
+
+		return tr;
+	}
+	
+	public double paddleLength() {
+		int layer = this.getDescriptor().getLayer();
+		int paddle = this.getDescriptor().getComponent();
+		double len = 0.0;
+
+		if (layer == 1 && paddle <= 5) {
+			len = (15.85 * paddle) + 16.43;
+		} else if (layer == 1 && paddle > 5) {
+			len = (15.85 * paddle) + 11.45;
+		} else if (layer == 2) {
+			len = (6.4 * paddle) + 10.84;
+		} else if (layer == 3) {
+			len = (13.73 * paddle) + 357.55;
+		}
+
+		return len;
+
 	}
 
 	// timeResidualsCheat
@@ -340,13 +403,13 @@ public class TOFPaddle {
 		double lr = 0.0;
 
 		if (tof == "FTOF") {
-			if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_DEFAULT) {
-				lr = 0.0;
-			}
-			else {
-				lr = TOFCalibrationEngine.leftRightValues.getItem(sector, layer,
-						paddle);				
-			}
+			//if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_DEFAULT) {
+			//	lr = 0.0;
+			//}
+			//else {
+			lr = TOFCalibrationEngine.leftRightValues.getItem(sector, layer,
+					paddle);				
+			//}
 
 		} else {
 			lr = CTOFCalibrationEngine.leftRightValues.getItem(sector, layer,

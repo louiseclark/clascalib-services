@@ -97,7 +97,9 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 				int layer = Integer.parseInt(line.substring(3, 7).trim());
 				int paddle = Integer.parseInt(line.substring(7, 11).trim());
 				double veff = Double.parseDouble(line.substring(11,26).trim());
-
+				
+				//System.out.println("SLC "+sector+layer+paddle+" "+veff);
+            	
 				veffValues.add(veff, sector, layer, paddle);
 
 				line = bufferedReader.readLine();
@@ -382,10 +384,10 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	public DataGroup getSummary(int sector, int layer) {
 
 		// draw the stats
-		TCanvas c1 = new TCanvas("Veff Stats",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(veffStatHist);		
+//		TCanvas c1 = new TCanvas("Veff Stats",1200,800);
+//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+//		c1.cd(0);
+//		c1.draw(veffStatHist);		
 
 		int layer_index = layer-1;
 		double[] paddleNumbers = new double[NUM_PADDLES[layer_index]];

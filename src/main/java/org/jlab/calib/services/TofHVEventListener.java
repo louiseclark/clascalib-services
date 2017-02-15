@@ -162,7 +162,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
 
-			if (paddle.isValidGeoMean()) {
+			if (paddle.isValidGeoMean() && paddle.geometricMean() > EXPECTED_MIP_CHANNEL[layer-1] * 0.25) {
 				dataGroups.getItem(sector,layer,component).getH1F("geomean").fill(paddle.geometricMean());
 				hvStatHist.fill(((layer-1)*10)+sector);
 			}
@@ -207,7 +207,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		double endChannelForFit = 0.0;
 		if (minRange==UNDEFINED_OVERRIDE) {
 			// default value
-			startChannelForFit = EXPECTED_MIP_CHANNEL[layer-1] * 0.75;
+			startChannelForFit = EXPECTED_MIP_CHANNEL[layer-1] * 0.5;
 		}
 		else {
 			// custom value
