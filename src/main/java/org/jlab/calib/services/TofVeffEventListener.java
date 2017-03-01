@@ -73,54 +73,75 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		calib.addConstraint(4, EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF),
 				EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 
-		// read in the veff values from the text file
-		//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_VEFF_20161215_1M_events_after_tw.txt";
-		String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_VEFF_20170103.test2.txt";
+		if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_FILE) {
 
-		String line = null;
-		try { 
+			// read in the veff values from the text file
+			//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_VEFF_20161215_1M_events_after_tw.txt";
+			//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_VEFF_20170103.test2.txt";
+			String inputFile = "/home/louise/workspace/clascalib-services/ftof.effective_velocity.smeared.txt";
+			//String inputFile = "test.txt";
 
-			// Open the file
-			FileReader fileReader = 
-					new FileReader(inputFile);
+			String line = null;
+			try { 
 
-			// Always wrap FileReader in BufferedReader
-			BufferedReader bufferedReader = 
-					new BufferedReader(fileReader);            
+				// Open the file
+				FileReader fileReader = 
+						new FileReader(inputFile);
 
-			line = bufferedReader.readLine();
-			//line = bufferedReader.readLine(); // skip header
-
-			while (line != null) {
-
-				int sector = Integer.parseInt(line.substring(0, 3).trim());
-				int layer = Integer.parseInt(line.substring(3, 7).trim());
-				int paddle = Integer.parseInt(line.substring(7, 11).trim());
-				double veff = Double.parseDouble(line.substring(11,26).trim());
-				
-				//System.out.println("SLC "+sector+layer+paddle+" "+veff);
-            	
-				veffValues.add(veff, sector, layer, paddle);
+				// Always wrap FileReader in BufferedReader
+				BufferedReader bufferedReader = 
+						new BufferedReader(fileReader);            
 
 				line = bufferedReader.readLine();
-			}    
+				//line = bufferedReader.readLine(); // skip header
 
-			bufferedReader.close();            
-		}
-		catch(FileNotFoundException ex) {
-			ex.printStackTrace();
-			System.out.println(
-					"Unable to open file '" + 
-							inputFile + "'");                
-		}
-		catch(IOException ex) {
-			System.out.println(
-					"Error reading file '" 
-							+ inputFile + "'");                   
-			// Or we could just do this: 
-			// ex.printStackTrace();
-		}			
+//				while (line != null) {
+//
+//					int sector = Integer.parseInt(line.substring(0, 3).trim());
+//					int layer = Integer.parseInt(line.substring(3, 7).trim());
+//					int paddle = Integer.parseInt(line.substring(7, 11).trim());
+//					double veff = Double.parseDouble(line.substring(11,26).trim());
+//
+//					//System.out.println("veff SLC "+sector+layer+paddle+" "+veff);
+//
+//					veffValues.add(veff, sector, layer, paddle);
+//
+//					line = bufferedReader.readLine();
+//				}    
+				
+				while (line != null) {
 
+					String[] lineValues;
+					lineValues = line.split(" ");
+
+					int sector = Integer.parseInt(lineValues[0]);
+					int layer = Integer.parseInt(lineValues[1]);
+					int paddle = Integer.parseInt(lineValues[2]);
+					double veff = Double.parseDouble(lineValues[3]);
+					
+					System.out.println("veff SLC "+sector+layer+paddle+" "+veff);
+
+					veffValues.add(veff, sector, layer, paddle);
+
+					line = bufferedReader.readLine();
+				}    
+
+				bufferedReader.close();            
+			}
+			catch(FileNotFoundException ex) {
+				ex.printStackTrace();
+				System.out.println(
+						"Unable to open file '" + 
+								inputFile + "'");                
+			}
+			catch(IOException ex) {
+				System.out.println(
+						"Error reading file '" 
+								+ inputFile + "'");                   
+				// Or we could just do this: 
+				// ex.printStackTrace();
+			}			
+		}
 	}
 
 	@Override
@@ -384,10 +405,10 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	public DataGroup getSummary(int sector, int layer) {
 
 		// draw the stats
-//		TCanvas c1 = new TCanvas("Veff Stats",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(veffStatHist);		
+		//		TCanvas c1 = new TCanvas("Veff Stats",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(veffStatHist);		
 
 		int layer_index = layer-1;
 		double[] paddleNumbers = new double[NUM_PADDLES[layer_index]];

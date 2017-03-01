@@ -70,8 +70,8 @@ public class DataProvider {
 //		EvioDataEvent e = (EvioDataEvent) event;
 //		e.show();
 		
-		//paddleList = getPaddleListHipo(event);
-		paddleList = getPaddleListDgtzNew(event);
+		paddleList = getPaddleListHipo(event);
+		//paddleList = getPaddleListDgtzNew(event);
 		
 		return paddleList;
 
@@ -81,7 +81,7 @@ public class DataProvider {
 	public static List<TOFPaddle> getPaddleListHipo(DataEvent event){
 
 		if (test) {
-			//event.show();
+			event.show();
 			if (event.hasBank("FTOF::adc")) {
 				event.getBank("FTOF::adc").show();
 			}
@@ -121,6 +121,8 @@ public class DataProvider {
 						hitsBank.getFloat("tx", hitIndex),
 						hitsBank.getFloat("ty", hitIndex),
 						0.0); 
+				paddle.ADC_TIMEL = adcBank.getFloat("time", hitsBank.getShort("adc_idx1", hitIndex));
+				paddle.ADC_TIMER = adcBank.getFloat("time", hitsBank.getShort("adc_idx2", hitIndex));
 
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);
@@ -173,6 +175,8 @@ public class DataProvider {
 					int component = adcBank.getShort("component", i);
 					int adcL = adc;
 					int adcR = 0;
+					float adcTimeL = adcBank.getFloat("time", i);
+					float adcTimeR = 0;
 					int tdcL = 0;
 					int tdcR = 0;
 					
@@ -186,6 +190,7 @@ public class DataProvider {
 						if (s==sector && l==layer && c==component && o == 1) {
 							// matching adc R
 							adcR = adcBank.getInt("ADC", j);
+							adcTimeR = adcBank.getFloat("time", j);
 							break;
 						}
 					}
@@ -228,6 +233,8 @@ public class DataProvider {
 								layer,
 								component,
 								adcL, adcR, tdcL, tdcR);
+						paddle.ADC_TIMEL = adcTimeL;
+						paddle.ADC_TIMER = adcTimeR;
 
 						if (paddle.includeInCalib()) {
 							

@@ -85,14 +85,16 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 	@Override
 	public void resetEventListener() {
 		
-		System.out.println("CtofAtten resetEventListener");
+		//System.out.println("CtofAtten resetEventListener");
 
 		// LC perform init processing
 		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 
-			System.out.println("Creating Atten hists paddle "+paddle);
+			//System.out.println("Creating Atten hists paddle "+paddle);
 			// create all the histograms
 			int numBins = (int) (paddleLength(1,1,paddle)*0.6);  // 1 bin per 2cm + 10% either side
+//			double min = -250.0; //paddleLength(1,1,paddle) * -0.6;
+//			double max = -150.0; //paddleLength(1,1,paddle) * 0.6;
 			double min = paddleLength(1,1,paddle) * -0.6;
 			double max = paddleLength(1,1,paddle) * 0.6;
 			H2F hist = new H2F("atten", "Log Ratio vs Position : Paddle "
@@ -104,7 +106,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 			hist.setTitleX("Position");
 			hist.setTitleY("Log ratio");
 
-			System.out.println("Creating Atten funcs paddle "+paddle);
+			//System.out.println("Creating Atten funcs paddle "+paddle);
 
 			// create all the functions and graphs
 			F1D attenFunc = new F1D("attenFunc", "[a]+[b]*x", -50.0, 50.0);
@@ -145,6 +147,11 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
 
+//			System.out.println("SLC "+sector+layer+component);
+//			System.out.println("position="+paddle.position()+" logRatio="+paddle.logRatio());
+//			System.out.println("tdcl="+paddle.TDCL+" tdcr="+paddle.TDCR);
+//			System.out.println("veff="+paddle.veff());
+			
 			dataGroups.getItem(sector,layer,component).getH2F("atten").fill(
 					paddle.position(), paddle.logRatio());
 		}
@@ -187,6 +194,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 		
 		F1D attenFunc = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc");
 		attenFunc.setRange(lowLimit, highLimit);
+		//attenFunc.setRange(-240.0, -160.0);
 		attenFunc.setParameter(0, 0.0);
 		attenFunc.setParameter(1, 2.0/expectedAttlen(sector,layer,paddle));
 		attenFunc.setParLimits(0, -5.0, 5.0);
@@ -334,8 +342,13 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
-		canvas.draw(dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph"));
-		canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc"), "same");
+		GraphErrors meanGraph = dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph");
+		if (meanGraph.getDataSize(0) != 0) {
+			meanGraph.setTitleX("");
+			meanGraph.setTitleY("");
+			canvas.draw(meanGraph);
+			canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc"), "same");
+		}
 
 	}
 	
@@ -413,15 +426,15 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 			ex.printStackTrace();
 		}
 
-		System.out.println("attlen "+getAttlen(sector,layer,paddle));
-		System.out.println("error in attlen "+getAttlenError(sector,layer,paddle));
-		System.out.println("gradient "+dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
-				.getParameter(1));
-		System.out.println(" error in gradient "+dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
-				.parameter(1).error());
-		System.out.println("lowLimit "+paddleLength(sector,layer,paddle) * -0.4);
-		System.out.println("highLimit "+paddleLength(sector,layer,paddle) * 0.4);
-		System.out.println("initial gradient parameter "+2.0/expectedAttlen(sector,layer,paddle));
+//		System.out.println("attlen "+getAttlen(sector,layer,paddle));
+//		System.out.println("error in attlen "+getAttlenError(sector,layer,paddle));
+//		System.out.println("gradient "+dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
+//				.getParameter(1));
+//		System.out.println(" error in gradient "+dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
+//				.parameter(1).error());
+//		System.out.println("lowLimit "+paddleLength(sector,layer,paddle) * -0.4);
+//		System.out.println("highLimit "+paddleLength(sector,layer,paddle) * 0.4);
+//		System.out.println("initial gradient parameter "+2.0/expectedAttlen(sector,layer,paddle));
 
 	}	
 

@@ -48,12 +48,12 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 
 	public final int VEFF_OVERRIDE = 0;
 	public final int VEFF_UNC_OVERRIDE = 1;
-	
+
 	public final double EXPECTED_VEFF = 16.0;
 	public final double ALLOWED_VEFF_DIFF = 0.1;
-	
+
 	public CtofVeffEventListener() {
-		
+
 		stepName = "Effective Velocity";
 		fileNamePrefix = "CTOF_CALIB_VEFF_";
 		// get file name here so that each timer update overwrites it
@@ -63,60 +63,63 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 				"veff_left/F:veff_right/F:veff_left_err/F:veff_right_err/F");
 		calib.setName("/calibration/ctof/effective_velocity");
 		calib.setPrecision(3);
-		
+
 		// assign constraints to all paddles
 		// effective velocity to be within 10% of 16.0 cm/ns
 		calib.addConstraint(3, EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF),
-							   EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
+				EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 		calib.addConstraint(4, EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF),
-							   EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
-		
-		// read in the veff values from the text file
-		String inputFile = "/home/louise/workspace/clascalib-services/CTOF_CALIB_VEFF_20161214_1M_events.txt";
-    	
-    	String line = null;
-    	try { 
-			
-            // Open the file
-            FileReader fileReader = 
-                new FileReader(inputFile);
+				EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 
-            // Always wrap FileReader in BufferedReader
-            BufferedReader bufferedReader = 
-                new BufferedReader(fileReader);            
+		if (CTOFCalibrationEngine.calDBSource==CTOFCalibrationEngine.CAL_FILE) {
+			// read in the veff values from the text file
+			//String inputFile = "/home/louise/workspace/clascalib-services/CTOF_CALIB_VEFF_20161214_1M_events.txt";
+			String inputFile = "test.txt";
 
-            line = bufferedReader.readLine();
-            line = bufferedReader.readLine(); // skip header
-            
-            while (line != null) {
-            	
-            	int sector = Integer.parseInt(line.substring(0, 3).trim());
-            	int layer = Integer.parseInt(line.substring(3, 7).trim());
-            	int paddle = Integer.parseInt(line.substring(7, 11).trim());
-            	double veff = Double.parseDouble(line.substring(11,26).trim());
-            	
-            	veffValues.add(veff, sector, layer, paddle);
-            	
-            	line = bufferedReader.readLine();
-            }    
-            
-            bufferedReader.close();            
-        }
-		catch(FileNotFoundException ex) {
-			ex.printStackTrace();
-            System.out.println(
-                "Unable to open file '" + 
-                inputFile + "'");                
-        }
-        catch(IOException ex) {
-            System.out.println(
-                "Error reading file '" 
-                + inputFile + "'");                   
-            // Or we could just do this: 
-            // ex.printStackTrace();
-        }			
+			String line = null;
+			try { 
+
+				// Open the file
+				FileReader fileReader = 
+						new FileReader(inputFile);
+
+				// Always wrap FileReader in BufferedReader
+				BufferedReader bufferedReader = 
+						new BufferedReader(fileReader);            
+
+				line = bufferedReader.readLine();
+				line = bufferedReader.readLine(); // skip header
+
+				while (line != null) {
+
+					int sector = Integer.parseInt(line.substring(0, 3).trim());
+					int layer = Integer.parseInt(line.substring(3, 7).trim());
+					int paddle = Integer.parseInt(line.substring(7, 11).trim());
+					double veff = Double.parseDouble(line.substring(11,26).trim());
+
+					veffValues.add(veff, sector, layer, paddle);
+
+					line = bufferedReader.readLine();
+				}    
+
+				bufferedReader.close();            
+			}
+			catch(FileNotFoundException ex) {
+				ex.printStackTrace();
+				System.out.println(
+						"Unable to open file '" + 
+								inputFile + "'");                
+			}
+			catch(IOException ex) {
+				System.out.println(
+						"Error reading file '" 
+								+ inputFile + "'");                   
+				// Or we could just do this: 
+				// ex.printStackTrace();
+			}
+		}
 	}
-	
+
 	@Override
 	public void resetEventListener() {
 
@@ -184,7 +187,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 
 			if (paddle.includeInCtofVeff()) {
 				dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
-					paddle.zPosCTOF(), paddle.recHalfTimeDiff());
+						paddle.zPosCTOF(), paddle.recHalfTimeDiff());
 			}
 		}
 	}
@@ -192,9 +195,9 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 	@Override
 	public void fit(int sector, int layer, int paddle,
 			double minRange, double maxRange) {
-		
+
 		H2F veffHist = dataGroups.getItem(sector,layer,paddle).getH2F("veff");
-		
+
 		// fit function to the graph of means
 		GraphErrors veffGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("veffGraph");
 		veffGraph.copy(veffHist.getProfileX());
@@ -202,16 +205,16 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 		// find the range for the fit
 		double lowLimit;
 		double highLimit;
-		
+
 		if (minRange != UNDEFINED_OVERRIDE) {
 			// use custom values for fit
 			lowLimit = minRange;
 		}
 		else {
-//			lowLimit = paddleLength(sector,layer,paddle) * -0.4;
+			//			lowLimit = paddleLength(sector,layer,paddle) * -0.4;
 			lowLimit = 0.0;
 		}
-		
+
 		if (maxRange != UNDEFINED_OVERRIDE) {
 			// use custom values for fit
 			highLimit = maxRange;
@@ -219,24 +222,24 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 		else {
 			highLimit = paddleLength(sector,layer,paddle) * 0.4;
 		}
-		
+
 		F1D veffFunc = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc");
 		veffFunc.setRange(lowLimit, highLimit);
-		
+
 		veffFunc.setParameter(0, 0.0);
 		veffFunc.setParameter(1, 1.0/16.0);
-//		veffFunc.setParLimits(0, -5.0, 5.0);
-//		veffFunc.setParLimits(1, 1.0/20.0, 1.0/12.0);
-		
+		//		veffFunc.setParLimits(0, -5.0, 5.0);
+		//		veffFunc.setParLimits(1, 1.0/20.0, 1.0/12.0);
+
 		DataFitter.fit(veffFunc, veffGraph, "RNQ");
-		
+
 	}
-	
+
 	public void customFit(int sector, int layer, int paddle){
 
 		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
 				"Override Effective Velocity:", "Override Effective Velocity uncertainty:"};
-				
+
 		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
@@ -247,7 +250,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 			double maxRange = toDouble(panel.textFields[1].getText());
 			double overrideValue = toDouble(panel.textFields[2].getText());
 			double overrideUnc = toDouble(panel.textFields[3].getText());
-			
+
 			// save the override values
 			Double[] consts = constants.getItem(sector, layer, paddle);
 			consts[VEFF_OVERRIDE] = overrideValue;
@@ -258,12 +261,12 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 			// update the table
 			saveRow(sector,layer,paddle);
 			calib.fireTableDataChanged();
-			
+
 		}	 
 	}
-	
+
 	public Double getVeff(int sector, int layer, int paddle) {
-		
+
 		double veff = 0.0;
 		double overrideVal = constants.getItem(sector, layer, paddle)[VEFF_OVERRIDE];
 
@@ -282,9 +285,9 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 		}
 		return veff;
 	}
-	
+
 	public Double getVeffError(int sector, int layer, int paddle){
-		
+
 		double veffError = 0.0;
 		double overrideVal = constants.getItem(sector, layer, paddle)[VEFF_UNC_OVERRIDE];
 
@@ -328,11 +331,11 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 	public boolean isGoodPaddle(int sector, int layer, int paddle) {
 
 		return (getVeff(sector,layer,paddle) >= EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF)
-			&&
-			getVeff(sector,layer,paddle) <= EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
+				&&
+				getVeff(sector,layer,paddle) <= EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 
 	}
-	
+
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
@@ -343,7 +346,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
-				
+
 		int layer_index = layer-1;
 		double[] paddleNumbers = new double[NUM_PADDLES[0]];
 		double[] paddleUncs = new double[NUM_PADDLES[0]];
@@ -355,23 +358,23 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 			paddleNumbers[p - 1] = (double) p;
 			paddleUncs[p - 1] = 0.0;
 			veffs[p - 1] = getVeff(sector, layer, p);
-//			veffUncs[p - 1] = getVeffError(sector, layer, p);
+			//			veffUncs[p - 1] = getVeffError(sector, layer, p);
 			veffUncs[p - 1] = 0.0;
 		}
 
 		GraphErrors summ = new GraphErrors("summ", paddleNumbers,
 				veffs, paddleUncs, veffUncs);
-		
+
 		summ.setTitle("Effective Velocity");
 		summ.setTitleX("Paddle Number");
 		summ.setTitleY("Effective velocity (cm/ns)");
 		summ.setMarkerSize(MARKER_SIZE);
 		summ.setLineThickness(MARKER_LINE_WIDTH);
-		
+
 		DataGroup dg = new DataGroup(1,1);
 		dg.addDataSet(summ, 0);
 		return dg;
-		
+
 	}
 
 }

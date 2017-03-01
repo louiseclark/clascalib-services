@@ -37,8 +37,8 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	public final int LOGRATIO_UNC_OVERRIDE = 5;	
 
 	// calibration values
-	private final double[]		GM_HIST_MAX = {4000.0,8000.0,3000.0};
-	private final int[]			GM_HIST_BINS = {200, 300, 150};
+	private final double[]		GM_HIST_MAX = {4000.0,8000.0,4000.0};
+	private final int[]			GM_HIST_BINS = {160, 320, 160};
 	private final double 		LR_THRESHOLD_FRACTION = 0.2;
 	private final int			GM_REBIN_THRESHOLD = 50000;
 
@@ -114,7 +114,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 					geoMeanHist.setName("geomean");
 					H1F logRatioHist = new TOFH1F("logratio", 
 							"Log Ratio Sector "+sector+" Paddle "+paddle, 
-							75,-6.0,6.0);
+							300,-6.0,6.0);
 					logRatioHist.setName("logratio");
 
 					// create all the functions
@@ -162,7 +162,8 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
 
-			if (paddle.isValidGeoMean() && paddle.geometricMean() > EXPECTED_MIP_CHANNEL[layer-1] * 0.25) {
+			if (paddle.isValidGeoMean() && paddle.geometricMean() > EXPECTED_MIP_CHANNEL[layer-1] * 0.25
+					&& paddle.trackFound()) {
 				dataGroups.getItem(sector,layer,component).getH1F("geomean").fill(paddle.geometricMean());
 				hvStatHist.fill(((layer-1)*10)+sector);
 			}
@@ -189,18 +190,18 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		TOFH1F h = (TOFH1F) dataGroups.getItem(sector,layer,paddle).getH1F("geomean");
 		
 		// First rebin depending on number of entries
-		int nEntries = h.getEntries(); 
-		if ((nEntries != 0) && (h.getAxis().getNBins() == GM_HIST_BINS[layer_index])) {
-			//   not empty      &&   hasn't already been rebinned
-			int nRebin=(int) (GM_REBIN_THRESHOLD/nEntries);            
-			if (nRebin>5) {
-				nRebin=5;               
-			}
-
-			if(nRebin>0) {
-				h.rebin(nRebin);
-			}		
-		}		
+//		int nEntries = h.getEntries(); 
+//		if ((nEntries != 0) && (h.getAxis().getNBins() == GM_HIST_BINS[layer_index])) {
+//			//   not empty      &&   hasn't already been rebinned
+//			int nRebin=(int) (GM_REBIN_THRESHOLD/nEntries);            
+//			if (nRebin>5) {
+//				nRebin=5;               
+//			}
+//
+//			if(nRebin>0) {
+//				h.rebin(nRebin);
+//			}		
+//		}		
 		// Work out the range for the fit
 		double maxChannel = h.getAxis().getBinCenter(h.getAxis().getNBins()-1);
 		double startChannelForFit = 0.0;

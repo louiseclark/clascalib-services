@@ -32,7 +32,7 @@ import org.jlab.utils.groups.IndexedTable;
  */
 public class DataProvider {
 	
-	private static	boolean test = true;
+	private static	boolean test = false;
 	
 	public static List<TOFPaddle> getPaddleList(DataEvent event) {
 		
@@ -53,18 +53,18 @@ public class DataProvider {
 	
 	public static List<TOFPaddle> getPaddleListHipo(DataEvent event){
 
-		if (test) {
-			//event.show();
-			if (event.hasBank("CTOF::adc")) {
-				event.getBank("CTOF::adc").show();
-			}
-			if (event.hasBank("CTOF::tdc")) {
-				event.getBank("CTOF::tdc").show();
-			}
-			if (event.hasBank("CTOF::hits")) {
-				event.getBank("CTOF::hits").show();
-			}
-		}
+//		if (test) {
+//			if (event.hasBank("CTOF::adc")) {
+//				event.show();
+//				event.getBank("CTOF::adc").show();
+//			}
+//			if (event.hasBank("CTOF::tdc")) {
+//				event.getBank("CTOF::tdc").show();
+//			}
+//			if (event.hasBank("CTOF::hits")) {
+//				event.getBank("CTOF::hits").show();
+//			}
+//		}
 
 		
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
@@ -76,6 +76,12 @@ public class DataProvider {
 
 		DataBank  adcBank = event.getBank("CTOF::adc");
 		DataBank  tdcBank = event.getBank("CTOF::tdc");
+
+		if (test) {
+			//event.show();
+			event.getBank("CTOF::adc").show();
+			event.getBank("CTOF::tdc").show();
+		}
 				
 		// iterate through hits bank getting corresponding adc and tdc
 		//if (event.hasBank("CTOF::hits")) {
@@ -132,34 +138,46 @@ public class DataProvider {
 //			}
 			
 			
-			// based on cosmic data
-			// am getting entry for every PMT in ADC bank
-			// ADC R two indices after ADC L (will assume right is always after left)
-			// TDC bank only has actual hits, so can just search the whole bank for matching SLC
+			// data seems to have ADC order 1 then 0
+			// TDC order 3 then 2
 			
 			for (int i = 0; i < adcBank.rows(); i++) {
+				//System.out.println("Louise 1 i="+i);
 				int order = adcBank.getByte("order", i);
 				int adc = adcBank.getInt("ADC", i);
-				if (order==0 && adc != 0) {
+				
+				//System.out.println("Louise 2 order="+order+" adc="+adc);
+				
+				if (order==1 && adc != 0) {
 					
 					int sector = adcBank.getByte("sector", i);
 					int layer = adcBank.getByte("layer", i);
 					int component = adcBank.getShort("component", i);
-					int adcL = adc;
-					int adcR = 0;
+					int adcL = 0;
+					int adcR = adc;
 					int tdcL = 0;
 					int tdcR = 0;
 					
-					// ADC Left at index i
-					// ADC Right at index i+2 probably, but just search forward til find it
+					//System.out.println("Louise 3 component="+component);
+					
+					// ADC Right at index i
+					// ADC left at index i+1 probably, but just search forward til find it
 					for (int j=i+1; j < adcBank.rows(); j++) {
+						
+						//System.out.println("Louise 4 j="+j);
+						
 						int s = adcBank.getByte("sector", j);
 						int l = adcBank.getByte("layer", j);
 						int c = adcBank.getShort("component", j);
 						int o = adcBank.getByte("order", j);
-						if (s==sector && l==layer && c==component && o == 1) {
-							// matching adc R
-							adcR = adcBank.getInt("ADC", j);
+						
+						//System.out.println("Louise 5 c="+c+" o="+o);
+						
+						if (s==sector && l==layer && c==component && o == 0) {
+							// matching adc L
+							
+							//System.out.println("Louise 5 break after matching adcL");
+							adcL = adcBank.getInt("ADC", j);
 							break;
 						}
 					}
@@ -167,24 +185,38 @@ public class DataProvider {
 					// Now get matching TDCs
 					// can search whole bank as it has fewer rows (only hits)
 					// break when you find so always take the first one found
+					
+					//System.out.println("Louise 6");
+					
 					for (int tdci=0; tdci < tdcBank.rows(); tdci++) {
+						
+						//System.out.println("Louise 7 tdci="+tdci);
 						int s = tdcBank.getByte("sector", tdci);
 						int l = tdcBank.getByte("layer", tdci);
 						int c = tdcBank.getShort("component", tdci);
 						int o = tdcBank.getByte("order", tdci);
+						
+						//System.out.println("Louise 8 c="+c+" o="+o);
 						if (s==sector && l==layer && c==component && o == 2) {
 							// matching tdc L
+							//System.out.println("Louise 9 break after matching tdcL");
 							tdcL = tdcBank.getInt("TDC", tdci);
 							break;
 						}
 					}
 					for (int tdci=0; tdci < tdcBank.rows(); tdci++) {
+
+						//System.out.println("Louise 10 tdci="+tdci);
 						int s = tdcBank.getByte("sector", tdci);
 						int l = tdcBank.getByte("layer", tdci);
 						int c = tdcBank.getShort("component", tdci);
 						int o = tdcBank.getByte("order", tdci);
+
+						//System.out.println("Louise 11 c="+c+" o="+o);
+
 						if (s==sector && l==layer && c==component && o == 3) {
 							// matching tdc R
+							//System.out.println("Louise 12 break after matching tdcr");
 							tdcR = tdcBank.getInt("TDC", tdci);
 							break;
 						}
@@ -202,6 +234,8 @@ public class DataProvider {
 								layer,
 								component,
 								adcL, adcR, tdcL, tdcR);
+								// are they back to front??
+								//adcR, adcL, tdcR, tdcL);
 
 						if (paddle.includeInCalib()) {
 							

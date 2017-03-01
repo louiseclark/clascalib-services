@@ -30,6 +30,8 @@ import org.jlab.detector.view.DetectorShape2D;
 import org.jlab.groot.data.H1F;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
+import org.jlab.groot.math.F1D;
+import org.jlab.groot.ui.TCanvas;
 import org.jlab.io.base.DataEvent;
 import org.jlab.io.base.DataEventType;
 import org.jlab.io.task.DataSourceProcessorPane;
@@ -455,7 +457,39 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public static void main(String[] args) {
 
         TOFCalibration calibGUI = new TOFCalibration();
-        
+
+        TCanvas c = new TCanvas("TW funcs", 800,1200);
+        F1D smearedLeftFunc = new F1D("smLeftFunc", "[a]+([b]/(x^[c]))", 400, 3000);
+		F1D smearedRightFunc = new F1D("smRightFunc", "[a]+([b]/(x^[c]))", 400, 3000);
+
+		smearedLeftFunc.setParameter(0, 0.0);
+		smearedLeftFunc.setParameter(1,42.475);
+		smearedLeftFunc.setParameter(2,0.51607); 
+		smearedRightFunc.setParameter(0, 0.0);
+		smearedRightFunc.setParameter(1,45.3378);
+		smearedRightFunc.setParameter(2,0.52808); 
+		
+        F1D fitLeftFunc = new F1D("fitLeftFunc", "[a]+([b]/(x^[c]))", 400, 3000);
+		F1D fitRightFunc = new F1D("fitRightFunc", "[a]+([b]/(x^[c]))", 400, 3000);
+
+		fitLeftFunc.setParameter(0, 0.0);
+		fitLeftFunc.setParameter(1,12.348*2.0);
+		fitLeftFunc.setParameter(2,0.45); 
+		fitRightFunc.setParameter(0, 0.0);
+		fitRightFunc.setParameter(1,22.4586*2.0);
+		fitRightFunc.setParameter(2,0.55); 
+
+		fitLeftFunc.setLineColor(2);
+		fitRightFunc.setLineColor(2);
+		
+		c.divide(1,2);
+		c.cd(0);
+		c.draw(smearedLeftFunc);
+		c.draw(fitLeftFunc,"same");
+		c.cd(1);
+		c.draw(smearedRightFunc);
+		c.draw(fitRightFunc,"same");
+		
 	}
 
 }

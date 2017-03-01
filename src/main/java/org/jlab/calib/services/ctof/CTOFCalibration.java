@@ -51,7 +51,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
     
     // event reading panel
     DataSourceProcessorPane processorPane = null;
-    public final int UPDATE_RATE = 50000;
+    public final int UPDATE_RATE = 200000;
     
     // calibration view
 	EmbeddedCanvas 	canvas = null;   
@@ -219,7 +219,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
     	for (int i=0; i< engines.length; i++) {
 
     		if (event.getType()==DataEventType.EVENT_START) {
-    			System.out.println("CTOFCalibration dataEventAction EVENT_START");
+    			//System.out.println("CTOFCalibration dataEventAction EVENT_START");
     			engines[i].resetEventListener();
     			engines[i].processPaddleList(paddleList);
     		}

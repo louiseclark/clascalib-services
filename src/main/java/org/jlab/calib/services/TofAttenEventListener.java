@@ -86,7 +86,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 	@Override
 	public void resetEventListener() {
 
-		System.out.println("Atten resetEventListener");
+		//System.out.println("Atten resetEventListener");
 
 		// LC perform init processing
 		for (int sector = 1; sector <= 6; sector++) {
@@ -208,16 +208,16 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		attenFunc.setParLimits(0, -5.0, 5.0);
 		attenFunc.setParLimits(1, 2.0/500.0, 2.0/10.0);
 		if (sector==1 && layer==1 &&paddle==8) {
-			System.out.println("SLC "+sector+layer+paddle);
+			//System.out.println("SLC "+sector+layer+paddle);
 			DataFitter.fit(attenFunc, meanGraph, "RNQ");
-			System.out.println("Param 0 is "+attenFunc.getParameter(0));
-			System.out.println("Param 0 error is "+attenFunc.parameter(0).error());
-			System.out.println("Param 1 is "+attenFunc.getParameter(1));
-			System.out.println("Param 1 error is "+attenFunc.parameter(1).error());
-			System.out.println("exp attlen is "+expectedAttlen(sector,layer,paddle));
-			System.out.println("2/exp attlen is "+2/expectedAttlen(sector,layer,paddle));
-			System.out.println("par 1 lower limit "+2.0/500.0);
-			System.out.println("par 1 upper limit "+2.0/10.0);
+//			System.out.println("Param 0 is "+attenFunc.getParameter(0));
+//			System.out.println("Param 0 error is "+attenFunc.parameter(0).error());
+//			System.out.println("Param 1 is "+attenFunc.getParameter(1));
+//			System.out.println("Param 1 error is "+attenFunc.parameter(1).error());
+//			System.out.println("exp attlen is "+expectedAttlen(sector,layer,paddle));
+//			System.out.println("2/exp attlen is "+2/expectedAttlen(sector,layer,paddle));
+//			System.out.println("par 1 lower limit "+2.0/500.0);
+//			System.out.println("par 1 upper limit "+2.0/10.0);
 
 		}
 		else {
@@ -477,14 +477,14 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			ex.printStackTrace();
 		}
 
-		System.out.println("attlen "+getAttlen(sector,layer,paddle));
-		System.out.println("error in attlen "+getAttlenError(sector,layer,paddle));
-		System.out.println("gradient "+dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
-				.getParameter(1));
-		System.out.println(" error in gradient "+dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
-				.parameter(1).error());
-		System.out.println("lowLimit "+paddleLength(sector,layer,paddle) * -0.4);
-		System.out.println("highLimit "+paddleLength(sector,layer,paddle) * 0.4);
+//		System.out.println("attlen "+getAttlen(sector,layer,paddle));
+//		System.out.println("error in attlen "+getAttlenError(sector,layer,paddle));
+//		System.out.println("gradient "+dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
+//				.getParameter(1));
+//		System.out.println(" error in gradient "+dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc")
+//				.parameter(1).error());
+//		System.out.println("lowLimit "+paddleLength(sector,layer,paddle) * -0.4);
+//		System.out.println("highLimit "+paddleLength(sector,layer,paddle) * 0.4);
 
 	}
 

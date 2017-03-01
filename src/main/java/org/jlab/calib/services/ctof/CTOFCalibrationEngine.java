@@ -42,6 +42,12 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 	public String fileNamePrefix = "Unknown";
 	public String filename = "Unknown.txt";
 	
+	// configuration - previous calibration values
+	public static int calDBSource = 0;
+	public static final int CAL_DEFAULT = 0;
+	public static final int CAL_FILE = 1;
+	public static final int CAL_DB = 2;
+	
 	// Left right values from text file
 	public static IndexedList<Double> leftRightValues = new IndexedList<Double>(3);
 	// Veff values from text file
@@ -90,7 +96,7 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 	public void analyze() {
 		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 			
-			System.out.println("CTOFCalibrationEngine analyze "+stepName+" "+paddle);
+			//System.out.println("CTOFCalibrationEngine analyze "+stepName+" "+paddle);
 			fit(1, 1, paddle);
 		}
 		save();
@@ -123,7 +129,7 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 
 	public void saveCounterStatus() {
 		
-		System.out.println("sector layer component stat_up stat_down");
+		//System.out.println("sector layer component stat_up stat_down");
 		for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 			
 			int adcLStat = adcLeftStatus.getItem(1,1,paddle);
@@ -153,12 +159,12 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 				counterStatusRight = 2;
 			}
 			
-			System.out.println(
-				"1 "+
-				"1 "+
-				paddle+" "+
-				counterStatusLeft+" "+
-				counterStatusRight+" ");
+//			System.out.println(
+//				"1 "+
+//				"1 "+
+//				paddle+" "+
+//				counterStatusLeft+" "+
+//				counterStatusRight+" ");
 		}
 	}
 
@@ -256,9 +262,9 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
     			
     		}
 
-    		System.out.println("paddleNum "+paddleNum);
-    		System.out.println("canvasNum "+canvasNum);
-    		System.out.println("padNum "+padNum);
+    		//System.out.println("paddleNum "+paddleNum);
+    		//System.out.println("canvasNum "+canvasNum);
+    		//System.out.println("padNum "+padNum);
 			fitCanvases[canvasNum].cd(padNum);
 			fitCanvases[canvasNum].getPad(padNum).setOptStat(0);
 			drawPlots(sector, layer, paddleNum, fitCanvases[canvasNum]);

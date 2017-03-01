@@ -19,6 +19,8 @@ public class TOFPaddle {
 	public int ADCR = 0;
 	public int TDCL = 0;
 	public int TDCR = 0;
+	public float ADC_TIMEL = 0;
+	public float ADC_TIMER = 0;
 	public double TIMEL = 0.0;
 	public double TIMER = 0.0;
 	public double XPOS = 0.0;
@@ -121,37 +123,40 @@ public class TOFPaddle {
 	}
 
 	public boolean includeInTimeWalk() {
-		// exclude if position is zero or veff is unrealistic
+		// 
 		int layer = this.getDescriptor().getLayer();
-		int[] TW_ADC_MIN = {0,450,1250,450};
-		int[] TW_ADC_MAX = {0,1550,3050,1550};
+		int[] TW_ADC_MIN = {0,250,950,450};
+		int[] TW_ADC_MAX = {0,2000,3050,1550};
 		
 		double[] MIP = {0.0, 800.0, 2000.0, 800.0};
 		double[] MIP_DELTA = {0.0, 200.0, 500.0, 200.0};
 		double mip = MIP[this.getDescriptor().getLayer()];
 		double mipDelta = MIP_DELTA[this.getDescriptor().getLayer()];
 
-		return ((this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0) &&
-				(this.geometricMean() > mip - mipDelta) &&
-				(this.geometricMean() < mip + mipDelta)
-			    );
-//		return (
-//				(this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0) &&
-//				(ADCL > TW_ADC_MIN[layer]) &&
-//				(ADCL < TW_ADC_MAX[layer]) &&
-//				(ADCR > TW_ADC_MIN[layer]) &&
-//				(ADCR < TW_ADC_MAX[layer])
-//				);
+//		return ((this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0) &&
+//				(this.geometricMean() > mip - mipDelta) &&
+//				(this.geometricMean() < mip + mipDelta)
+//			    );
+		return (
+				(this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0) &&
+				(ADCL > TW_ADC_MIN[layer]) &&
+				(ADCL < TW_ADC_MAX[layer]) &&
+				(ADCR > TW_ADC_MIN[layer]) &&
+				(ADCR < TW_ADC_MAX[layer])
+				);
+		
+//		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0);
+		
 		//				&& (this.paddleY() / this.halfTimeDiff() > 8.0)
 		//				&& (this.paddleY() / this.halfTimeDiff() < 24.0);
 	}
 
 	public boolean isValidLogRatio() {
 		// only if geometric mean is over a minimum
-		// only if both TDCs are non-zero - otherwise ADCs are equal and log
-		// ratio is always 0
-		// return (this.geometricMean() > 500.0) && (TDCL != 0) && (TDCR != 0);
-		return isValidGeoMean();
+		double[] minGM = {0.0, 300.0, 500.0, 300.0};
+		int layer = this.getDescriptor().getLayer();
+		
+		return this.geometricMean() > minGM[layer];
 	}
 
 	public boolean includeInTimeWalkTest() {
@@ -195,8 +200,9 @@ public class TOFPaddle {
 						desc.getLayer(), desc.getComponent());
 			}
 		} else {
-			veff = CTOFCalibrationEngine.veffValues.getItem(desc.getSector(),
-					desc.getLayer(), desc.getComponent());
+			veff = 16.0;
+//			veff = CTOFCalibrationEngine.veffValues.getItem(desc.getSector(),
+//					desc.getLayer(), desc.getComponent());
 		}
 
 		return veff;
@@ -205,7 +211,7 @@ public class TOFPaddle {
 	// timeResidualsOrig
 	// rename to timeResiduals to use the original time walk algorithm
 	// also need to change number of iterations in TofTimeWalkEventListener to 5 (or however many iterations required)
-	public double[] timeResidualsOrig(double[] lambda, double[] order, int iter) {
+	public double[] timeResiduals(double[] lambda, double[] order, int iter) {
 		double[] tr = { 0.0, 0.0 };
 
 		double timeL = tdcToTime(TDCL);
@@ -229,10 +235,39 @@ public class TOFPaddle {
 
 		return tr;
 	}
+	
+	public double combinedRes() {
+		double tr = 0.0;
+
+		double timeL = tdcToTime(TDCL);
+		double timeR = tdcToTime(TDCR);
+		double lr = leftRightAdjustment(desc.getSector(),desc.getLayer(), desc.getComponent());
+
+		tr = ((timeL - timeR - lr) / 2)
+				- (paddleY() / veff());
+
+		return tr;
+	}
+	
+	
+	
+	// timeResidualsADC
+	// rename to timeResiduals to use this version comparing TDC time to ADC time
+	public double[] timeResidualsADC(double[] lambda, double[] order, int iter) {
+		double[] tr = { 0.0, 0.0 };
+
+		double timeL = tdcToTime(TDCL);
+		double timeR = tdcToTime(TDCR);
+
+		tr[LEFT] = timeL - this.ADC_TIMEL;
+		tr[RIGHT] = timeR - this.ADC_TIMER;
+
+		return tr;
+	}	
 
 	// timeResidualsVertex
 	// rename to timeResiduals to use this version using the TDC time - RF start time - flight and path
-	public double[] timeResiduals(double[] lambda, double[] order, int iter) {
+	public double[] timeResidualsVertex(double[] lambda, double[] order, int iter) {
 		double[] tr = { 0.0, 0.0 };
 
 		double lr = leftRightAdjustment(desc.getSector(), desc.getLayer(), desc.getComponent());
@@ -274,7 +309,7 @@ public class TOFPaddle {
 	// timeResidualsCheat
 	// rename to timeResiduals to use this version which uses the known correction for the opposite TDC
 	// may as well also change number of iterations to 1 in TofTimeWalkEventListener
-	public double[] timeResidualsCheat(double[] lambda, double[] order) {
+	public double[] timeResidualsCheat(double[] lambda, double[] order, int iter) {
 		double[] tr = { 0.0, 0.0 };
 
 		double timeL = tdcToTime(TDCL);
@@ -403,17 +438,18 @@ public class TOFPaddle {
 		double lr = 0.0;
 
 		if (tof == "FTOF") {
-			//if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_DEFAULT) {
-			//	lr = 0.0;
-			//}
-			//else {
+			if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_DEFAULT) {
+				lr = 0.0;
+			}
+			else {
 			lr = TOFCalibrationEngine.leftRightValues.getItem(sector, layer,
 					paddle);				
-			//}
+			}
 
 		} else {
-			lr = CTOFCalibrationEngine.leftRightValues.getItem(sector, layer,
-					paddle);
+			//lr = CTOFCalibrationEngine.leftRightValues.getItem(sector, layer,
+			//		paddle);
+			lr = -25.0;
 		}
 
 		return lr;
@@ -471,6 +507,10 @@ public class TOFPaddle {
 		double rotation = Math.toRadians((sector - 1) * 60);
 		return YPOS * Math.cos(rotation) - XPOS * Math.sin(rotation);
 	}
+	
+	public boolean trackFound() {
+		return (XPOS !=0.0 || YPOS !=0.0 || ZPOS !=0.0);
+	};
 
 	public double zPosCTOF() {
 		return ZPOS + 10.0;
