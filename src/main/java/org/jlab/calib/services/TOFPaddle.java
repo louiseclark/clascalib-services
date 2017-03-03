@@ -34,8 +34,8 @@ public class TOFPaddle {
 	public int PARTICLE_ID = -1;
 	public double START_TIME = 0.0;
 
-	public final int ELECTRON = 0;
-	public final int PION = 1;
+	public static final int PID_ELECTRON = 11;
+	//public final int PION = ;
 	private final double C = 29.98;
 
 	public TOFPaddle(int sector, int layer, int paddle) {
@@ -122,74 +122,12 @@ public class TOFPaddle {
 				&& (Math.abs(position() - this.zPosCTOF()) < 20.0);
 	}
 
-	public boolean includeInTimeWalk() {
-		// 
-		int layer = this.getDescriptor().getLayer();
-		int[] TW_ADC_MIN = {0,250,950,450};
-		int[] TW_ADC_MAX = {0,2000,3050,1550};
-		
-		double[] MIP = {0.0, 800.0, 2000.0, 800.0};
-		double[] MIP_DELTA = {0.0, 200.0, 500.0, 200.0};
-		double mip = MIP[this.getDescriptor().getLayer()];
-		double mipDelta = MIP_DELTA[this.getDescriptor().getLayer()];
-
-//		return ((this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0) &&
-//				(this.geometricMean() > mip - mipDelta) &&
-//				(this.geometricMean() < mip + mipDelta)
-//			    );
-		return (
-				(this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0) &&
-				(ADCL > TW_ADC_MIN[layer]) &&
-				(ADCL < TW_ADC_MAX[layer]) &&
-				(ADCR > TW_ADC_MIN[layer]) &&
-				(ADCR < TW_ADC_MAX[layer])
-				);
-		
-//		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0);
-		
-		//				&& (this.paddleY() / this.halfTimeDiff() > 8.0)
-		//				&& (this.paddleY() / this.halfTimeDiff() < 24.0);
-	}
-
 	public boolean isValidLogRatio() {
 		// only if geometric mean is over a minimum
 		double[] minGM = {0.0, 300.0, 500.0, 300.0};
 		int layer = this.getDescriptor().getLayer();
 		
 		return this.geometricMean() > minGM[layer];
-	}
-
-	public boolean includeInTimeWalkTest() {
-		// return true if x and y value is in certain range depending on paddle
-		// number
-		// and ADC is positive (only needed for testing where I'm manually
-		// subtracting the pedestal
-		// hard coded for s1p10
-		// set cutx and findrange functions in c++
-		int paddle = this.getDescriptor().getComponent() - 1;
-		double x = this.XPOS;
-		return !(paddle < 24 && x > 62.8 + 13.787 * paddle - 5 && x < 62.8 + 13.787 * paddle + 5)
-				// && (this.ADCL- getPedestalL() > 0.1 && this.ADCR -
-				// getPedestalR() > 0.1)
-				&& (this.ADCL > 0.1 && this.ADCR > 0.1)
-				&& (this.YPOS > -85 && this.YPOS < 85);
-
-	}
-
-	public double getPedestalL() {
-		// only needed for test data
-		// real data will have pedestal subtracted
-		// uses values from Haiyun's caldb test files
-		// hardcoded for S1 P10 as that's the data I have
-		return 442.0;
-	}
-
-	public double getPedestalR() {
-		// only needed for test data
-		// real data will have pedestal subtracted
-		// uses values from Haiyun's caldb test files
-		// hardcoded for S1 P10 as that's the data I have
-		return 410.0;
 	}
 
 	public double veff() {
@@ -208,33 +146,6 @@ public class TOFPaddle {
 		return veff;
 	}
 
-	// timeResidualsOrig
-	// rename to timeResiduals to use the original time walk algorithm
-	// also need to change number of iterations in TofTimeWalkEventListener to 5 (or however many iterations required)
-	public double[] timeResiduals(double[] lambda, double[] order, int iter) {
-		double[] tr = { 0.0, 0.0 };
-
-		double timeL = tdcToTime(TDCL);
-		double timeR = tdcToTime(TDCR);
-		// double timeL = getTWTimeL();
-		// double timeR = getTWTimeR();
-
-		//double corrFrac = 1.0;
-		//if (iter<3) corrFrac = 0.5;
-		//if (iter<7) corrFrac = 0.75;
-
-		double timeLCorr = timeL - (lambda[LEFT] / Math.pow(ADCL, order[LEFT]));
-		double timeRCorr = timeR
-				- (lambda[RIGHT] / Math.pow(ADCR, order[RIGHT]));
-
-		tr[LEFT] = ((timeL - timeRCorr - leftRightAdjustment(desc.getSector(),
-				desc.getLayer(), desc.getComponent())) / 2)
-				- (paddleY() / veff());
-		tr[RIGHT] = -(((timeLCorr - timeR - leftRightAdjustment(
-				desc.getSector(), desc.getLayer(), desc.getComponent())) / 2) - (paddleY() / veff()));
-
-		return tr;
-	}
 	
 	public double combinedRes() {
 		double tr = 0.0;
@@ -248,8 +159,6 @@ public class TOFPaddle {
 
 		return tr;
 	}
-	
-	
 	
 	// timeResidualsADC
 	// rename to timeResiduals to use this version comparing TDC time to ADC time
@@ -265,26 +174,44 @@ public class TOFPaddle {
 		return tr;
 	}	
 
-	// timeResidualsVertex
-	// rename to timeResiduals to use this version using the TDC time - RF start time - flight and path
-	public double[] timeResidualsVertex(double[] lambda, double[] order, int iter) {
-		double[] tr = { 0.0, 0.0 };
+
+	public boolean includeInTimeWalk() {
+		// 
+		return ( //this.PARTICLE_ID == PID_ELECTRON &&
+				(this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0) 
+				);		
+	}	
+	
+	public double deltaTLeft() {
+		double tr = 0.0;
 
 		double lr = leftRightAdjustment(desc.getSector(), desc.getLayer(), desc.getComponent());
 		double p2p = TOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
-		double timeL = tdcToTime(TDCL) - (lr/2) - p2p 
+		double dtL = tdcToTime(TDCL) - (lr/2) + p2p 
 				- ((0.5*paddleLength() + YPOS)/this.veff())
 				- (PATH_LENGTH/29.98)
-				- this.RF_TIME ; 
-		double timeR = tdcToTime(TDCR) + (lr/2) - p2p
+				- this.RF_TIME; 
+
+		dtL = ((dtL +120.0)%2.0);
+		if (dtL < 0.5) dtL = dtL +2.0;
+		return dtL;
+//		return ((dtL +120.0)%2.0);
+	}
+
+	public double deltaTRight() {
+		double tr = 0.0;
+
+		double lr = leftRightAdjustment(desc.getSector(), desc.getLayer(), desc.getComponent());
+		double p2p = TOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
+		double dtR = tdcToTime(TDCR) + (lr/2) + p2p
 				- ((0.5*paddleLength() - YPOS)/this.veff())
 				- (PATH_LENGTH/29.98)
 				- this.RF_TIME;
 
-		tr[LEFT] = timeL;
-		tr[RIGHT] = timeR;
-
-		return tr;
+		dtR = ((dtR +120.0)%2.0);
+		if (dtR < 0.5) dtR = dtR +2.0;
+		return dtR;
+//		return ((timeR +120.0)%2.0);
 	}
 	
 	public double paddleLength() {
@@ -304,45 +231,6 @@ public class TOFPaddle {
 
 		return len;
 
-	}
-
-	// timeResidualsCheat
-	// rename to timeResiduals to use this version which uses the known correction for the opposite TDC
-	// may as well also change number of iterations to 1 in TofTimeWalkEventListener
-	public double[] timeResidualsCheat(double[] lambda, double[] order, int iter) {
-		double[] tr = { 0.0, 0.0 };
-
-		double timeL = tdcToTime(TDCL);
-		double timeR = tdcToTime(TDCR);
-		// double timeL = getTWTimeL();
-		// double timeR = getTWTimeR();
-
-		double timeLCorr = timeLeftAfterTW();
-		double timeRCorr = timeRightAfterTW();
-
-		tr[LEFT] = ((timeL - timeRCorr - leftRightAdjustment(desc.getSector(),
-				desc.getLayer(), desc.getComponent())) / 2)
-				- (paddleY() / veff());
-		tr[RIGHT] = -(((timeLCorr - timeR - leftRightAdjustment(
-				desc.getSector(), desc.getLayer(), desc.getComponent())) / 2) - (paddleY() / veff()));
-
-		return tr;
-	}
-
-	public double[] timeResidualsTest(double[] lambda, double[] order) {
-		double[] tr = { 0.0, 0.0 };
-
-		double timeL = tdcToTime(TDCL);
-		double timeR = tdcToTime(TDCR);
-
-		double timeLCorr = timeL - (lambda[LEFT] / Math.pow(ADCL, order[LEFT]));
-		double timeRCorr = timeR
-				- (lambda[RIGHT] / Math.pow(ADCR, order[RIGHT]));
-
-		tr[LEFT] = ((timeL - timeR) / 2) - (paddleY() / veff());
-		tr[RIGHT] = ((timeLCorr - timeRCorr) / 2) - (paddleY() / veff());
-
-		return tr;
 	}
 
 	public double leftRight() {
@@ -367,35 +255,8 @@ public class TOFPaddle {
 		}
 	}
 
-	public double timeTWCorr(double time, double adc) {
-
-		return time - (40.0 / Math.pow(adc, 0.5));
-
-	}
-
 	public boolean isValidLeftRight() {
 		return (tdcToTime(TDCL) != tdcToTime(TDCR));
-	}
-
-	public double getTWTimeL() {
-		// uses values from Haiyun's caldb test files
-		// hardcoded for S1 P10 as that's the data I have
-		double c1 = -0.0981149;
-		double c0 = 433.845;
-		return c0 + c1 * this.TDCL;
-	}
-
-	public double getTWTimeR() {
-		// hardcoded for S1 P10 as that's the data I have
-		double c1 = -0.0981185;
-		double c0 = 437.063;
-		return c0 + c1 * this.TDCR;
-	}
-
-	double clas6TdcToTime(double value) {
-		double c1 = 0.0009811; // average value from CLAS
-		double c0 = 0;
-		return c0 + c1 * value;
 	}
 
 	double tdcToTime(double value) {
@@ -404,26 +265,12 @@ public class TOFPaddle {
 		return c0 + c1 * value;
 	}
 
-	double clas6HalfTimeDiff() {
-
-		double timeL = getTWTimeL();
-		double timeR = getTWTimeR();
-		return (timeL - timeR) / 2;
-	}
-
 	public double halfTimeDiff() {
 
 		double timeL = timeLeftAfterTW();
 		double timeR = timeRightAfterTW();
 		return (timeL - timeR - leftRightAdjustment(desc.getSector(),
 				desc.getLayer(), desc.getComponent())) / 2;
-	}
-
-	public double halfTimeDiffWithTW() {
-
-		double timeL = timeTWCorr(tdcToTime(TDCL), ADCL);
-		double timeR = timeTWCorr(tdcToTime(TDCR), ADCR);
-		return (timeL - timeR) / 2;
 	}
 
 	public double recHalfTimeDiff() {

@@ -38,6 +38,9 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public final static int		FUNC_LINE_WIDTH = 2;
 	public final static int		MARKER_LINE_WIDTH = 1;
 	
+	// Run constants
+	public final static double BEAM_BUCKET = 2.0; // 2.0 for simulations, 2.004 for real data
+	
 	public IndexedList<Double[]> constants = new IndexedList<Double[]>(3);
 
 	public CalibrationConstants calib;

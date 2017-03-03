@@ -63,16 +63,16 @@ public class DataProvider {
 	public static List<TOFPaddle> getPaddleList(DataEvent event) {
 
 		List<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
-		
+
 		if (test) {
 			//event.show();
 		}
-//		EvioDataEvent e = (EvioDataEvent) event;
-//		e.show();
-		
+		//		EvioDataEvent e = (EvioDataEvent) event;
+		//		e.show();
+
 		paddleList = getPaddleListHipo(event);
 		//paddleList = getPaddleListDgtzNew(event);
-		
+
 		return paddleList;
 
 	}
@@ -93,9 +93,8 @@ public class DataProvider {
 			}
 		}
 
-		
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
-		
+
 		// Only continue if we have adc and tdc banks
 		if (!event.hasBank("FTOF::adc") || !event.hasBank("FTOF::tdc")) {
 			return paddleList;
@@ -103,12 +102,38 @@ public class DataProvider {
 
 		DataBank  adcBank = event.getBank("FTOF::adc");
 		DataBank  tdcBank = event.getBank("FTOF::tdc");
-				
+
+		// Get the generated electron
+		Particle electronGen = null;
+
+		// loop over generated particles
+		DataBank genBank = event.getBank("MC::Particle");
+		if(genBank!=null) {
+			int nrows = genBank.rows();
+			for(int loop = 0; loop < nrows; loop++) {   
+				Particle genPart = new Particle(
+						genBank.getInt("pid", loop),
+						genBank.getFloat("px", loop),
+						genBank.getFloat("py", loop),
+						genBank.getFloat("pz", loop),
+						genBank.getFloat("vx", loop),
+						genBank.getFloat("vy", loop),
+						genBank.getFloat("vz", loop));
+				if(genPart.pid()==11) {
+					electronGen = genPart;
+				}
+			}
+		}		
+
 		// iterate through hits bank getting corresponding adc and tdc
 		if (event.hasBank("FTOF::hits")) {
 			DataBank  hitsBank = event.getBank("FTOF::hits");
-			
+
 			for (int hitIndex=0; hitIndex<hitsBank.rows(); hitIndex++) {
+
+				double tx     = hitsBank.getFloat("tx", hitIndex);
+				double ty     = hitsBank.getFloat("ty", hitIndex);
+				double tz     = hitsBank.getFloat("tz", hitIndex);
 
 				TOFPaddle  paddle = new TOFPaddle(
 						(int) hitsBank.getByte("sector", hitIndex),
@@ -118,11 +143,46 @@ public class DataProvider {
 						adcBank.getInt("ADC", hitsBank.getShort("adc_idx2", hitIndex)),
 						tdcBank.getInt("TDC", hitsBank.getShort("tdc_idx1", hitIndex)),
 						tdcBank.getInt("TDC", hitsBank.getShort("tdc_idx2", hitIndex)),
-						hitsBank.getFloat("tx", hitIndex),
-						hitsBank.getFloat("ty", hitIndex),
-						0.0); 
+						tx,ty,tz); 
 				paddle.ADC_TIMEL = adcBank.getFloat("time", hitsBank.getShort("adc_idx1", hitIndex));
 				paddle.ADC_TIMER = adcBank.getFloat("time", hitsBank.getShort("adc_idx2", hitIndex));
+
+				if (event.hasBank("HitBasedTrkg::HBTracks") && event.hasBank("RUN::rf")) {
+
+					DataBank  hbtBank = event.getBank("HitBasedTrkg::HBTracks");
+					DataBank  rfBank = event.getBank("RUN::rf");
+
+					// Identify electrons and store path length etc for time walk
+					int trkId = hitsBank.getShort("trackid", hitIndex);
+					double energy = hitsBank.getFloat("energy", hitIndex);
+					double trf = rfBank.getFloat("time",0);
+
+					// only use hit with associated track and a minimum energy
+					if (trkId!=-1 && energy>1.5) {
+						double c3x  = hbtBank.getFloat("c3_x",trkId-1);
+						double c3y  = hbtBank.getFloat("c3_y",trkId-1);
+						double c3z  = hbtBank.getFloat("c3_z",trkId-1);
+						double path = hbtBank.getFloat("pathlength",trkId-1) + Math.sqrt((tx-c3x)*(tx-c3x)+(ty-c3y)*(ty-c3y)+(tz-c3z)*(tz-c3z));
+						paddle.PATH_LENGTH = path;
+						paddle.RF_TIME = trf;
+						System.out.println("trf "+trf);
+						
+						// check if it's an electron by matching to the generated particle
+						int    q    = hbtBank.getByte("q",trkId-1);
+						double p0x  = hbtBank.getFloat("p0_x",trkId-1);
+						double p0y  = hbtBank.getFloat("p0_y",trkId-1);
+						double p0z  = hbtBank.getFloat("p0_z",trkId-1);
+						Particle recParticle = new Particle(11,p0x,p0y,p0z,0,0,0);
+						
+						// select negative tracks matching the generated electron as electron candidates
+						if(q==-1
+								&& Math.abs(recParticle.p()-electronGen.p())<0.5
+						        && Math.abs(Math.toDegrees(recParticle.theta()-electronGen.theta()))<2.0
+						        && Math.abs(Math.toDegrees(recParticle.phi()-electronGen.phi()))<8) {
+							paddle.PARTICLE_ID = TOFPaddle.PID_ELECTRON;
+						} 
+					}
+				}
 
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);
@@ -132,44 +192,44 @@ public class DataProvider {
 		else {
 			// no hits bank, so just use adc and tdc
 			// making assumptions about the order of fields as can't get Veronique's matching to work
-//			for (int i = 0; i < adcBank.rows(); i++) {
-//				int order = adcBank.getByte("order", i);
-//				if (order==0) {
-//					// ADC Left at index i
-//					// ADC Right at index i+1
-//					int adcL = adcBank.getInt("ADC", i);
-//					int adcR = adcBank.getInt("ADC", i+1);
-//					if (adcL>100 && adcR>100) {
-//						int sector = adcBank.getByte("sector", i);
-//						int layer = adcBank.getByte("layer", i);
-//						int component = adcBank.getShort("component", i);
-//						int tdcL = tdcBank.getInt("TDC", i);
-//						int tdcR = tdcBank.getInt("TDC", i+1);
-//
-//						TOFPaddle  paddle = new TOFPaddle(
-//								sector,
-//								layer,
-//								component,
-//								adcL, adcR, tdcL, tdcR);
-//
-//						if (paddle.includeInCalib()) {
-//							paddleList.add(paddle);							
-//						}
-//					}
-//				}
-//			}
-			
-			
+			//			for (int i = 0; i < adcBank.rows(); i++) {
+			//				int order = adcBank.getByte("order", i);
+			//				if (order==0) {
+			//					// ADC Left at index i
+			//					// ADC Right at index i+1
+			//					int adcL = adcBank.getInt("ADC", i);
+			//					int adcR = adcBank.getInt("ADC", i+1);
+			//					if (adcL>100 && adcR>100) {
+			//						int sector = adcBank.getByte("sector", i);
+			//						int layer = adcBank.getByte("layer", i);
+			//						int component = adcBank.getShort("component", i);
+			//						int tdcL = tdcBank.getInt("TDC", i);
+			//						int tdcR = tdcBank.getInt("TDC", i+1);
+			//
+			//						TOFPaddle  paddle = new TOFPaddle(
+			//								sector,
+			//								layer,
+			//								component,
+			//								adcL, adcR, tdcL, tdcR);
+			//
+			//						if (paddle.includeInCalib()) {
+			//							paddleList.add(paddle);							
+			//						}
+			//					}
+			//				}
+			//			}
+
+
 			// based on cosmic data
 			// am getting entry for every PMT in ADC bank
 			// ADC R two indices after ADC L (will assume right is always after left)
 			// TDC bank only has actual hits, so can just search the whole bank for matching SLC
-			
+
 			for (int i = 0; i < adcBank.rows(); i++) {
 				int order = adcBank.getByte("order", i);
 				int adc = adcBank.getInt("ADC", i);
 				if (order==0 && adc != 0) {
-					
+
 					int sector = adcBank.getByte("sector", i);
 					int layer = adcBank.getByte("layer", i);
 					int component = adcBank.getShort("component", i);
@@ -179,7 +239,7 @@ public class DataProvider {
 					float adcTimeR = 0;
 					int tdcL = 0;
 					int tdcR = 0;
-					
+
 					// ADC Left at index i
 					// ADC Right at index i+2 probably, but just search forward til find it
 					for (int j=i+1; j < adcBank.rows(); j++) {
@@ -220,12 +280,12 @@ public class DataProvider {
 							break;
 						}
 					}
-					
+
 					if (test) {
 						System.out.println("Values found "+sector+layer+component);
 						System.out.println(adcL+" "+adcR+" "+tdcL+" "+tdcR);
 					}
-					
+
 					if (adcL>100 && adcR>100) {
 
 						TOFPaddle  paddle = new TOFPaddle(
@@ -237,7 +297,7 @@ public class DataProvider {
 						paddle.ADC_TIMER = adcTimeR;
 
 						if (paddle.includeInCalib()) {
-							
+
 							if (test) {
 								System.out.println("Adding paddle "+sector+layer+component);
 								System.out.println(adcL + " "+adcR+" "+tdcL+" "+tdcR);
@@ -247,7 +307,7 @@ public class DataProvider {
 					}
 				}
 			}
-			
+
 		}
 		//		else {
 		//			// no hits bank, so just use adc and tdc
@@ -331,7 +391,7 @@ public class DataProvider {
 					// to get the hit position from tracking
 					EvioDataBank hitsBank = (EvioDataBank) event.getBank("FTOFRec::ftofhits");
 					EvioDataBank tracksBank = (EvioDataBank) event.getBank("HitBasedTrkg::HBTracks");
-//					EvioDataBank dchitsBank = (EvioDataBank) event.getBank("HitBasedTrkg::HBHits");
+					//					EvioDataBank dchitsBank = (EvioDataBank) event.getBank("HitBasedTrkg::HBHits");
 					TOFCalibration.hitsPerBankHist.fill(hitsBank.rows());
 
 					for (int hitIndex = 0; hitIndex < hitsBank.rows(); hitIndex++) {
@@ -358,7 +418,7 @@ public class DataProvider {
 								//										hitsBank.show();
 								//									}
 								//								}
-								
+
 								// Find the path length from DC
 								// = DC pathlength + (pathlength region 3 -> tof)
 								int trk_id = hitsBank.getInt("trkId", hitIndex);
@@ -367,15 +427,15 @@ public class DataProvider {
 								double c3z  = (double) tracksBank.getFloat("c3_z",trk_id);
 								path = tracksBank.getFloat("pathlength", trk_id) + 
 										Math.sqrt((xpos-c3x)*(xpos-c3x)+(ypos-c3y)*(ypos-c3y)+(zpos-c3z)*(zpos-c3z));
-//								// Get the associated hit
-//								double dcTime = 0.0;
-//								for (int hbhidx=0; hbhidx<dchitsBank.rows(); hbhidx++) {
-//									if (trk_id==dchitsBank.getInt("trkID", hbhidx)) {
-//										dcTime = dchitsBank.getFloat("time", hbhidx);
-//									}
-//								}
-//								hitTime = dcTime + path / 29.97;
-							
+								//								// Get the associated hit
+								//								double dcTime = 0.0;
+								//								for (int hbhidx=0; hbhidx<dchitsBank.rows(); hbhidx++) {
+								//									if (trk_id==dchitsBank.getInt("trkID", hbhidx)) {
+								//										dcTime = dchitsBank.getFloat("time", hbhidx);
+								//									}
+								//								}
+								//								hitTime = dcTime + path / 29.97;
+
 							}
 						}
 					}
@@ -392,7 +452,7 @@ public class DataProvider {
 						xpos,
 						ypos,
 						path);
-				
+
 				// set status to ok if at least one reading
 				if (paddle.ADCL!=0.0) {
 					TOFCalibrationEngine.adcLeftStatus.add(0, sector,layer,component);
@@ -673,21 +733,21 @@ public class DataProvider {
 		for (DetectorDataDgtz bank : detectorData) {
 
 			if(bank.getDescriptor().getType().getName()=="FTOF") {
-				
+
 				int sector = bank.getDescriptor().getSector();
 				int layer = bank.getDescriptor().getLayer(); 
 				int component = bank.getDescriptor().getComponent();
 				int order = bank.getDescriptor().getOrder(); // 0=ADCL 1=ADCR 2=TDCL 3=TDCR	    	
-				
+
 
 				if (test) {
 					System.out.println("New FTOF bank");
 					System.out.println(order+" "+sector+" "+layer+" "+component);
 
-										System.out.println("ORDER "+order);
-										System.out.println("SLC "+sector+layer+component);
-										System.out.println("ADCSize "+bank.getADCSize());
-										System.out.println("TDCSize "+bank.getTDCSize());
+					System.out.println("ORDER "+order);
+					System.out.println("SLC "+sector+layer+component);
+					System.out.println("ADCSize "+bank.getADCSize());
+					System.out.println("TDCSize "+bank.getTDCSize());
 					if (bank.getADCSize()>0) {
 						System.out.println("getADC0 "+bank.getADCData(0).getADC());
 						System.out.println("getIntegral0 "+bank.getADCData(0).getIntegral());
@@ -695,8 +755,8 @@ public class DataProvider {
 					if (bank.getTDCSize()>0) {
 						System.out.println("getTDC0 "+bank.getTDCData(0).getTime());
 					}
-										System.out.println("TDCL "+bank.getTDCData(0).getTime());
-										System.out.println("TDCR "+bank.getTDCData(1).getTime());
+					System.out.println("TDCL "+bank.getTDCData(0).getTime());
+					System.out.println("TDCR "+bank.getTDCData(1).getTime());
 
 				}
 
