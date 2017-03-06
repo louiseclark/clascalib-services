@@ -27,6 +27,7 @@ public class TOFPaddle {
 	public double YPOS = 0.0;
 	public double ZPOS = 0.0;
 	public double PATH_LENGTH = 0.0;
+	public double BETA = 0.0;
 	public double RF_TIME = 124.25;
 	public double TOF_TIME = 0.0;
 	public double FLIGHT_TIME = 0.0;
@@ -187,15 +188,19 @@ public class TOFPaddle {
 
 		double lr = leftRightAdjustment(desc.getSector(), desc.getLayer(), desc.getComponent());
 		double p2p = TOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
+		
+		double beta = 1.0;
+		if (BETA != 0.0) {
+			beta = BETA;
+		}
+		
 		double dtL = tdcToTime(TDCL) - (lr/2) + p2p 
-				- ((0.5*paddleLength() + YPOS)/this.veff())
-				- (PATH_LENGTH/29.98)
-				- this.RF_TIME; 
-
+				- ((0.5*paddleLength() + paddleY())/this.veff())
+				- (PATH_LENGTH/(beta*29.98))
+				- this.RF_TIME;
+		
 		dtL = ((dtL +120.0)%2.0);
-		if (dtL < 0.5) dtL = dtL +2.0;
 		return dtL;
-//		return ((dtL +120.0)%2.0);
 	}
 
 	public double deltaTRight() {
@@ -203,15 +208,19 @@ public class TOFPaddle {
 
 		double lr = leftRightAdjustment(desc.getSector(), desc.getLayer(), desc.getComponent());
 		double p2p = TOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
+		
+		double beta = 1.0;
+		if (BETA != 0.0) {
+			beta = BETA;
+		}
+		
 		double dtR = tdcToTime(TDCR) + (lr/2) + p2p
-				- ((0.5*paddleLength() - YPOS)/this.veff())
-				- (PATH_LENGTH/29.98)
+				- ((0.5*paddleLength() - paddleY())/this.veff())
+				- (PATH_LENGTH/(beta*29.98))
 				- this.RF_TIME;
 
 		dtR = ((dtR +120.0)%2.0);
-		if (dtR < 0.5) dtR = dtR +2.0;
 		return dtR;
-//		return ((timeR +120.0)%2.0);
 	}
 	
 	public double paddleLength() {

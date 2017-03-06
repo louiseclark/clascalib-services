@@ -81,6 +81,7 @@ public class DataProvider {
 	public static List<TOFPaddle> getPaddleListHipo(DataEvent event){
 
 		if (test) {
+
 			event.show();
 			if (event.hasBank("FTOF::adc")) {
 				event.getBank("FTOF::adc").show();
@@ -90,6 +91,12 @@ public class DataProvider {
 			}
 			if (event.hasBank("FTOF::hits")) {
 				event.getBank("FTOF::hits").show();
+			}
+			if (event.hasBank("HitBasedTrkg::HBTracks")) {
+				event.getBank("HitBasedTrkg::HBTracks").show();
+			}
+			if (event.hasBank("RUN::rf")) {
+				event.getBank("RUN::rf").show();
 			}
 		}
 
@@ -104,26 +111,26 @@ public class DataProvider {
 		DataBank  tdcBank = event.getBank("FTOF::tdc");
 
 		// Get the generated electron
-		Particle electronGen = null;
+//		Particle electronGen = null;
 
 		// loop over generated particles
-		DataBank genBank = event.getBank("MC::Particle");
-		if(genBank!=null) {
-			int nrows = genBank.rows();
-			for(int loop = 0; loop < nrows; loop++) {   
-				Particle genPart = new Particle(
-						genBank.getInt("pid", loop),
-						genBank.getFloat("px", loop),
-						genBank.getFloat("py", loop),
-						genBank.getFloat("pz", loop),
-						genBank.getFloat("vx", loop),
-						genBank.getFloat("vy", loop),
-						genBank.getFloat("vz", loop));
-				if(genPart.pid()==11) {
-					electronGen = genPart;
-				}
-			}
-		}		
+//		DataBank genBank = event.getBank("MC::Particle");
+//		if(genBank!=null) {
+//			int nrows = genBank.rows();
+//			for(int loop = 0; loop < nrows; loop++) {   
+//				Particle genPart = new Particle(
+//						genBank.getInt("pid", loop),
+//						genBank.getFloat("px", loop),
+//						genBank.getFloat("py", loop),
+//						genBank.getFloat("pz", loop),
+//						genBank.getFloat("vx", loop),
+//						genBank.getFloat("vy", loop),
+//						genBank.getFloat("vz", loop));
+//				if(genPart.pid()==11) {
+//					electronGen = genPart;
+//				}
+//			}
+//		}		
 
 		// iterate through hits bank getting corresponding adc and tdc
 		if (event.hasBank("FTOF::hits")) {
@@ -148,6 +155,7 @@ public class DataProvider {
 				paddle.ADC_TIMER = adcBank.getFloat("time", hitsBank.getShort("adc_idx2", hitIndex));
 
 				if (event.hasBank("HitBasedTrkg::HBTracks") && event.hasBank("RUN::rf")) {
+					//if (event.hasBank("HitBasedTrkg::HBTracks")) {
 
 					DataBank  hbtBank = event.getBank("HitBasedTrkg::HBTracks");
 					DataBank  rfBank = event.getBank("RUN::rf");
@@ -165,22 +173,30 @@ public class DataProvider {
 						double path = hbtBank.getFloat("pathlength",trkId-1) + Math.sqrt((tx-c3x)*(tx-c3x)+(ty-c3y)*(ty-c3y)+(tz-c3z)*(tz-c3z));
 						paddle.PATH_LENGTH = path;
 						paddle.RF_TIME = trf;
-						System.out.println("trf "+trf);
 						
+						// Get the momentum and record the beta (assuming every hit is a pion!)
+						double px  = hbtBank.getFloat("p0_x",trkId-1);
+						double py  = hbtBank.getFloat("p0_y",trkId-1);
+						double pz  = hbtBank.getFloat("p0_z",trkId-1);
+						double mom = Math.sqrt(px*px + py*py + pz*pz);
+						double beta = mom/Math.sqrt(mom*mom+0.139*0.139);
+						paddle.BETA = beta;
+						
+
 						// check if it's an electron by matching to the generated particle
-						int    q    = hbtBank.getByte("q",trkId-1);
-						double p0x  = hbtBank.getFloat("p0_x",trkId-1);
-						double p0y  = hbtBank.getFloat("p0_y",trkId-1);
-						double p0z  = hbtBank.getFloat("p0_z",trkId-1);
-						Particle recParticle = new Particle(11,p0x,p0y,p0z,0,0,0);
-						
-						// select negative tracks matching the generated electron as electron candidates
-						if(q==-1
-								&& Math.abs(recParticle.p()-electronGen.p())<0.5
-						        && Math.abs(Math.toDegrees(recParticle.theta()-electronGen.theta()))<2.0
-						        && Math.abs(Math.toDegrees(recParticle.phi()-electronGen.phi()))<8) {
-							paddle.PARTICLE_ID = TOFPaddle.PID_ELECTRON;
-						} 
+//						int    q    = hbtBank.getByte("q",trkId-1);
+//						double p0x  = hbtBank.getFloat("p0_x",trkId-1);
+//						double p0y  = hbtBank.getFloat("p0_y",trkId-1);
+//						double p0z  = hbtBank.getFloat("p0_z",trkId-1);
+//						Particle recParticle = new Particle(11,p0x,p0y,p0z,0,0,0);
+//
+//						// select negative tracks matching the generated electron as electron candidates
+//						if(q==-1
+//								&& Math.abs(recParticle.p()-electronGen.p())<0.5
+//								&& Math.abs(Math.toDegrees(recParticle.theta()-electronGen.theta()))<2.0
+//								&& Math.abs(Math.toDegrees(recParticle.phi()-electronGen.phi()))<8) {
+//							paddle.PARTICLE_ID = TOFPaddle.PID_ELECTRON;
+//						} 
 					}
 				}
 

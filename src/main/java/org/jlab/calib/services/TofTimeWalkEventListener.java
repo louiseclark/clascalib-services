@@ -155,6 +155,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	@Override
 	public void timerUpdate() {
 		// only analyze at end of events for timewalk
+		
+		refreshAdjustedHists();
 		save();
 		calib.fireTableDataChanged();
 	}
@@ -169,7 +171,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 
 					// data group format is
-					DataGroup dg = new DataGroup(2,2);
+					DataGroup dg = new DataGroup(2,3);
 
 					// create all the histograms
 					H2F leftHist = new H2F("trLeftHist",
@@ -195,6 +197,31 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					dg.addDataSet(leftHist, 0);
 					dg.addDataSet(rightHist, 1);
 
+					// and the adjusted histograms
+					H2F alHist = new H2F("adjLeftHist",
+							"Time residual vs ADC LEFT Sector "+sector+
+							" Paddle "+paddle,
+							100, ADC_MIN[layer], ADC_MAX[layer],
+							100, 0.0, 5.0);
+					H2F arHist = new H2F("adjRightHist",
+							"Time residual vs ADC RIGHT Sector "+sector+
+							" Paddle "+paddle,
+							100, ADC_MIN[layer], ADC_MAX[layer],
+							100, 0.0, 5.0);
+
+					alHist.setTitle("Time residual vs ADC LEFT : " + LAYER_NAME[layer_index] 
+							+ " Sector "+sector+" Paddle "+paddle);
+					alHist.setTitleX("ADC LEFT");
+					alHist.setTitleY("Time residual (ns)");
+					arHist.setTitle("Time residual vs ADC RIGHT : " + LAYER_NAME[layer_index] 
+							+ " Sector "+sector+" Paddle "+paddle);
+					arHist.setTitleX("ADC RIGHT");
+					arHist.setTitleY("Time residual (ns)");
+
+					dg.addDataSet(alHist, 2);
+					dg.addDataSet(arHist, 3);
+					
+					
 					// create all the functions and graphs
 					//F1D trLeftFunc = new F1D("trLeftFunc", "([b]/(x^0.5))+[a]", FIT_MIN[layer], FIT_MAX[layer]);
 					F1D trLeftFunc = new F1D("trLeftFunc", "([b]/(x^[c]))", FIT_MIN[layer], FIT_MAX[layer]);
@@ -215,10 +242,10 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					trRightGraph.setMarkerSize(MARKER_SIZE);
 					trRightGraph.setLineThickness(MARKER_LINE_WIDTH);
 
-					dg.addDataSet(trLeftFunc, 2);
-					dg.addDataSet(trLeftGraph, 2);
-					dg.addDataSet(trRightFunc, 3);
-					dg.addDataSet(trRightGraph, 3);
+					dg.addDataSet(trLeftFunc, 4);
+					dg.addDataSet(trLeftGraph, 4);
+					dg.addDataSet(trRightFunc, 5);
+					dg.addDataSet(trRightGraph, 5);
 
 					if (calibChallTest) {
 						// ************  TEST ***************
@@ -242,8 +269,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 						smearedRightFunc.setLineWidth(FUNC_LINE_WIDTH);
 
 						if (calibChallTest) {
-							dg.addDataSet(smearedLeftFunc, 2);
-							dg.addDataSet(smearedRightFunc, 3);
+							dg.addDataSet(smearedLeftFunc, 4);
+							dg.addDataSet(smearedRightFunc, 5);
 						}
 					}
 
@@ -290,6 +317,47 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			}
 		}
 	}	
+	
+	public void refreshAdjustedHists() {
+		
+		double[] mipPeak = {0.0, 800.0, 2000.0, 800.0};
+		
+		for (int sector = 1; sector <= 6; sector++) {
+			for (int layer = 1; layer <= 3; layer++) {
+				int layer_index = layer - 1;
+				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
+					
+					// Get value of deltaT at MIP peak
+					H2F hist = dataGroups.getItem(sector,layer,paddle).getH2F("trLeftHist");
+					int mipXBin = hist.getXAxis().getBin(mipPeak[layer]);
+					ArrayList<H1F> slices = hist.getSlicesX();
+					H1F mipSlice = slices.get(mipXBin);
+					int mipDtBin = mipSlice.getMaximumBin();
+					double mipDt = hist.getYAxis().getBinCenter(mipDtBin);
+					
+					// now fill adjusted histogram with values +/- 1 ns of mipDt
+					H2F adjHist = dataGroups.getItem(sector,layer,paddle).getH2F("adjLeftHist");
+					for (int i=0; i<hist.getXAxis().getNBins(); i++) {
+						for (int j=0; j<hist.getYAxis().getNBins(); j++) {
+							
+							double yBinCenter = hist.getYAxis().getBinCenter(j);
+							// if within 1 ns of mipDt leave bin unchanged
+							if (Math.abs(yBinCenter - mipDt) < 1.0) {
+								int newYBin = adjHist.getYAxis().getBin(yBinCenter);
+								adjHist.setBinContent(i, newYBin, hist.getBinContent(i, j));
+							}
+							else {
+								// plot point 1 beam bucket up the y axis
+								int newYBin = adjHist.getYAxis().getBin(yBinCenter+2.0);
+								adjHist.setBinContent(i, newYBin, hist.getBinContent(i, j));
+							}
+						}
+					}
+					
+				}
+			}
+		}		
+	}
 
 	@Override
 	public void fit(int sector, int layer, int paddle, double minRange, double maxRange) {
@@ -545,16 +613,26 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
-		if (showPlotType == "TW_LEFT") {
-			H2F hist = dataGroups.getItem(sector,layer,paddle).getH2F("trLeftHist");
-			canvas.draw(hist);	
-			canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc"), "same");
+		H2F hist = new H2F();
+		F1D func = new F1D("trFunc");
+		F1D smfunc = new F1D("trsmFunc");
+		if (showPlotType == "TW_LEFT") { 
+			hist = dataGroups.getItem(sector,layer,paddle).getH2F("trLeftHist");
+			func = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc");
+			smfunc = dataGroups.getItem(sector,layer,paddle).getF1D("smLeftFunc");
 		}
 		else {
-			H2F hist = dataGroups.getItem(sector,layer,paddle).getH2F("trRightHist");
-			canvas.draw(hist);
-			canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc"), "same");
+			hist = dataGroups.getItem(sector,layer,paddle).getH2F("trRightHist");
+			func = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc");
+			smfunc = dataGroups.getItem(sector,layer,paddle).getF1D("smRightFunc");
 		}
+		
+		hist.setTitle("Paddle "+paddle);
+		hist.setTitleX("");
+		hist.setTitleY("");
+		canvas.draw(hist);	
+		canvas.draw(func, "same");
+		canvas.draw(smfunc, "same");
 	}
 	
 	@Override
