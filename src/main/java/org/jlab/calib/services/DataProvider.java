@@ -181,7 +181,6 @@ public class DataProvider {
 						double mom = Math.sqrt(px*px + py*py + pz*pz);
 						double beta = mom/Math.sqrt(mom*mom+0.139*0.139);
 						paddle.BETA = beta;
-						
 
 						// check if it's an electron by matching to the generated particle
 //						int    q    = hbtBank.getByte("q",trkId-1);

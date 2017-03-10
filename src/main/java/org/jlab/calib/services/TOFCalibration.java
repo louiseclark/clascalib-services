@@ -50,7 +50,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     
     // event reading panel
     DataSourceProcessorPane processorPane = null;
-    public final int UPDATE_RATE = 100000;
+    public final int UPDATE_RATE = 50000;
     
     // calibration view
 	EmbeddedCanvas 	canvas = null;   
@@ -309,11 +309,9 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		//for (int i=4; i<5; i++) { //only timewalk
 		
     		if (event.getType()==DataEventType.EVENT_START) {
-    			//System.out.println("resetEventListener engine "+i);
     			engines[i].resetEventListener();
-    			//System.out.println("resetEventListener engine middle "+i);
     			engines[i].processPaddleList(paddleList);
-    			//System.out.println("resetEventListener engine end "+i);
+    			
     		}
     		else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
     			engines[i].processPaddleList(paddleList);
@@ -337,6 +335,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
     	for (int i=0; i< engines.length; i++) {
 		//for (int i=4; i< 5; i++) {
+    		System.out.println("Timer update for "+engines[i].stepName);
     		engines[i].timerUpdate();
     	}
 		
