@@ -155,12 +155,16 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	
 	@Override
 	public void processPaddleList(List<TOFPaddle> paddleList) {
+		
+		//System.out.println("HV Process paddle list");
 
 		for (TOFPaddle paddle : paddleList) {
 			
 			int sector = paddle.getDescriptor().getSector();
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
+			
+			//System.out.println("HV paddle "+sector+layer+component+" geoMean "+paddle.geometricMean());
 
 			if (paddle.isValidGeoMean() && paddle.geometricMean() > EXPECTED_MIP_CHANNEL[layer-1] * 0.25
 					&& paddle.trackFound()) {

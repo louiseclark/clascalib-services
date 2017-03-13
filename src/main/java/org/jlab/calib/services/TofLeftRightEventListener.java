@@ -64,15 +64,14 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		calib.setPrecision(3);
 
 		calib.addConstraint(3, -MAX_LEFTRIGHT, MAX_LEFTRIGHT);
-
+		
 		if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_FILE) {
 
 			// read in the left right values from the text file
-			//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20161215_1M_events_after_tw.txt";
-			//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20170103.test2.txt";
-			//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20170210.1.txt";
-			String inputFile = "/home/louise/workspace/clascalib-services/ftof.timing_offset.smeared.txt";
 
+			// Calibration challenge smeared values
+			String inputFile = "/home/louise/workspace/clascalib-services/ftof.timing_offset.smeared.txt";
+			
 			String line = null;
 			try { 
 

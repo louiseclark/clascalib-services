@@ -50,7 +50,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     
     // event reading panel
     DataSourceProcessorPane processorPane = null;
-    public final int UPDATE_RATE = 50000;
+    public final int UPDATE_RATE = 100000;
     
     // calibration view
 	EmbeddedCanvas 	canvas = null;   

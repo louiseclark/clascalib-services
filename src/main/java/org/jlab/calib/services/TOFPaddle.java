@@ -36,7 +36,7 @@ public class TOFPaddle {
 	public double START_TIME = 0.0;
 
 	public static final int PID_ELECTRON = 11;
-	//public final int PION = ;
+	public static final int PID_PION = 211;
 	private final double C = 29.98;
 
 	public TOFPaddle(int sector, int layer, int paddle) {
@@ -147,6 +147,19 @@ public class TOFPaddle {
 		return veff;
 	}
 
+	public double p2p() {
+		double p2p = 0.0;
+		if (tof == "FTOF") {
+			if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_FILE) {
+				p2p = TOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
+			}
+		} else {
+			p2p = 0.0;
+//			p2p = CTOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
+		}
+
+		return p2p;
+	}
 	
 	public double combinedRes() {
 		double tr = 0.0;
@@ -183,11 +196,23 @@ public class TOFPaddle {
 				);		
 	}	
 	
+	public double startTime() {
+		double startTime = 0.0;
+		
+		double beta = 1.0;
+		if (BETA != 0.0) {
+			beta = BETA;
+		}
+		
+		startTime = TOF_TIME - (PATH_LENGTH/(beta*29.98));
+		return startTime;
+	}
+	
 	public double deltaTLeft() {
 		double tr = 0.0;
 
 		double lr = leftRightAdjustment(desc.getSector(), desc.getLayer(), desc.getComponent());
-		double p2p = TOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
+		double p2p = p2p();
 		
 		double beta = 1.0;
 		if (BETA != 0.0) {
@@ -205,9 +230,9 @@ public class TOFPaddle {
 
 	public double deltaTRight() {
 		double tr = 0.0;
-
+					
 		double lr = leftRightAdjustment(desc.getSector(), desc.getLayer(), desc.getComponent());
-		double p2p = TOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
+		double p2p = p2p();
 		
 		double beta = 1.0;
 		if (BETA != 0.0) {
