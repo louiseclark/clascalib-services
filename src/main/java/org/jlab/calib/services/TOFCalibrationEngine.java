@@ -39,7 +39,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public final static int		MARKER_LINE_WIDTH = 1;
 	
 	// Run constants
-	public final static double BEAM_BUCKET = 2.0; // 2.0 for simulations, 2.004 for real data
+	public final static double BEAM_BUCKET = 2.004; // 2.0 for simulations, 2.004 for real data
 	
 	public IndexedList<Double[]> constants = new IndexedList<Double[]>(3);
 
@@ -52,7 +52,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	
 
 	// configuration - previous calibration values
-	public static int calDBSource = 1;
+	public static int calDBSource = 0;
 	public static final int CAL_DEFAULT = 0;
 	public static final int CAL_FILE = 1;
 	public static final int CAL_DB = 2;

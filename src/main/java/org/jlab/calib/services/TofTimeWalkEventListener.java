@@ -32,7 +32,7 @@ import org.jlab.utils.groups.IndexedList;
 
 public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
-	public boolean calibChallTest = true;
+	public boolean calibChallTest = false;
 
 	// constants for indexing the histograms
 	public final int LEFT = 0;
@@ -44,11 +44,15 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	public final int LAMBDA_RIGHT_OVERRIDE = 2;
 	public final int ORDER_RIGHT_OVERRIDE = 3;
 
+	private final double[]        ADC_MIN = {0.0, 150.0,  500.0,  150.0};
+	private final double[]        ADC_MAX = {0.0, 2000.0, 3500.0, 2000.0};
+	private final double[]        FIT_MIN = {0.0,  400.0, 1200.0, 400.0};
+	private final double[]        FIT_MAX = {0.0, 1000.0, 2400.0, 1000.0};
 
-	private final double[]        ADC_MIN = {0.0, 300.0, 500.0, 300.0};
-	private final double[]        ADC_MAX = {0.0, 3000.0,    5000.0,    3000.0};
-	private final double[]        FIT_MIN = {0.0,  500.0,    1200.0,     500.0};
-	private final double[]        FIT_MAX = {0.0, 1300.0,    2400.0,    1300.0};
+//	private final double[]        ADC_MIN = {0.0, 300.0, 500.0, 300.0};
+//	private final double[]        ADC_MAX = {0.0, 3000.0,    5000.0,    3000.0};
+//	private final double[]        FIT_MIN = {0.0,  500.0,    1200.0,     500.0};
+//	private final double[]        FIT_MAX = {0.0, 1100.0,    2400.0,    1100.0};
 
 	final double[] fitLambda = {40.0,40.0};  // default values for the constants
 	final double[] fitOrder = {0.5,0.5};  // default values for the constants
@@ -56,6 +60,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	private String showPlotType = "TW_LEFT";
 
 	private IndexedList<H2F[]> offsetHists = new IndexedList<H2F[]>(4);  // indexed by s,l,c, offset (in beam bucket multiples), H2F has {left, right}
+	private final int NUM_OFFSET_HISTS = 20;
 
 	public TofTimeWalkEventListener() {
 
@@ -193,25 +198,33 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					
 					// create all the functions and graphs
 					F1D trLeftFunc = new F1D("trLeftFunc", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
+					//F1D trLeftFuncHist = new F1D("trLeftFuncHist", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
 					GraphErrors trLeftGraph = new GraphErrors();
 					trLeftGraph.setName("trLeftGraph");                    
 					F1D trRightFunc = new F1D("trRightFunc", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
+					//F1D trRightFuncHist = new F1D("trRightFuncHist", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
 					GraphErrors trRightGraph = new GraphErrors();
 					trRightGraph.setName("trRightGraph");
 
 					trLeftFunc.setLineColor(FUNC_COLOUR);
 					trLeftFunc.setLineWidth(FUNC_LINE_WIDTH);
+					//trLeftFuncHist.setLineColor(FUNC_COLOUR);
+					//trLeftFuncHist.setLineWidth(FUNC_LINE_WIDTH);
 					trLeftGraph.setMarkerSize(MARKER_SIZE);
 					trLeftGraph.setLineThickness(MARKER_LINE_WIDTH);
 
 					trRightFunc.setLineColor(FUNC_COLOUR);
 					trRightFunc.setLineWidth(FUNC_LINE_WIDTH);
+					//trRightFuncHist.setLineColor(FUNC_COLOUR);
+					//trRightFuncHist.setLineWidth(FUNC_LINE_WIDTH);
 					trRightGraph.setMarkerSize(MARKER_SIZE);
 					trRightGraph.setLineThickness(MARKER_LINE_WIDTH);
 
 					dg.addDataSet(trLeftFunc, 4);
+					//dg.addDataSet(trLeftFuncHist, 2);
 					dg.addDataSet(trLeftGraph, 4);
 					dg.addDataSet(trRightFunc, 5);
+					//dg.addDataSet(trRightFuncHist, 3);
 					dg.addDataSet(trRightGraph, 5);
 					
 					if (calibChallTest) {
@@ -246,9 +259,10 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					setPlotTitle(sector,layer,paddle);
 
 					// now create the offset hists
-					for (int i=0; i<10; i++) {
+					for (int i=0; i<NUM_OFFSET_HISTS; i++) {
 
-						double offset = i*(BEAM_BUCKET/10.0);
+						double n = NUM_OFFSET_HISTS;
+						double offset = i*(BEAM_BUCKET/n);
 						H2F offLeftHist = new H2F("offsetLeft",
 								"Time residual vs ADC Left Sector "+sector+
 								" Paddle "+paddle+" Offset = "+offset+"+ ns",
@@ -302,8 +316,9 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				dataGroups.getItem(sector,layer,component).getH2F("trRightHist").fill(paddle.ADCR, paddle.deltaTRight());
 
 				// fill the offset histograms
-				for (int i=0; i<10; i++) {
-					double offset = i*(BEAM_BUCKET/10.0);
+				for (int i=0; i<NUM_OFFSET_HISTS; i++) {
+					double n = NUM_OFFSET_HISTS;
+					double offset = i*(BEAM_BUCKET/n);
 					offsetHists.getItem(sector,layer,component,i)[0].fill(paddle.ADCL, (paddle.deltaTLeft()+offset)%BEAM_BUCKET);
 					offsetHists.getItem(sector,layer,component,i)[1].fill(paddle.ADCR, (paddle.deltaTRight()+offset)%BEAM_BUCKET);
 //					offsetHists.getItem(sector,layer,component,i)[0].fill(paddle.ADCL, (paddle.deltaTLeft()+BEAM_BUCKET-offset)%BEAM_BUCKET +offset);
@@ -320,15 +335,23 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 		// Find the best offset hist
 		// create function for the nominal values
-		F1D nomFunc = new F1D("nomFunc", "([a]/(x^[b]))", ADC_MIN[layer], ADC_MAX[layer]);
+		//F1D nomFunc = new F1D("nomFunc", "([a]/(x^[b]))", FIT_MIN[layer], FIT_MAX[layer]);
+		F1D nomFunc = new F1D("nomFunc", "(([a]/(x^[b]))-[c])", FIT_MIN[layer], FIT_MAX[layer]);
 		nomFunc.setParLimits(0, 39.9, 40.1);
 		nomFunc.setParLimits(1, 0.49, 0.51);
+		if (layer==1) {
+			nomFunc.setParLimits(2, 0.99, 1.01);
+		}
+		else {
+			nomFunc.setParLimits(2, -0.01, 0.01);
+		}
+
 		double minChiSqLeft = 1000.0;
 		double minChiSqRight = 1000.0;
 		int offsetIdxLeft = 0;
 		int offsetIdxRight = 0;
 
-		for (int i=0; i < 10; i++) {
+		for (int i=0; i < NUM_OFFSET_HISTS; i++) {
 
 			H2F leftHist = offsetHists.getItem(sector,layer,paddle,i)[0];
 			GraphErrors leftGraph = leftHist.getProfileX();
@@ -424,7 +447,9 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 		// fit function to the graph of means
 		F1D twLFunc = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc");
+		//F1D twLFuncHist = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFuncHist");
 		twLFunc.setRange(FIT_MIN[layer], FIT_MAX[layer]);
+		//twLFuncHist.setRange(FIT_MIN[layer], FIT_MAX[layer]);
 		twLFunc.setParameter(0, fitLambda[LEFT]);
 		twLFunc.setParameter(1, fitOrder[LEFT]);
 		twLFunc.setParLimits(1, 0.45, 0.55);
@@ -434,9 +459,16 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		// Create copy of the function for display on the histogram
+//		twLFuncHist.setParameter(0, twLFunc.getParameter(0));
+//		twLFuncHist.setParameter(1, twLFunc.getParameter(1));
+//		twLFuncHist.setParameter(2, twLFunc.getParameter(2));
 
 		F1D twRFunc = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc");
+		//F1D twRFuncHist = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFuncHist");
 		twRFunc.setRange(FIT_MIN[layer], FIT_MAX[layer]);
+		//twRFuncHist.setRange(FIT_MIN[layer], FIT_MAX[layer]);
 		twRFunc.setParameter(0, fitLambda[RIGHT]);
 		twRFunc.setParameter(1, fitOrder[RIGHT]);
 		twRFunc.setParLimits(1, 0.45, 0.55);
@@ -453,6 +485,11 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			e.printStackTrace();
 		}
 
+		// Create copy of the function for display on the histogram
+//		twLFuncHist.setParameter(0, twLFunc.getParameter(0));
+//		twLFuncHist.setParameter(1, twLFunc.getParameter(1));
+//		twLFuncHist.setParameter(2, twLFunc.getParameter(2));
+		
 		// add the correct offset hist to the data group
 		DataGroup dg = dataGroups.getItem(sector,layer,paddle);
 		dg.addDataSet(offsetHists.getItem(sector,layer,paddle,offsetIdxLeft)[0], 2);
@@ -564,14 +601,18 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				"tw0_left", sector, layer, paddle);
 		calib.setDoubleValue(getOrderLeft(sector,layer,paddle),
 				"tw1_left", sector, layer, paddle);
-		calib.setDoubleValue(getOffsetLeft(sector,layer,paddle),
+		calib.setDoubleValue(0.0,
 				"tw2_left", sector, layer, paddle);
+//		calib.setDoubleValue(getOffsetLeft(sector,layer,paddle),
+//				"tw2_left", sector, layer, paddle);
 		calib.setDoubleValue(getLambdaRight(sector,layer,paddle),
 				"tw0_right", sector, layer, paddle);
 		calib.setDoubleValue(getOrderRight(sector,layer,paddle),
 				"tw1_right", sector, layer, paddle);
-		calib.setDoubleValue(getOffsetRight(sector,layer,paddle),
+		calib.setDoubleValue(0.0,
 				"tw2_right", sector, layer, paddle);
+//		calib.setDoubleValue(getOffsetRight(sector,layer,paddle),
+//				"tw2_right", sector, layer, paddle);
 
 	}
 
@@ -653,19 +694,26 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 		JTabbedPane pane = new JTabbedPane();
 		EmbeddedCanvas leftCanvas = new EmbeddedCanvas();
-		leftCanvas.divide(2, 10);
+		leftCanvas.divide(4, NUM_OFFSET_HISTS/2);
 		EmbeddedCanvas rightCanvas = new EmbeddedCanvas();
-		rightCanvas.divide(2, 10);
+		rightCanvas.divide(4, NUM_OFFSET_HISTS/2);
 
 		// create function for the nominal values
-		F1D nomFunc = new F1D("nomFunc", "([a]/(x^[b]))", FIT_MIN[layer], FIT_MAX[layer]);
+		//F1D nomFunc = new F1D("nomFunc", "([a]/(x^[b]))", FIT_MIN[layer], FIT_MAX[layer]);
+		F1D nomFunc = new F1D("nomFunc", "(([a]/(x^[b]))-[c])", FIT_MIN[layer], FIT_MAX[layer]);
 		nomFunc.setParLimits(0, 39.9, 40.1);
 		nomFunc.setParLimits(1, 0.49, 0.51);
+		if (layer==1) {
+			nomFunc.setParLimits(2, 0.99, 1.01);
+		}
+		else {
+			nomFunc.setParLimits(2, -0.01, 0.01);
+		}
 		nomFunc.setLineWidth(FUNC_LINE_WIDTH);
 		nomFunc.setLineColor(FUNC_COLOUR);
 
 
-		for (int i=0; i < 10; i++) {
+		for (int i=0; i < NUM_OFFSET_HISTS; i++) {
 
 			leftCanvas.cd(2*i);
 			H2F leftHist = offsetHists.getItem(sector,layer,component,i)[0];

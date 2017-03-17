@@ -89,6 +89,18 @@ public class TOFPaddle {
 		this.YPOS = ypos;
 	}
 
+	public int paddleNumber() {
+		
+		int p = 0;
+		int[] paddleOffset = {0, 0, 23, 85};
+		int sector = this.getDescriptor().getSector();
+		int layer = this.getDescriptor().getLayer();
+		int component = this.getDescriptor().getComponent();
+		
+		p = component + (sector-1)*90 + paddleOffset[layer]; 
+		return p;
+	}
+	
 	public double geometricMean() {
 		return Math.sqrt(ADCL * ADCR);
 	}
@@ -207,6 +219,11 @@ public class TOFPaddle {
 		startTime = TOF_TIME - (PATH_LENGTH/(beta*29.98));
 		return startTime;
 	}
+	
+
+	public double refTime() {
+		return this.startTime() - this.RF_TIME;
+	}	
 	
 	public double deltaTLeft() {
 		double tr = 0.0;
@@ -395,12 +412,6 @@ public class TOFPaddle {
 
 	public double zPosCTOF() {
 		return ZPOS + 10.0;
-	}
-
-	public double refTime(double targetCentre) {
-		return this.START_TIME - this.RF_TIME;
-		//		return (this.TOF_TIME - this.FLIGHT_TIME
-		//				- ((this.VERTEX_Z - targetCentre) / C) - this.RF_TIME);
 	}
 
 	public DetectorDescriptor getDescriptor() {

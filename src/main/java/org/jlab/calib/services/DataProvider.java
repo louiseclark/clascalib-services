@@ -114,26 +114,26 @@ public class DataProvider {
 		DataBank  tdcBank = event.getBank("FTOF::tdc");
 
 		// Get the generated electron
-		Particle electronGen = null;
+//		Particle electronGen = null;
 
 		// loop over generated particles
-		DataBank genBank = event.getBank("MC::Particle");
-		if(genBank!=null) {
-			int nrows = genBank.rows();
-			for(int loop = 0; loop < nrows; loop++) {   
-				Particle genPart = new Particle(
-						genBank.getInt("pid", loop),
-						genBank.getFloat("px", loop),
-						genBank.getFloat("py", loop),
-						genBank.getFloat("pz", loop),
-						genBank.getFloat("vx", loop),
-						genBank.getFloat("vy", loop),
-						genBank.getFloat("vz", loop));
-				if(genPart.pid()==11) {
-					electronGen = genPart;
-				}
-			}
-		}		
+//		DataBank genBank = event.getBank("MC::Particle");
+//		if(genBank!=null) {
+//			int nrows = genBank.rows();
+//			for(int loop = 0; loop < nrows; loop++) {   
+//				Particle genPart = new Particle(
+//						genBank.getInt("pid", loop),
+//						genBank.getFloat("px", loop),
+//						genBank.getFloat("py", loop),
+//						genBank.getFloat("pz", loop),
+//						genBank.getFloat("vx", loop),
+//						genBank.getFloat("vy", loop),
+//						genBank.getFloat("vz", loop));
+//				if(genPart.pid()==11) {
+//					electronGen = genPart;
+//				}
+//			}
+//		}		
 
 		// iterate through hits bank getting corresponding adc and tdc
 		if (event.hasBank("FTOF::hits")) {
@@ -204,27 +204,27 @@ public class DataProvider {
 						double p0z  = hbtBank.getFloat("p0_z",trkId-1);
 						Particle recParticle = new Particle(11,p0x,p0y,p0z,0,0,0);
 
-						System.out.println("q "+q);
-						System.out.println("recParticle.p() "+recParticle.p());
-						System.out.println("electronGen.p() "+electronGen.p());
+//						System.out.println("q "+q);
+//						System.out.println("recParticle.p() "+recParticle.p());
+//						System.out.println("electronGen.p() "+electronGen.p());
 						// select negative tracks matching the generated electron as electron candidates
-						if(q==-1
-								&& Math.abs(recParticle.p()-electronGen.p())<0.5
-								&& Math.abs(Math.toDegrees(recParticle.theta()-electronGen.theta()))<2.0
-								&& Math.abs(Math.toDegrees(recParticle.phi()-electronGen.phi()))<8) {
-							paddle.PARTICLE_ID = TOFPaddle.PID_ELECTRON;
-						} 
-						else {
-							paddle.PARTICLE_ID = TOFPaddle.PID_PION;
-						}
+//						if(q==-1
+//								&& Math.abs(recParticle.p()-electronGen.p())<0.5
+//								&& Math.abs(Math.toDegrees(recParticle.theta()-electronGen.theta()))<2.0
+//								&& Math.abs(Math.toDegrees(recParticle.phi()-electronGen.phi()))<8) {
+//							paddle.PARTICLE_ID = TOFPaddle.PID_ELECTRON;
+//						} 
+//						else {
+//							paddle.PARTICLE_ID = TOFPaddle.PID_PION;
+//						}
 					}
 				}
 
 				//System.out.println("Adding paddle to list");
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);
-					System.out.println("Paddle added to list SLC "+paddle.getDescriptor().getSector()+paddle.getDescriptor().getLayer()+paddle.getDescriptor().getComponent());
-					System.out.println("Particle ID "+paddle.PARTICLE_ID);
+//					System.out.println("Paddle added to list SLC "+paddle.getDescriptor().getSector()+paddle.getDescriptor().getLayer()+paddle.getDescriptor().getComponent());
+//					System.out.println("Particle ID "+paddle.PARTICLE_ID);
 				}
 			}
 		}
