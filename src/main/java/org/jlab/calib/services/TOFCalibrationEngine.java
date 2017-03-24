@@ -87,6 +87,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		} else if (event.getType() == DataEventType.EVENT_ACCUMULATE) {
 			processEvent(event);
 		} else if (event.getType() == DataEventType.EVENT_STOP) {
+			System.out.println("EVENT_STOP");
 			analyze();
 		}
 	}
@@ -106,6 +107,8 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	}
 
 	public void analyze() {
+		
+		System.out.println(stepName+" analyze");
 		for (int sector = 1; sector <= 6; sector++) {
 			for (int layer = 1; layer <= 3; layer++) {
 				int layer_index = layer - 1;

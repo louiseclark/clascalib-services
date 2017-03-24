@@ -62,7 +62,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     		new TofLeftRightEventListener(),
     		new TofVeffEventListener(),
     		new TofTimeWalkEventListener(),
-    		new TofP2PEventListener()};
+    		new TofP2PEventListener(),
+    		new TofRFEventListener()};
     
     // engine indices
     public final int HV = 0;
@@ -71,13 +72,15 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     public final int VEFF = 3;
     public final int TW = 4;
     public final int P2P = 5;
+    public final int RF_OFFSET = 6;
     
     String[] dirs = {"/calibration/ftof/gain_balance",
     				 "/calibration/ftof/attenuation",
     				 "/calibration/ftof/timing_offset",
     				 "/calibration/ftof/effective_velocity",
     				 "/calibration/ftof/time_walk",
-    				 "/calibration/ftof/timing_offset/P2P"};
+    				 "/calibration/ftof/timing_offset/P2P",
+    				 "/calibration/ftof/RF_offset"};
 	
 	String selectedDir = dirs[HV];
 	int selectedSector = 1;
@@ -249,6 +252,9 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		
 		TOFCalibrationEngine engine = engines[HV];
 
+		System.out.println("before selectedDir = "+selectedDir);
+		System.out.println("dirs[RF_OFFSET] = "+dirs[RF_OFFSET]);
+		
 		if (selectedDir == dirs[HV]) {
 			engine = engines[HV];
 		} else if (selectedDir == dirs[ATTEN]) {
@@ -261,7 +267,10 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			engine = engines[TW];
 		} else if (selectedDir == dirs[P2P]) {
 			engine = engines[P2P];
+		} else if (selectedDir == dirs[RF_OFFSET]) {
+			engine = engines[RF_OFFSET];
 		}
+
 		return engine;
 	}
 		
@@ -290,6 +299,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         	//hvFrame.pack();
         	hvFrame.setVisible(true);
         	hvFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+			engine.analyze();
+
 		}
 		else if (e.getActionCommand().compareTo(buttons[WRITE])==0) {
 			
@@ -395,31 +406,43 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 	public void constantsEvent(CalibrationConstants cc, int col, int row) {
 
+		System.out.println("constantsEvent 403");
 		String str_sector    = (String) cc.getValueAt(row, 0);
         String str_layer     = (String) cc.getValueAt(row, 1);
         String str_component = (String) cc.getValueAt(row, 2);
         
+        System.out.println("constantsEvent 408");
         if (cc.getName() != selectedDir) {
         	selectedDir = cc.getName();
         	this.updateDetectorView(false);
+        	System.out.println("constantsEvent 412");
     	}
         
+        System.out.println("constantsEvent 415");
         selectedSector    = Integer.parseInt(str_sector);
         selectedLayer     = Integer.parseInt(str_layer);
         selectedPaddle = Integer.parseInt(str_component);
         
+        System.out.println("constantsEvent 420");
         updateCanvas();
+        System.out.println("constantsEvent 422");
 	}
 
 	public void updateCanvas() {
 
+		System.out.println("updateCanvas 427");
 		IndexedList<DataGroup> group = getSelectedEngine().getDataGroup();
+		System.out.println("updateCanvas 429");
 		getSelectedEngine().setPlotTitle(selectedSector,selectedLayer,selectedPaddle);
+		System.out.println("updateCanvas 431");
 		
         if(group.hasItem(selectedSector,selectedLayer,selectedPaddle)==true){
+        	System.out.println("updateCanvas 434");
             DataGroup dataGroup = group.getItem(selectedSector,selectedLayer,selectedPaddle);
+            System.out.println("updateCanvas 435");
             this.canvas.clear();
             this.canvas.draw(dataGroup);
+            System.out.println("updateCanvas 439");
             canvas.getPad(0).setTitle(TOFCalibrationEngine.LAYER_NAME[selectedLayer-1]+" Sector "+selectedSector+" Paddle "+selectedPaddle);
             this.canvas.update();
         } else {
@@ -446,6 +469,10 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public void stateChanged(ChangeEvent e) {
 		int i = ccview.getTabbedPane().getSelectedIndex();
 		String tabTitle = ccview.getTabbedPane().getTitleAt(i);
+		
+		System.out.println("stateChanged");
+		System.out.println("tabTitle "+tabTitle);
+		System.out.println("selectedDir "+selectedDir);
         if (tabTitle != selectedDir) {
         	selectedDir = tabTitle;
         	this.updateDetectorView(false);

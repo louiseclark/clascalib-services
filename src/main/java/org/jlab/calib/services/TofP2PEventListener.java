@@ -27,7 +27,7 @@ import org.jlab.utils.groups.IndexedList;
 public class TofP2PEventListener extends TOFCalibrationEngine {
 
 
-	// Test hists from Raffaella''s macro
+	// Test hists from Raffaella's macro
 	// PID
 	public static H1F hi_vertex_dt = new H1F("hi_vertex_dt", "hi_vertex_dt", 200, -3.0, 3.0); 
 	public static H1F hi_elec_t0 = new H1F("hi_elec_t0", "hi_elec_t0", 200, -3.0, 3.0); 
@@ -53,6 +53,8 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 	public final int REF_PADDLE = 13; 
 
 	final double MAX_OFFSET = 10.0;
+	
+	private String showPlotType = "VERTEX_RF";
 
 	public TofP2PEventListener() {
 
@@ -159,6 +161,8 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 
 					// create a dummy function in case there's no data to fit 
 					F1D fineFunc = new F1D("fineFunc","[amp]*gaus(x,[mean],[sigma])", -1.0, 1.0);
+					fineFunc.setLineColor(FUNC_COLOUR);
+					fineFunc.setLineWidth(FUNC_LINE_WIDTH);
 					dg.addDataSet(fineFunc, 1);
 
 					H1F refHistAll = 
@@ -280,7 +284,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 		save();
 		calib.fireTableDataChanged();
 	}
-	
+		
 //	@Override
 //	public void analyze() {
 //		super.analyze();
@@ -333,8 +337,8 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 	//    }
 
 	@Override
-	public void fit(int sector, int layer, int paddle) {
-
+	public void fit(int sector, int layer, int paddle, double minRange, double maxRange) {
+		
 		H1F fineHist = dataGroups.getItem(sector,layer,paddle).getH1F("fineHist");
 		
 		int maxBin = fineHist.getMaximumBin();
@@ -434,7 +438,8 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 			if (fineHist.getEntries() != 0){
 				fineOffset= fineFunc.getParameter(1);
 			}
-			offset = refOffset + fineOffset;
+			//offset = refOffset + fineOffset;
+			offset = fineOffset;
 
 		}
 		return offset;
@@ -447,12 +452,41 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 				"paddle2paddle", sector, layer, paddle);
 
 	}
+	
+	@Override
+	public void showPlots(int sector, int layer) {
+
+		showPlotType = "VERTEX_RF";
+		stepName = "Vertex time - RF";
+		super.showPlots(sector, layer);
+		showPlotType = "DT_VERTEX";
+		stepName = "delta t (vertex)";
+		super.showPlots(sector, layer);
+
+	}
 
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
-		// TO DO
+		H1F hist = new H1F();
+		F1D func = new F1D("fineFunc");
+		if (showPlotType == "VERTEX_RF") { 
+			hist = dataGroups.getItem(sector,layer,paddle).getH1F("fineHist");
+			func = dataGroups.getItem(sector,layer,paddle).getF1D("fineFunc");
+			hist.setTitle("Paddle "+paddle);
+			hist.setTitleX("");
+			hist.setTitleY("");
+			canvas.draw(hist); 
+			canvas.draw(func, "same");
 
+		}
+		else {
+			hist = dataGroups.getItem(sector,layer,paddle).getH1F("refHist");
+			hist.setTitle("Paddle "+paddle);
+			hist.setTitleX("");
+			hist.setTitleY("");
+			canvas.draw(hist); 
+		}
 	}
 
 	@Override
@@ -483,14 +517,8 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 
 		GraphErrors summ = new GraphErrors("summ", paddleNumbers,
 				values, paddleUncs, valueUncs);
-
-		//        summary.setTitle("Left Right centroids: "
-		//                + LAYER_NAME[layer - 1] + " Sector "
-		//                + sector);
-		//        summary.setTitleX("Paddle Number");
-		//        summary.setYTitle("Centroid (cm)");
-		//        summary.setMarkerSize(5);
-		//        summary.setMarkerStyle(2);
+		summ.setMarkerSize(MARKER_SIZE);
+		summ.setLineThickness(MARKER_LINE_WIDTH);
 
 		DataGroup dg = new DataGroup(1,1);
 		dg.addDataSet(summ, 0);
