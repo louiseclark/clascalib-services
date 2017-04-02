@@ -85,6 +85,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		calib.addConstraint(7, fitOrder[RIGHT]*0.9,
 				fitOrder[RIGHT]*1.1);
 
+		calDBSource = CAL_DEFAULT;
+
 		// get the effective velocity constants
 		//        DatabaseConstantProvider  dbprovider = new DatabaseConstantProvider(10,"default");
 		//        dbprovider.loadTable("/calibration/ftof/effective_velocity");
@@ -101,7 +103,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		//        desc.setSectorLayerComponent(1, 1, 4);
 		//        System.out.println("desc "+desc);
 
-		if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_FILE) {
+		if (calDBSource==TOFCalibrationEngine.CAL_FILE) {
 			// read in the time walk values from the text file
 			//String inputFile = "/home/louise/workspace/clascalib-services/ftof.time_walk.smeared.txt";
 			String inputFile = "/home/louise/workspace/clascalib-services/ftof_tw_smeared_new_formatted.txt";

@@ -145,16 +145,13 @@ public class TOFPaddle {
 
 	public double veff() {
 		double veff = 16.0;
-		if (tof == "FTOF") {
-			if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_FILE) {
-				veff = TOFCalibrationEngine.veffValues.getItem(desc.getSector(),
-						desc.getLayer(), desc.getComponent());
-			}
-		} else {
-			veff = 16.0;
+//		if (tof == "FTOF") {
+//			veff = TOFCalibrationEngine.veffValues.getItem(desc.getSector(),
+//						desc.getLayer(), desc.getComponent());
+//		} else {
 //			veff = CTOFCalibrationEngine.veffValues.getItem(desc.getSector(),
 //					desc.getLayer(), desc.getComponent());
-		}
+//		}
 
 		return veff;
 	}
@@ -162,12 +159,10 @@ public class TOFPaddle {
 	public double p2p() {
 		double p2p = 0.0;
 		if (tof == "FTOF") {
-			if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_FILE) {
-				p2p = TOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
-			}
+			p2p = TOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
 		} else {
 			p2p = 0.0;
-//			p2p = CTOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
+			//p2p = CTOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
 		}
 
 		return p2p;
@@ -336,13 +331,8 @@ public class TOFPaddle {
 		double lr = 0.0;
 
 		if (tof == "FTOF") {
-			if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_DEFAULT) {
-				lr = 0.0;
-			}
-			else {
-			lr = TOFCalibrationEngine.leftRightValues.getItem(sector, layer,
-					paddle);				
-			}
+			lr = TOFCalibrationEngine.leftRightValues.getDoubleValue("left_right", 
+					sector, layer, paddle);				
 
 		} else {
 			//lr = CTOFCalibrationEngine.leftRightValues.getItem(sector, layer,
@@ -356,37 +346,29 @@ public class TOFPaddle {
 
 	public double lamL() {
 		double lamL = 40.0;
-		if (TOFCalibrationEngine.calDBSource == TOFCalibrationEngine.CAL_FILE) {
-			lamL = 
-					TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[0];
-		}
+//		lamL = 
+//			TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[0];
 		return lamL;			
 	}
 
 	public double ordL() {
 		double ordL = 0.5;
-		if (TOFCalibrationEngine.calDBSource == TOFCalibrationEngine.CAL_FILE) {
-			ordL = 
-					TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[1];
-		}			
+//		ordL = 
+//			TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[1];
 		return ordL;			
 	}
 
 	public double lamR() {
 		double lamR = 40.0;
-		if (TOFCalibrationEngine.calDBSource == TOFCalibrationEngine.CAL_FILE) {
-			lamR = 
-					TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[2];
-		}
+//		lamR = 
+//			TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[2];
 		return lamR;			
 	}
 
 	public double ordR() {
 		double ordR = 0.5;
-		if (TOFCalibrationEngine.calDBSource == TOFCalibrationEngine.CAL_FILE) {
-			ordR = 
-					TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[3];
-		}
+//		ordR = 
+//			TOFCalibrationEngine.timeWalkValues.getItem(desc.getSector(),desc.getLayer(),desc.getComponent())[3];
 		return ordR;			
 	}
 

@@ -1,11 +1,14 @@
 package org.jlab.calib.services;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
@@ -31,16 +34,16 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public final static int 	NUM_LAYERS = 3;
 	public final static String[] LAYER_NAME = { "FTOF1A", "FTOF1B", "FTOF2" };
 	public final static double UNDEFINED_OVERRIDE = Double.NEGATIVE_INFINITY;
-	
+
 	// plot settings
 	public final static int		FUNC_COLOUR = 2;
 	public final static int		MARKER_SIZE = 3;
 	public final static int		FUNC_LINE_WIDTH = 2;
 	public final static int		MARKER_LINE_WIDTH = 1;
-	
+
 	// Run constants
 	public final static double BEAM_BUCKET = 2.004; // 2.0 for simulations, 2.004 for real data
-	
+
 	public IndexedList<Double[]> constants = new IndexedList<Double[]>(3);
 
 	public CalibrationConstants calib;
@@ -49,33 +52,35 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public String stepName = "Unknown";
 	public String fileNamePrefix = "Unknown";
 	public String filename = "Unknown.txt";
-	
+
 
 	// configuration - previous calibration values
-	public static int calDBSource = 0;
+	public int calDBSource = 0;
 	public static final int CAL_DEFAULT = 0;
 	public static final int CAL_FILE = 1;
 	public static final int CAL_DB = 2;
-	
-	// Left right values from text file
-	public static IndexedList<Double> leftRightValues = new IndexedList<Double>(3);
+	public String prevCalFilename;
+	public int prevCalRunNo;
+
+	// Values from previous calibration
+	// Need to be static as used by all engines
+	public static CalibrationConstants leftRightValues;
 	public static IndexedList<Double> p2pValues = new IndexedList<Double>(3);
-	// Veff values from text file
 	public static IndexedList<Double> veffValues = new IndexedList<Double>(3);
-	// Time walk values from text file
 	public static IndexedList<double[]> timeWalkValues = new IndexedList<double[]>(3);
-	
+
 	// Calculated counter status values
 	public static IndexedList<Integer> adcLeftStatus = new IndexedList<Integer>(3);
 	public static IndexedList<Integer> adcRightStatus = new IndexedList<Integer>(3);
 	public static IndexedList<Integer> tdcLeftStatus = new IndexedList<Integer>(3);
 	public static IndexedList<Integer> tdcRightStatus = new IndexedList<Integer>(3);
-	
 
 	public TOFCalibrationEngine() {
 		// controlled by calibration step class
 		TOFPaddle.tof = "FTOF";
-		
+		leftRightValues = new CalibrationConstants(3,
+				"left_right/F");
+
 	}
 
 	@Override
@@ -107,7 +112,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	}
 
 	public void analyze() {
-		
+
 		System.out.println(stepName+" analyze");
 		for (int sector = 1; sector <= 6; sector++) {
 			for (int layer = 1; layer <= 3; layer++) {
@@ -137,20 +142,20 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	}
 
 	public void saveCounterStatus() {
-		
+
 		System.out.println("sector layer component stat_left stat_right");
 		for (int sector = 1; sector <= 6; sector++) {
 			for (int layer = 1; layer <= 3; layer++) {
 				int layer_index = layer - 1;
 				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
-					
+
 					int adcLStat = adcLeftStatus.getItem(sector,layer,paddle);
 					int adcRStat = adcRightStatus.getItem(sector,layer,paddle);
 					int tdcLStat = tdcLeftStatus.getItem(sector,layer,paddle);
 					int tdcRStat = tdcRightStatus.getItem(sector,layer,paddle);					
 					int counterStatusLeft = 0;
 					int counterStatusRight = 0;
-					
+
 					if (adcLStat==1 && tdcLStat==1) {
 						counterStatusLeft = 3;
 					}
@@ -160,7 +165,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 					else if (tdcLStat==1) {
 						counterStatusLeft = 2;
 					}
-					
+
 					if (adcRStat==1 && tdcRStat==1) {
 						counterStatusRight = 3;
 					}
@@ -170,18 +175,18 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 					else if (tdcRStat==1) {
 						counterStatusRight = 2;
 					}
-					
+
 					System.out.println(
-						sector+" "+
-						layer+" "+
-						paddle+" "+
-						counterStatusLeft+" "+
-						counterStatusRight+" ");
+							sector+" "+
+									layer+" "+
+									paddle+" "+
+									counterStatusLeft+" "+
+									counterStatusRight+" ");
 				}
 			}
 		}
 	}
-	
+
 	public void save() {
 
 		for (int sector = 1; sector <= 6; sector++) {
@@ -193,9 +198,45 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 				}
 			}
 		}
-		calib.save(filename);
+		//calib.save(filename);
+		// current CalibrationConstants object does not write file in correct format
+		// use local method for the moment
+		writeFile(filename);
 	}
 
+	public void writeFile(String filename) {
+
+		try { 
+
+			// Open the output file
+			File outputFile = new File(filename);
+			FileWriter outputFw = new FileWriter(outputFile.getAbsoluteFile());
+			BufferedWriter outputBw = new BufferedWriter(outputFw);
+
+			for (int i=0; i<calib.getRowCount(); i++) {
+				String line = new String();
+				for (int j=0; j<calib.getColumnCount(); j++) {
+					line = line+calib.getValueAt(i, j);
+					if (j<calib.getColumnCount()-1) {
+						line = line+" ";
+					}
+				}
+				outputBw.write(line);
+				outputBw.newLine();
+			}
+
+			outputBw.close();
+		}
+		catch(IOException ex) {
+			System.out.println(
+					"Error reading file '" 
+							+ filename + "'");                   
+			// Or we could just do this: 
+			ex.printStackTrace();
+		}
+
+	}
+	
 	public String nextFileName() {
 
 		// Get the next file name
@@ -268,6 +309,15 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 
 	}
 
+	public int paddleNumber(int sector, int layer, int component) {
+		
+		int p = 0;
+		int[] paddleOffset = {0, 0, 23, 85};
+		
+		p = component + (sector-1)*90 + paddleOffset[layer]; 
+		return p;
+	}
+	
 	public static double toDouble(String stringVal) {
 
 		double doubleVal;
@@ -282,7 +332,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public void setPlotTitle(int sector, int layer, int paddle) {
 		// Overridden in calibration step classes
 	}
-	
+
 	public void drawPlots(int sector, int layer, int paddle,
 			EmbeddedCanvas canvas) {
 		// Overridden in calibration step classes
@@ -300,7 +350,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		int padNum = 0;
 
 		for (int paddleNum = 1; paddleNum <= NUM_PADDLES[layer_index]; paddleNum++) {
-    		
+
 			fitCanvases[canvasNum].cd(padNum);
 			fitCanvases[canvasNum].getPad(padNum).setTitle("Paddle "+paddleNum);
 			fitCanvases[canvasNum].getPad(padNum).setOptStat(0);
@@ -329,7 +379,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 			pane.add(
 					"Paddles " + ((i * 24) + 1) + " to "
 							+ Math.min(((i + 1) * 24), NUM_PADDLES[layer - 1]),
-					fitCanvases[i]);
+							fitCanvases[i]);
 		}
 
 		frame.add(pane);

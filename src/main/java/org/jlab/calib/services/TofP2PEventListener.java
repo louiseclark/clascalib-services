@@ -73,6 +73,8 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 		// assign constraints
 		calib.addConstraint(3, -MAX_OFFSET, MAX_OFFSET);
 
+		calDBSource = CAL_DEFAULT;
+
 		// read in the time walk values from the text file
 		String inputFile = "/home/louise/workspace/clascalib-services/ftof.timing_offset.smeared.txt";
 

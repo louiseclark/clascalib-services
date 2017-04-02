@@ -16,11 +16,13 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 
+import org.jlab.detector.base.DetectorDescriptor;
 import org.jlab.detector.base.DetectorType;
 import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.utils.CalibrationConstants;
 import org.jlab.detector.calib.utils.CalibrationConstantsListener;
 import org.jlab.detector.calib.utils.CalibrationConstantsView;
+import org.jlab.detector.calib.utils.DatabaseConstantProvider;
 import org.jlab.detector.decode.CodaEventDecoder;
 import org.jlab.detector.decode.DetectorDataDgtz;
 import org.jlab.detector.decode.DetectorDecoderView;
@@ -64,20 +66,40 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		calib.setPrecision(3);
 
 		calib.addConstraint(3, -MAX_LEFTRIGHT, MAX_LEFTRIGHT);
+
+		//calDBSource = CAL_DEFAULT;
+		//calDBSource = CAL_FILE;
+		calDBSource = CAL_DB;
+		prevCalFilename = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20170330.2.txt";
+		prevCalRunNo = 18;
+		populatePrevCalib();
 		
-		if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_FILE) {
+		System.out.println("rowCount "+leftRightValues.getRowCount());
+		for (int i=0; i<leftRightValues.getRowCount(); i++) {
+			String line = new String();
+			for (int j=0; j<leftRightValues.getColumnCount(); j++) {
+				line = line+leftRightValues.getValueAt(i, j);
+				if (j<leftRightValues.getColumnCount()-1) {
+					line = line+" ";
+				}
+			}
+			System.out.println(line);
+		}
+		
+	}
 
-			// read in the left right values from the text file
+	public void populatePrevCalib() {
 
-			// Calibration challenge smeared values
-			String inputFile = "/home/louise/workspace/clascalib-services/ftof.timing_offset.smeared.txt";
-			
+		System.out.println("populatePrevCalib");
+		if (calDBSource==CAL_FILE) {
+
+			// read in the left right values from the text file			
 			String line = null;
 			try { 
 
 				// Open the file
 				FileReader fileReader = 
-						new FileReader(inputFile);
+						new FileReader(prevCalFilename);
 
 				// Always wrap FileReader in BufferedReader
 				BufferedReader bufferedReader = 
@@ -85,20 +107,6 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 
 				line = bufferedReader.readLine();
 
-//				while (line != null) {
-//
-//					int sector = Integer.parseInt(line.substring(0, 3).trim());
-//					int layer = Integer.parseInt(line.substring(3, 7).trim());
-//					int paddle = Integer.parseInt(line.substring(7, 11).trim());
-//					double lr = Double.parseDouble(line.substring(11,27).trim());
-//
-//					//System.out.println("lr SLC "+sector+layer+paddle+" "+lr);
-//
-//					leftRightValues.add(lr, sector, layer, paddle);
-//
-//					line = bufferedReader.readLine();
-//				}    
-				
 				while (line != null) {
 
 					String[] lineValues;
@@ -108,10 +116,12 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 					int layer = Integer.parseInt(lineValues[1]);
 					int paddle = Integer.parseInt(lineValues[2]);
 					double lr = Double.parseDouble(lineValues[3]);
-					
+
 					System.out.println("lr SLC "+sector+layer+paddle+" "+lr);
 
-					leftRightValues.add(lr, sector, layer, paddle);
+					leftRightValues.addEntry(sector, layer, paddle);
+					leftRightValues.setDoubleValue(lr,
+							"left_right", sector, layer, paddle);
 
 					line = bufferedReader.readLine();
 				}
@@ -122,15 +132,33 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 				ex.printStackTrace();
 				System.out.println(
 						"Unable to open file '" + 
-								inputFile + "'");                
+								prevCalFilename + "'");                
 			}
 			catch(IOException ex) {
 				System.out.println(
 						"Error reading file '" 
-								+ inputFile + "'");                   
-				// Or we could just do this: 
-				// ex.printStackTrace();
+								+ prevCalFilename + "'");                   
+				ex.printStackTrace();
 			}			
+		}
+		else if (calDBSource==CAL_DEFAULT) {
+			for (int sector = 1; sector <= 6; sector++) {
+				for (int layer = 1; layer <= 3; layer++) {
+					int layer_index = layer - 1;
+					for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
+						System.out.println("Adding entry "+sector+layer+paddle);
+						leftRightValues.addEntry(sector, layer, paddle);
+						leftRightValues.setDoubleValue(0.0,
+								"left_right", sector, layer, paddle);
+						
+					}
+				}
+			}			
+		}
+		else if (calDBSource==CAL_DB) {
+			DatabaseConstantProvider dcp = new DatabaseConstantProvider(prevCalRunNo, "default");
+			leftRightValues = dcp.readConstants("/calibration/ftof/timing_offset");
+			dcp.disconnect();
 		}
 	}
 

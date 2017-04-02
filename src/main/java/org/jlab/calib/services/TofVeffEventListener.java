@@ -73,7 +73,9 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		calib.addConstraint(4, EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF),
 				EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 
-		if (TOFCalibrationEngine.calDBSource==TOFCalibrationEngine.CAL_FILE) {
+		calDBSource = CAL_DEFAULT;
+
+		if (calDBSource==TOFCalibrationEngine.CAL_FILE) {
 
 			// read in the veff values from the text file
 			//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_VEFF_20161215_1M_events_after_tw.txt";

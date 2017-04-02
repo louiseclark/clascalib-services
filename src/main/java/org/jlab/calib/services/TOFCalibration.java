@@ -2,18 +2,27 @@ package org.jlab.calib.services;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Container;
+import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.TableModelEvent;
@@ -299,6 +308,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         	//hvFrame.pack();
         	hvFrame.setVisible(true);
         	hvFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+        	// *** TEST CODE while issue with EVENT_STOP
 			engine.analyze();
 
 		}
@@ -479,10 +489,50 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         	this.updateCanvas();
         }
 	}
+	
+	public void configure() {
+		
+		JFrame frame = new JFrame("Configure FTOF calibration settings");
+		frame.setSize(300, 500);
+		Container pane = frame.getContentPane();
+
+		JPanel radioPanel = new JPanel(new GridLayout(0,2));
+		JRadioButton defaultRad = new JRadioButton("DEFAULT");
+		JRadioButton fileRad = new JRadioButton("FILE");
+		JRadioButton dbRad = new JRadioButton("DB");
+		defaultRad.setSelected(true);
+		ButtonGroup lrRadGroup = new ButtonGroup();
+		lrRadGroup.add(defaultRad);
+		lrRadGroup.add(fileRad);
+		lrRadGroup.add(dbRad);
+		defaultRad.addActionListener(this);
+		fileRad.addActionListener(this);
+		dbRad.addActionListener(this);
+		
+		radioPanel.add(defaultRad);
+		radioPanel.add(new JPanel());
+		radioPanel.add(fileRad);
+		JFileChooser fc = new JFileChooser();
+		JPanel fileButPan = new JPanel();
+	    JButton fileButton = new JButton("Select File");
+	    fileButPan.add(fileButton);
+	    JLabel fileDisp = new JLabel("/path/filename.txt");
+	    fileButPan.add(fileDisp);
+	    radioPanel.add(fileButPan);
+		radioPanel.add(dbRad);
+		JTextField runText = new JTextField("Run Number:");
+		radioPanel.add(runText);
+		radioPanel.setBorder(BorderFactory.createTitledBorder("Left right"));
+		pane.add(radioPanel);
+		
+		frame.setVisible(true);
+		
+	}
 
 	public static void main(String[] args) {
 
         TOFCalibration calibGUI = new TOFCalibration();
+        calibGUI.configure();
 		
 	}
 
