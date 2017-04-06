@@ -3,6 +3,9 @@ package org.jlab.calib.services;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Container;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
@@ -71,8 +74,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     		new TofLeftRightEventListener(),
     		new TofVeffEventListener(),
     		new TofTimeWalkEventListener(),
-    		new TofP2PEventListener(),
-    		new TofRFEventListener()};
+    		new TofP2PEventListener()};
     
     // engine indices
     public final int HV = 0;
@@ -123,67 +125,6 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public TOFCalibration() {
 		
 		DataProvider.init();
-		
-		// create histogram of stats per layer / sector
-		hitsPerBankHist = new H1F("hitsPerBank","hitsPerBank", 500,0.0,1000.0);
-		totalStatHist = new H1F("totalStatHist","totalStatHist", 30,0.0,30.0);
-		totalStatHist.setTitle("Total number of hits");
-		totalStatHist.getXaxis().setTitle("Sector");
-		totalStatHist.getYaxis().setTitle("Number of hits");
-		trackingStatHist = new H1F("trackingStatHist","trackingStatHist", 30,0.0,30.0);
-		trackingStatHist.setTitle("Total number of hits (non zero)");
-		trackingStatHist.getXaxis().setTitle("Sector");
-		trackingStatHist.getYaxis().setTitle("Number of hits");
-		trackingZeroStatHist = new H1F("trackingZeroStatHist","trackingZeroStatHist", 30,0.0,30.0);
-		trackingZeroStatHist.setTitle("Total number of hits (zero)");
-		trackingZeroStatHist.getXaxis().setTitle("Sector");
-		trackingZeroStatHist.getYaxis().setTitle("Number of hits");
-
-		adcLeftHist1A = new H1F("adcLeftHist1A","adcLeftHist1A", 500,0.0,5000.0);
-		adcLeftHist1A.setTitle("FTOF 1A Total number of hits");
-		adcLeftHist1A.getXaxis().setTitle("ADC Left");
-		adcLeftHist1A.getYaxis().setTitle("Number of hits");
-		adcRightHist1A = new H1F("adcRightHist1A","adcRightHist1A", 500,0.0,5000.0);
-		adcRightHist1A.setTitle("FTOF 1A Total number of hits");
-		adcRightHist1A.getXaxis().setTitle("ADC Right");
-		adcRightHist1A.getYaxis().setTitle("Number of hits");
-		
-		trackingAdcLeftHist1A = new H1F("trackingAdcLeftHist1A","trackingAdcLeftHist1A", 500,0.0,5000.0);
-		trackingAdcLeftHist1A.setTitle("FTOF 1A Number of hits with tracking");
-		trackingAdcLeftHist1A.getXaxis().setTitle("ADC Left");
-		trackingAdcLeftHist1A.getYaxis().setTitle("Number of hits with tracking");
-		trackingAdcRightHist1A = new H1F("trackingAdcRightHist1A","trackingAdcRightHist1A", 500,0.0,5000.0);
-		trackingAdcRightHist1A.setTitle("FTOF 1A Number of hits with tracking");
-		trackingAdcRightHist1A.getXaxis().setTitle("ADC Right");
-		trackingAdcRightHist1A.getYaxis().setTitle("Number of hits with tracking");
-		
-		adcLeftHist1B = new H1F("adcLeftHist1B","adcLeftHist1B", 500,0.0,5000.0);
-		adcLeftHist1B.setTitle("FTOF 1B Total number of hits");
-		adcLeftHist1B.getXaxis().setTitle("ADC Left");
-		adcLeftHist1B.getYaxis().setTitle("Number of hits");
-		adcRightHist1B = new H1F("adcRightHist1B","adcRightHist1B", 500,0.0,5000.0);
-		adcRightHist1B.setTitle("FTOF 1B Total number of hits");
-		adcRightHist1B.getXaxis().setTitle("ADC Right");
-		adcRightHist1B.getYaxis().setTitle("Number of hits");
-		
-		trackingAdcLeftHist1B = new H1F("trackingAdcLeftHist1B","trackingAdcLeftHist1B", 500,0.0,5000.0);
-		trackingAdcLeftHist1B.setTitle("FTOF 1B Number of hits with tracking");
-		trackingAdcLeftHist1B.getXaxis().setTitle("ADC Left");
-		trackingAdcLeftHist1B.getYaxis().setTitle("Number of hits with tracking");
-		trackingAdcRightHist1B = new H1F("trackingAdcRightHist1B","trackingAdcRightHist1B", 500,0.0,5000.0);
-		trackingAdcRightHist1B.setTitle("FTOF 1B Number of hits with tracking");
-		trackingAdcRightHist1B.getXaxis().setTitle("ADC Right");
-		trackingAdcRightHist1B.getYaxis().setTitle("Number of hits with tracking");
-		
-		paddleHist = new H1F("paddleHist","paddleHist", 210,0.0,210.0);
-		paddleHist.setTitle("Total number of hits");
-		paddleHist.getXaxis().setTitle("Paddle");
-		paddleHist.getYaxis().setTitle("Number of hits");
-
-		trackingPaddleHist = new H1F("trackingPaddleHist","PaddleHist", 210,0.0,210.0);
-		trackingPaddleHist.setTitle("Total number of hits");
-		trackingPaddleHist.getXaxis().setTitle("Paddle");
-		trackingPaddleHist.getYaxis().setTitle("Number of hits");
 
         pane = new JPanel();
         pane.setLayout(new BorderLayout());
@@ -489,14 +430,16 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         	this.updateCanvas();
         }
 	}
-	
-	public void configure() {
+
+	public void configure1() {
 		
 		JFrame frame = new JFrame("Configure FTOF calibration settings");
-		frame.setSize(300, 500);
+		frame.setSize(600, 300);
 		Container pane = frame.getContentPane();
 
-		JPanel radioPanel = new JPanel(new GridLayout(0,2));
+		JPanel configPanel = new JPanel(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		
 		JRadioButton defaultRad = new JRadioButton("DEFAULT");
 		JRadioButton fileRad = new JRadioButton("FILE");
 		JRadioButton dbRad = new JRadioButton("DB");
@@ -509,21 +452,67 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		fileRad.addActionListener(this);
 		dbRad.addActionListener(this);
 		
-		radioPanel.add(defaultRad);
-		radioPanel.add(new JPanel());
-		radioPanel.add(fileRad);
+		JPanel drPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		drPanel.add(defaultRad);
+		c.anchor = c.LINE_START;
+		c.gridx = 0;
+		c.gridy = 0;
+		configPanel.add(drPanel,c);
+		c.gridx = 1;
+		c.gridy = 0;
+		configPanel.add(new JPanel(),c);
+		JPanel frPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		frPanel.add(fileRad);
+		c.gridx = 0;
+		c.gridy = 1;
+		configPanel.add(frPanel,c);
 		JFileChooser fc = new JFileChooser();
-		JPanel fileButPan = new JPanel();
+		JPanel filePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+	    JLabel fileDisp = new JLabel("Selected file: /path/filename.txt");
+	    filePanel.add(fileDisp);
 	    JButton fileButton = new JButton("Select File");
-	    fileButPan.add(fileButton);
-	    JLabel fileDisp = new JLabel("/path/filename.txt");
-	    fileButPan.add(fileDisp);
-	    radioPanel.add(fileButPan);
-		radioPanel.add(dbRad);
-		JTextField runText = new JTextField("Run Number:");
-		radioPanel.add(runText);
-		radioPanel.setBorder(BorderFactory.createTitledBorder("Left right"));
-		pane.add(radioPanel);
+	    filePanel.add(fileButton,c);
+		c.gridx = 1;
+		c.gridy = 1;
+	    configPanel.add(filePanel,c);
+	    
+	    JPanel dbrPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+	    dbrPanel.add(dbRad);
+		c.gridx = 0;
+		c.gridy = 2;
+		configPanel.add(dbrPanel,c);
+		JPanel runPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		JLabel runLabel = new JLabel("Run number:");
+		JTextField runText = new JTextField("");
+		runPanel.add(runLabel);
+		runPanel.add(runText);
+		c.gridx = 1;
+		c.gridy = 2;
+		configPanel.add(runPanel,c);
+		
+		JPanel okPanel = new JPanel();
+		JButton okButton = new JButton("OK");
+	    okPanel.add(okButton);
+	    c.anchor = c.LINE_END;
+		c.gridx = 1;
+		c.gridy = 3;
+	    configPanel.add(okPanel,c);
+		
+		configPanel.setBorder(BorderFactory.createTitledBorder("Left right"));
+		pane.add(configPanel);
+		
+		frame.setVisible(true);
+		
+	}
+
+	public void configure() {
+		
+		JFrame frame = new JFrame("Configure FTOF calibration settings");
+		frame.setSize(600, 300);
+		Container pane = frame.getContentPane();
+
+		JPanel lrConfigPanel = new TofPrevConfigPanel(engines[LEFT_RIGHT]);
+		pane.add(lrConfigPanel);
 		
 		frame.setVisible(true);
 		

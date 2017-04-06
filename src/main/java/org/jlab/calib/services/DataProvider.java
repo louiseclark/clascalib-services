@@ -7,9 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.jlab.calib.temp.BaseHit;
-import org.jlab.calib.temp.BaseHitReader;
 import org.jlab.calib.temp.DetectorLocation;
-import org.jlab.calib.temp.HitReader;
 import org.jlab.calib.temp.IMatchedHit;
 import org.jlab.clas.physics.GenericKinematicFitter;
 import org.jlab.clas.physics.Particle;

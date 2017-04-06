@@ -67,9 +67,9 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 
 		calib.addConstraint(3, -MAX_LEFTRIGHT, MAX_LEFTRIGHT);
 
-		//calDBSource = CAL_DEFAULT;
+		calDBSource = CAL_DEFAULT;
 		//calDBSource = CAL_FILE;
-		calDBSource = CAL_DB;
+		//calDBSource = CAL_DB;
 		prevCalFilename = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20170330.2.txt";
 		prevCalRunNo = 18;
 		populatePrevCalib();
