@@ -18,13 +18,17 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 
-public class TofPrevConfigPanel extends JPanel
+public class TofPrevConfigPanel extends JPanel 
 implements ActionListener {
 
 	TOFCalibrationEngine engine;
-	JFileChooser fc = new JFileChooser();
 	JTextField fileDisp = new JTextField(20); 
 	JTextField runText = new JTextField(5);
+	JFileChooser fc = new JFileChooser();
+	
+	JRadioButton defaultRad = new JRadioButton("DEFAULT");
+	JRadioButton fileRad = new JRadioButton("FILE");
+	JRadioButton dbRad = new JRadioButton("DB");
 	
 	public TofPrevConfigPanel(TOFCalibrationEngine engineIn) {
 
@@ -33,14 +37,11 @@ implements ActionListener {
 		this.setLayout(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
 
-		JRadioButton defaultRad = new JRadioButton("DEFAULT");
-		JRadioButton fileRad = new JRadioButton("FILE");
-		JRadioButton dbRad = new JRadioButton("DB");
 		defaultRad.setSelected(true);
-		ButtonGroup lrRadGroup = new ButtonGroup();
-		lrRadGroup.add(defaultRad);
-		lrRadGroup.add(fileRad);
-		lrRadGroup.add(dbRad);
+		ButtonGroup radGroup = new ButtonGroup();
+		radGroup.add(defaultRad);
+		radGroup.add(fileRad);
+		radGroup.add(dbRad);
 		defaultRad.addActionListener(this);
 		fileRad.addActionListener(this);
 		dbRad.addActionListener(this);
@@ -54,13 +55,13 @@ implements ActionListener {
 		c.gridx = 1;
 		c.gridy = 0;
 		this.add(new JPanel(),c);
+
 		JPanel frPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		frPanel.add(fileRad);
 		c.gridx = 0;
 		c.gridy = 1;
 		this.add(frPanel,c);
 		JPanel filePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		//fileDisp.setEnabled(false);
 		fileDisp.setEditable(false);
 		fileDisp.setText("None selected");
 		filePanel.add(new JLabel("Selected file: "));
@@ -85,14 +86,6 @@ implements ActionListener {
 		c.gridy = 2;
 		this.add(runPanel,c);
 
-		JPanel okPanel = new JPanel();
-		JButton okButton = new JButton("OK");
-		okPanel.add(okButton);
-		c.anchor = c.LINE_END;
-		c.gridx = 1;
-		c.gridy = 3;
-		this.add(okPanel,c);
-
 		this.setBorder(BorderFactory.createTitledBorder(engine.stepName));
 
 	}
@@ -101,16 +94,19 @@ implements ActionListener {
 
 		System.out.println("prevConfig.actionPerformed");
 		if (e.getActionCommand() == "Select File") {
-			System.out.println("Select File clicked");
 			int returnValue = fc.showOpenDialog(null);
 			if (returnValue == JFileChooser.APPROVE_OPTION) {
 				engine.prevCalFilename = fc.getSelectedFile().getAbsolutePath();
-				fileDisp.setText("Selected file: "+ fc.getSelectedFile().getAbsolutePath()); 
+				fileDisp.setText("Selected file: "+ fc.getSelectedFile().getAbsolutePath());
+				fileRad.setSelected(true);
+
 			}
 		}
 		
 		if (e.getActionCommand() == "OK") {
-			engine.prevCalRunNo = Integer.parseInt(runText.getText());
+			if (runText.getText().compareTo("") != 0) {
+				engine.prevCalRunNo = Integer.parseInt(runText.getText());
+			}
 		}
 
 		if (e.getActionCommand() == "DB") {
@@ -119,7 +115,7 @@ implements ActionListener {
 		else if (e.getActionCommand() == "FILE") {
 			engine.calDBSource = engine.CAL_FILE;
 		}
-		else {
+		else if (e.getActionCommand() == "DEFAULT") {
 			engine.calDBSource = engine.CAL_DEFAULT;
 		}
 	}

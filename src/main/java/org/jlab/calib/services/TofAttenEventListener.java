@@ -251,7 +251,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
 				"Override Attenuation Length:", "Override Attenuation Length uncertainty:",
 		"Override offset:" };
-		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);

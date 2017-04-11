@@ -78,6 +78,8 @@ public class DataProvider {
 
 	public static List<TOFPaddle> getPaddleListHipo(DataEvent event){
 
+		boolean showEvent = false;
+		
 		if (test) {
 
 			event.show();
@@ -194,6 +196,13 @@ public class DataProvider {
 						double mom = Math.sqrt(px*px + py*py + pz*pz);
 						double beta = mom/Math.sqrt(mom*mom+0.139*0.139);
 						paddle.BETA = beta;
+						paddle.P = mom;
+						paddle.TRACK_ID = trkId;
+						
+						if (paddle.getDescriptor().getComponent()==13 &&
+								paddle.getDescriptor().getLayer()== 1 && trkId != -1) {
+							showEvent = true;
+						}
 
 						// check if it's an electron by matching to the generated particle
 						int    q    = hbtBank.getByte("q",trkId-1);
@@ -217,12 +226,42 @@ public class DataProvider {
 //						}
 					}
 				}
+				
+				
+				if (showEvent) {
+
+					event.show();
+					if (event.hasBank("FTOF::adc")) {
+						event.getBank("FTOF::adc").show();
+					}
+					if (event.hasBank("FTOF::tdc")) {
+						event.getBank("FTOF::tdc").show();
+					}
+					if (event.hasBank("FTOF::hits")) {
+						event.getBank("FTOF::hits").show();
+					}
+					if (event.hasBank("HitBasedTrkg::HBTracks")) {
+						event.getBank("HitBasedTrkg::HBTracks").show();
+					}
+					if (event.hasBank("RUN::rf")) {
+						event.getBank("RUN::rf").show();
+					}
+					if (event.hasBank("RUN::config")) {
+						event.getBank("RUN::config").show();
+					}					
+					if (event.hasBank("MC::Particle")) {
+						event.getBank("MC::Particle").show();
+					}
+					showEvent = false;
+				}				
 
 				//System.out.println("Adding paddle to list");
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);
 //					System.out.println("Paddle added to list SLC "+paddle.getDescriptor().getSector()+paddle.getDescriptor().getLayer()+paddle.getDescriptor().getComponent());
 //					System.out.println("Particle ID "+paddle.PARTICLE_ID);
+//					System.out.println("position "+paddle.XPOS+" "+paddle.YPOS);
+//					System.out.println("trackFound "+paddle.trackFound());
 				}
 			}
 		}

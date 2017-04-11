@@ -1,18 +1,28 @@
 package org.jlab.calib.services;
 
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 
-public class TOFCustomFitPanel extends JPanel {
+public class TOFCustomFitPanel extends JPanel implements ActionListener {
 	
 	public JTextField[] textFields;
-	
-	public TOFCustomFitPanel(String[] fields){
+	public boolean applyToAll = false;
+
+	public TOFCustomFitPanel(String[] fields, int sector, int layer){
+		
+		this.setLayout(new BorderLayout());
 		
 		// how many spaces
 		int numFields = fields.length;
@@ -25,7 +35,7 @@ public class TOFCustomFitPanel extends JPanel {
 		JTextField[] newTextFields = new JTextField[numFields];
 		textFields = newTextFields;
 		
-		this.setLayout(new GridLayout(fields.length,2));
+		JPanel fieldsPanel = new JPanel(new GridLayout(fields.length,2));
 		
 		// Initialize the text fields
 		for (int i=0; i< numFields; i++) { 
@@ -37,18 +47,48 @@ public class TOFCustomFitPanel extends JPanel {
 		for (int i=0; i< fields.length; i++) {
 			
 			if (fields[i] == "SPACE") {
-				this.add(new JLabel(""));
-				this.add(new JLabel(""));
+				fieldsPanel.add(new JLabel(""));
+				fieldsPanel.add(new JLabel(""));
 			}
 			else {
-				this.add(new JLabel(fields[i]));
-				this.add(textFields[fieldNum]);
+				fieldsPanel.add(new JLabel(fields[i]));
+				fieldsPanel.add(textFields[fieldNum]);
 				fieldNum++;
 			}
 			
 		}
+		
+		// Radio for single paddle or all in sector/layer
+		JRadioButton singleRad = new JRadioButton("Single paddle");
+		JRadioButton allRad = new JRadioButton("All paddles in sector "+sector
+				+" layer "+TOFCalibrationEngine.LAYER_NAME[layer-1]);
+		singleRad.setSelected(true);
+		ButtonGroup radGroup = new ButtonGroup();
+		radGroup.add(singleRad);
+		radGroup.add(allRad);
+		singleRad.addActionListener(this);
+		allRad.addActionListener(this);
+		
+		JPanel radPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		radPanel.add(singleRad);
+		radPanel.add(allRad);
+		
+		this.add(fieldsPanel, BorderLayout.NORTH);
+		this.add(radPanel, BorderLayout.SOUTH);
 				
 	}
+
+	public void actionPerformed(ActionEvent e) {
+
+		if (e.getActionCommand().startsWith("Single")) {
+			applyToAll = false;
+		}
+		else if (e.getActionCommand().startsWith("All paddles")) {
+			applyToAll = true;
+		}
+		
+		
+	}	
 	
 }
 

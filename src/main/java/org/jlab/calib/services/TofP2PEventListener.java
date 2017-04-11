@@ -12,6 +12,7 @@ import java.util.List;
 import javax.swing.JOptionPane;
 
 import org.jlab.detector.calib.utils.CalibrationConstants;
+import org.jlab.detector.calib.utils.DatabaseConstantProvider;
 import org.jlab.groot.data.GraphErrors;
 import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
@@ -73,60 +74,103 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 		// assign constraints
 		calib.addConstraint(3, -MAX_OFFSET, MAX_OFFSET);
 
-		calDBSource = CAL_DEFAULT;
+	}
+	
+	public void populatePrevCalib() {
 
-		// read in the time walk values from the text file
-		String inputFile = "/home/louise/workspace/clascalib-services/ftof.timing_offset.smeared.txt";
+		if (calDBSource==CAL_FILE) {
 
-		String line = null;
-		try { 
+			// read in the left right values from the text file			
+			String line = null;
+			try { 
 
-			// Open the file
-			FileReader fileReader = 
-					new FileReader(inputFile);
+				// Open the file
+				FileReader fileReader = 
+						new FileReader(prevCalFilename);
 
-			// Always wrap FileReader in BufferedReader
-			BufferedReader bufferedReader = 
-					new BufferedReader(fileReader);            
-
-			line = bufferedReader.readLine();
-
-			while (line != null) {
-
-				String[] lineValues;
-				lineValues = line.split(" ");
-
-				int sector = Integer.parseInt(lineValues[0]);
-				int layer = Integer.parseInt(lineValues[1]);
-				int paddle = Integer.parseInt(lineValues[2]);
-				double p2p = Double.parseDouble(lineValues[4]);
-
-				p2pValues.add(p2p, sector, layer, paddle);
+				// Always wrap FileReader in BufferedReader
+				BufferedReader bufferedReader = 
+						new BufferedReader(fileReader);            
 
 				line = bufferedReader.readLine();
-			}    
 
-			bufferedReader.close();            
-		}
-		catch(FileNotFoundException ex) {
-			ex.printStackTrace();
-			System.out.println(
-					"Unable to open file '" + 
-							inputFile + "'");                
-		}
-		catch(IOException ex) {
-			System.out.println(
-					"Error reading file '" 
-							+ inputFile + "'");                   
-			// Or we could just do this: 
-			// ex.printStackTrace();
-		}
+				while (line != null) {
 
+					String[] lineValues;
+					lineValues = line.split(" ");
+
+					int sector = Integer.parseInt(lineValues[0]);
+					int layer = Integer.parseInt(lineValues[1]);
+					int paddle = Integer.parseInt(lineValues[2]);
+					double p2p = Double.parseDouble(lineValues[4]);
+
+					p2pValues.addEntry(sector, layer, paddle);
+					p2pValues.setDoubleValue(p2p,
+							"paddle2paddle", sector, layer, paddle);
+					
+					line = bufferedReader.readLine();
+				}
+
+				bufferedReader.close();            
+			}
+			catch(FileNotFoundException ex) {
+				ex.printStackTrace();
+				System.out.println(
+						"Unable to open file '" + 
+								prevCalFilename + "'");                
+			}
+			catch(IOException ex) {
+				System.out.println(
+						"Error reading file '" 
+								+ prevCalFilename + "'");                   
+				ex.printStackTrace();
+			}			
+		}
+		else if (calDBSource==CAL_DEFAULT) {
+			for (int sector = 1; sector <= 6; sector++) {
+				for (int layer = 1; layer <= 3; layer++) {
+					int layer_index = layer - 1;
+					for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
+						p2pValues.addEntry(sector, layer, paddle);
+						p2pValues.setDoubleValue(0.0,
+								"paddle2paddle", sector, layer, paddle);
+						System.out.println("p2p check "+sector+layer+paddle+" "+
+								TOFCalibrationEngine.p2pValues.getDoubleValue("paddle2paddle",
+								sector,layer,paddle));						
+					}
+				}
+			}			
+		}
+		else if (calDBSource==CAL_DB) {
+			DatabaseConstantProvider dcp = new DatabaseConstantProvider(prevCalRunNo, "default");
+			p2pValues = dcp.readConstants("/calibration/ftof/timing_offset");
+			dcp.disconnect();
+		}
 	}
 
 	@Override
 	public void resetEventListener() {
 
+		// perform init processing
+		
+		// get the previous iteration calibration values
+		populatePrevCalib();
+		
+		System.out.println(stepName);
+		System.out.println("calDBSource "+calDBSource);
+		System.out.println("prevCalRunNo "+prevCalRunNo);
+		System.out.println("prevCalFilename "+prevCalFilename);
+		for (int i=0; i<p2pValues.getRowCount(); i++) {
+			String line = new String();
+			for (int j=0; j<p2pValues.getColumnCount(); j++) {
+				line = line+p2pValues.getValueAt(i, j);
+				if (j<p2pValues.getColumnCount()-1) {
+					line = line+" ";
+				}
+			}
+			System.out.println(line);
+		}
+		
 		// create the histograms for the first iteration
 		createHists();
 	}
@@ -162,7 +206,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 					dg.addDataSet(fineHist, 1);
 
 					// create a dummy function in case there's no data to fit 
-					F1D fineFunc = new F1D("fineFunc","[amp]*gaus(x,[mean],[sigma])", -1.0, 1.0);
+					F1D fineFunc = new F1D("fineFunc","[amp]*gaus(x,[mean],[sigma] + [a])", -1.0, 1.0);
 					fineFunc.setLineColor(FUNC_COLOUR);
 					fineFunc.setLineWidth(FUNC_LINE_WIDTH);
 					dg.addDataSet(fineFunc, 1);
@@ -211,6 +255,9 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 		int numTracks = 0;
 
 		for (TOFPaddle pad : paddleList) {
+			
+			// only include p >1.0 so that the beta=1 assumption is reasonable
+            if (pad.P < 1.0) continue;
 
 			int sector = pad.getDescriptor().getSector();
 			int layer = pad.getDescriptor().getLayer();
@@ -226,10 +273,14 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 			}
 
 			for (TOFPaddle jpad : paddleList) {
+				
+                // only include p >1.0 so that the beta=1 assumption is reasonable
+                if (jpad.P < 1.0) continue;
 
 				// fill hist of number of coincidences with other paddles
 				if (pad.trackFound() && jpad.trackFound()
-						&& pad.paddleNumber() != jpad.paddleNumber()) {
+						&& pad.paddleNumber() != jpad.paddleNumber()
+						&& pad.TRACK_ID != jpad.TRACK_ID) {
 					dataGroups.getItem(sector,layer,component).getH1F("statHist").fill(jpad.paddleNumber());
 				}
 
@@ -247,16 +298,17 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 							jpad.getDescriptor().getLayer(),
 							jpad.getDescriptor().getComponent()).getH1F("refHistAll").fill(pad.TOF_TIME - jpad.TOF_TIME);
 
-					if (jpad.trackFound() && pad.trackFound()) {
+					if (jpad.trackFound() && pad.trackFound() && pad.TRACK_ID != jpad.TRACK_ID) {
+						
+						System.out.println("p2p track ids "+pad.TRACK_ID+" "+jpad.TRACK_ID);
+		                System.out.println("ref paddle "+pad.getDescriptor().getSector()+pad.getDescriptor().getLayer()+pad.getDescriptor().getComponent());
+		                System.out.println("path "+pad.PATH_LENGTH+" startTime "+pad.startTime()+" trackFound "+pad.trackFound());
+		                System.out.println("other paddle "+jpad.getDescriptor().getSector()+jpad.getDescriptor().getLayer()+jpad.getDescriptor().getComponent());
+		                System.out.println("path "+jpad.PATH_LENGTH+" startTime "+jpad.startTime()+" trackFound "+jpad.trackFound());
 						dataGroups.getItem(jpad.getDescriptor().getSector(),
 								jpad.getDescriptor().getLayer(),
 								jpad.getDescriptor().getComponent()).getH1F("refHist").fill(pad.startTime() - jpad.startTime());
 					}
-
-					//	                System.out.println("ref paddle "+pad.getDescriptor().getSector()+pad.getDescriptor().getLayer()+pad.getDescriptor().getComponent());
-					//	                System.out.println("path "+pad.PATH_LENGTH+" startTime "+pad.startTime()+" trackFound "+pad.trackFound());
-					//	                System.out.println("other paddle "+jpad.getDescriptor().getSector()+jpad.getDescriptor().getLayer()+jpad.getDescriptor().getComponent());
-					//	                System.out.println("path "+jpad.PATH_LENGTH+" startTime "+jpad.startTime()+" trackFound "+jpad.trackFound());
 
 				}
 			}
@@ -389,6 +441,8 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 		catch(Exception ex) {
 			ex.printStackTrace();
 		}	
+		
+		fineHist.setOptStat(1111);
 	}
 
 	private Double formatDouble(double val) {
@@ -399,7 +453,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 	public void customFit(int sector, int layer, int paddle){
 
 		String[] fields = { "Override offset:"};
-		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);
@@ -441,7 +495,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 				fineOffset= fineFunc.getParameter(1);
 			}
 			//offset = refOffset + fineOffset;
-			offset = fineOffset;
+			offset = -fineOffset;
 
 		}
 		return offset;

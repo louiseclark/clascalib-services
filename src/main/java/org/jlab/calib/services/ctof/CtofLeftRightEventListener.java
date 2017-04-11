@@ -281,7 +281,7 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 		c1.draw(allPaddlePos);	
 
 		String[] fields = { "Override centroid:" , "SPACE"};
-		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);

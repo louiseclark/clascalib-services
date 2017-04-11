@@ -85,35 +85,19 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		calib.addConstraint(7, fitOrder[RIGHT]*0.9,
 				fitOrder[RIGHT]*1.1);
 
-		calDBSource = CAL_DEFAULT;
+	}
 
-		// get the effective velocity constants
-		//        DatabaseConstantProvider  dbprovider = new DatabaseConstantProvider(10,"default");
-		//        dbprovider.loadTable("/calibration/ftof/effective_velocity");
-		//        dbprovider.disconnect();
-		//        dbprovider.show();
-		//        
-		//        for(int loop = 0; loop < dbprovider.length("/calibration/ftof/effective_velocity/veff_left"); loop++){
-		//            double value = dbprovider.getDouble("/calibration/ftof/effective_velocity/veff_left",loop);
-		//            // for integer values use dbprovider.getInteger("/calibration/ftof/attenuation/y_offset",loop);
-		//            System.out.println("loop "+loop+" value "+value);
-		//        }
-		//        
-		//        DetectorDescriptor desc = new DetectorDescriptor();
-		//        desc.setSectorLayerComponent(1, 1, 4);
-		//        System.out.println("desc "+desc);
+	public void populatePrevCalib() {
 
-		if (calDBSource==TOFCalibrationEngine.CAL_FILE) {
-			// read in the time walk values from the text file
-			//String inputFile = "/home/louise/workspace/clascalib-services/ftof.time_walk.smeared.txt";
-			String inputFile = "/home/louise/workspace/clascalib-services/ftof_tw_smeared_new_formatted.txt";
+		if (calDBSource==CAL_FILE) {
 
+			// read in the left right values from the text file			
 			String line = null;
 			try { 
 
 				// Open the file
 				FileReader fileReader = 
-						new FileReader(inputFile);
+						new FileReader(prevCalFilename);
 
 				// Always wrap FileReader in BufferedReader
 				BufferedReader bufferedReader = 
@@ -134,14 +118,18 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					double lamR = Double.parseDouble(lineValues[6]);
 					double ordR = Double.parseDouble(lineValues[7]);
 
-					double[] twValues = {lamL,ordL,lamR,ordR};
-
-					System.out.println("SLC "+sector+layer+paddle+" lamL "+lamL+" ordL "+ordL+" lamR "+lamR+" ordR "+ordR);
-
-					timeWalkValues.add(twValues, sector, layer, paddle);
-
+					timeWalkValues.addEntry(sector, layer, paddle);
+					timeWalkValues.setDoubleValue(lamL,
+							"tw0_left", sector, layer, paddle);
+					timeWalkValues.setDoubleValue(ordL,
+							"tw1_left", sector, layer, paddle);
+					timeWalkValues.setDoubleValue(lamR,
+							"tw0_right", sector, layer, paddle);
+					timeWalkValues.setDoubleValue(ordR,
+							"tw1_right", sector, layer, paddle);
+					
 					line = bufferedReader.readLine();
-				}    
+				}
 
 				bufferedReader.close();            
 			}
@@ -149,23 +137,64 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				ex.printStackTrace();
 				System.out.println(
 						"Unable to open file '" + 
-								inputFile + "'");                
+								prevCalFilename + "'");                
 			}
 			catch(IOException ex) {
 				System.out.println(
 						"Error reading file '" 
-								+ inputFile + "'");                   
-				// Or we could just do this: 
-				// ex.printStackTrace();
-			}
+								+ prevCalFilename + "'");                   
+				ex.printStackTrace();
+			}			
+		}
+		else if (calDBSource==CAL_DEFAULT) {
+			for (int sector = 1; sector <= 6; sector++) {
+				for (int layer = 1; layer <= 3; layer++) {
+					int layer_index = layer - 1;
+					for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
+						timeWalkValues.addEntry(sector, layer, paddle);
+						timeWalkValues.setDoubleValue(fitLambda[0],
+								"tw0_left", sector, layer, paddle);
+						timeWalkValues.setDoubleValue(fitOrder[0],
+								"tw1_left", sector, layer, paddle);
+						timeWalkValues.setDoubleValue(fitLambda[1],
+								"tw0_right", sector, layer, paddle);
+						timeWalkValues.setDoubleValue(fitOrder[1],
+								"tw1_right", sector, layer, paddle);
+					}
+				}
+			}			
+		}
+		else if (calDBSource==CAL_DB) {
+			DatabaseConstantProvider dcp = new DatabaseConstantProvider(prevCalRunNo, "default");
+			timeWalkValues = dcp.readConstants("/calibration/ftof/time_walk");
+			dcp.disconnect();
 		}
 	}
-
+	
 	@Override
 	public void resetEventListener() {
 
-		System.out.println("TW reset start");
-		// LC perform init processing
+		// perform init processing
+		
+		// get the previous iteration calibration values
+		populatePrevCalib();
+		
+		System.out.println(stepName);
+		System.out.println("calDBSource "+calDBSource);
+		System.out.println("prevCalRunNo "+prevCalRunNo);
+		System.out.println("prevCalFilename "+prevCalFilename);
+		for (int i=0; i<timeWalkValues.getRowCount(); i++) {
+			String line = new String();
+			for (int j=0; j<timeWalkValues.getColumnCount(); j++) {
+				line = line+timeWalkValues.getValueAt(i, j);
+				if (j<timeWalkValues.getColumnCount()-1) {
+					line = line+" ";
+				}
+			}
+			System.out.println(line);
+		}
+
+		// create the histograms
 		for (int sector = 1; sector <= 6; sector++) {
 			for (int layer = 1; layer <= 3; layer++) {
 				int layer_index = layer - 1;
@@ -200,33 +229,33 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					
 					// create all the functions and graphs
 					F1D trLeftFunc = new F1D("trLeftFunc", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
-					//F1D trLeftFuncHist = new F1D("trLeftFuncHist", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
+					F1D trLeftFuncHist = new F1D("trLeftFuncHist", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
 					GraphErrors trLeftGraph = new GraphErrors();
 					trLeftGraph.setName("trLeftGraph");                    
 					F1D trRightFunc = new F1D("trRightFunc", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
-					//F1D trRightFuncHist = new F1D("trRightFuncHist", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
+					F1D trRightFuncHist = new F1D("trRightFuncHist", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
 					GraphErrors trRightGraph = new GraphErrors();
 					trRightGraph.setName("trRightGraph");
 
 					trLeftFunc.setLineColor(FUNC_COLOUR);
 					trLeftFunc.setLineWidth(FUNC_LINE_WIDTH);
-					//trLeftFuncHist.setLineColor(FUNC_COLOUR);
-					//trLeftFuncHist.setLineWidth(FUNC_LINE_WIDTH);
+					trLeftFuncHist.setLineColor(FUNC_COLOUR);
+					trLeftFuncHist.setLineWidth(FUNC_LINE_WIDTH);
 					trLeftGraph.setMarkerSize(MARKER_SIZE);
 					trLeftGraph.setLineThickness(MARKER_LINE_WIDTH);
 
 					trRightFunc.setLineColor(FUNC_COLOUR);
 					trRightFunc.setLineWidth(FUNC_LINE_WIDTH);
-					//trRightFuncHist.setLineColor(FUNC_COLOUR);
-					//trRightFuncHist.setLineWidth(FUNC_LINE_WIDTH);
+					trRightFuncHist.setLineColor(FUNC_COLOUR);
+					trRightFuncHist.setLineWidth(FUNC_LINE_WIDTH);
 					trRightGraph.setMarkerSize(MARKER_SIZE);
 					trRightGraph.setLineThickness(MARKER_LINE_WIDTH);
 
 					dg.addDataSet(trLeftFunc, 4);
-					//dg.addDataSet(trLeftFuncHist, 2);
+					dg.addDataSet(trLeftFuncHist, 2);
 					dg.addDataSet(trLeftGraph, 4);
 					dg.addDataSet(trRightFunc, 5);
-					//dg.addDataSet(trRightFuncHist, 3);
+					dg.addDataSet(trRightFuncHist, 3);
 					dg.addDataSet(trRightGraph, 5);
 					
 					if (calibChallTest) {
@@ -237,15 +266,19 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 						smearedLeftFunc.setParameter(0, 0.0);
 						smearedLeftFunc.setParameter(1,         
-								TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[0]);
+								TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw0_left",
+										sector,layer,paddle));
 						smearedLeftFunc.setParameter(2,         
-								TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[1]);
+								TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw1_left",
+										sector,layer,paddle));
 
 						smearedRightFunc.setParameter(0, 0.0);
 						smearedRightFunc.setParameter(1,         
-								TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[2]);
+								TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw0_right",
+										sector,layer,paddle));
 						smearedRightFunc.setParameter(2,         
-								TOFCalibrationEngine.timeWalkValues.getItem(sector,layer,paddle)[3]);
+								TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw1_right",
+										sector,layer,paddle));
 
 						smearedLeftFunc.setLineWidth(FUNC_LINE_WIDTH);
 						smearedRightFunc.setLineWidth(FUNC_LINE_WIDTH);
@@ -311,9 +344,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			int component = paddle.getDescriptor().getComponent();
 
 			// fill timeResidual vs ADC
-
-			if (paddle.includeInTimeWalk()) {
-				
+			if (paddle.trackFound()) { //(paddle.includeInTimeWalk()) {
+			
 				dataGroups.getItem(sector,layer,component).getH2F("trLeftHist").fill(paddle.ADCL, paddle.deltaTLeft());
 				dataGroups.getItem(sector,layer,component).getH2F("trRightHist").fill(paddle.ADCR, paddle.deltaTRight());
 
@@ -323,8 +355,6 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					double offset = i*(BEAM_BUCKET/n);
 					offsetHists.getItem(sector,layer,component,i)[0].fill(paddle.ADCL, (paddle.deltaTLeft()+offset)%BEAM_BUCKET);
 					offsetHists.getItem(sector,layer,component,i)[1].fill(paddle.ADCR, (paddle.deltaTRight()+offset)%BEAM_BUCKET);
-//					offsetHists.getItem(sector,layer,component,i)[0].fill(paddle.ADCL, (paddle.deltaTLeft()+BEAM_BUCKET-offset)%BEAM_BUCKET +offset);
-//					offsetHists.getItem(sector,layer,component,i)[1].fill(paddle.ADCR, (paddle.deltaTRight()+BEAM_BUCKET-offset)%BEAM_BUCKET +offset);
 				}
 			}
 		}
@@ -449,9 +479,9 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 		// fit function to the graph of means
 		F1D twLFunc = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc");
-		//F1D twLFuncHist = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFuncHist");
+		F1D twLFuncHist = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFuncHist");
 		twLFunc.setRange(FIT_MIN[layer], FIT_MAX[layer]);
-		//twLFuncHist.setRange(FIT_MIN[layer], FIT_MAX[layer]);
+		twLFuncHist.setRange(FIT_MIN[layer], FIT_MAX[layer]);
 		twLFunc.setParameter(0, fitLambda[LEFT]);
 		twLFunc.setParameter(1, fitOrder[LEFT]);
 		twLFunc.setParLimits(1, 0.45, 0.55);
@@ -463,14 +493,14 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		}
 		
 		// Create copy of the function for display on the histogram
-//		twLFuncHist.setParameter(0, twLFunc.getParameter(0));
-//		twLFuncHist.setParameter(1, twLFunc.getParameter(1));
-//		twLFuncHist.setParameter(2, twLFunc.getParameter(2));
+		twLFuncHist.setParameter(0, twLFunc.getParameter(0));
+		twLFuncHist.setParameter(1, twLFunc.getParameter(1));
+		twLFuncHist.setParameter(2, twLFunc.getParameter(2));
 
 		F1D twRFunc = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc");
-		//F1D twRFuncHist = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFuncHist");
+		F1D twRFuncHist = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFuncHist");
 		twRFunc.setRange(FIT_MIN[layer], FIT_MAX[layer]);
-		//twRFuncHist.setRange(FIT_MIN[layer], FIT_MAX[layer]);
+		twRFuncHist.setRange(FIT_MIN[layer], FIT_MAX[layer]);
 		twRFunc.setParameter(0, fitLambda[RIGHT]);
 		twRFunc.setParameter(1, fitOrder[RIGHT]);
 		twRFunc.setParLimits(1, 0.45, 0.55);
@@ -486,11 +516,11 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-
+		
 		// Create copy of the function for display on the histogram
-//		twLFuncHist.setParameter(0, twLFunc.getParameter(0));
-//		twLFuncHist.setParameter(1, twLFunc.getParameter(1));
-//		twLFuncHist.setParameter(2, twLFunc.getParameter(2));
+		twLFuncHist.setParameter(0, twLFunc.getParameter(0));
+		twLFuncHist.setParameter(1, twLFunc.getParameter(1));
+		twLFuncHist.setParameter(2, twLFunc.getParameter(2));
 		
 		// add the correct offset hist to the data group
 		DataGroup dg = dataGroups.getItem(sector,layer,paddle);
@@ -505,7 +535,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 		String[] fields = { "Override Lambda Left:", "Override Order Left:", "SPACE",
 				"Override Lambda Right:", "Override Order Right:"};
-		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);

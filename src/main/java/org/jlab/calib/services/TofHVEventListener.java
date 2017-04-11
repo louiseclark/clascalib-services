@@ -166,8 +166,8 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			
 			//System.out.println("HV paddle "+sector+layer+component+" geoMean "+paddle.geometricMean());
 
-			if (paddle.isValidGeoMean() && paddle.geometricMean() > EXPECTED_MIP_CHANNEL[layer-1] * 0.25
-					&& paddle.trackFound()) {
+			if (paddle.isValidGeoMean() && paddle.geometricMean() > EXPECTED_MIP_CHANNEL[layer-1] * 0.25) {
+					///&& paddle.trackFound()) {
 				dataGroups.getItem(sector,layer,component).getH1F("geomean").fill(paddle.geometricMean());
 				hvStatHist.fill(((layer-1)*10)+sector);
 			}
@@ -350,7 +350,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		String[] fields = {"Min range for geometric mean fit:", "Max range for geometric mean fit:", "SPACE",
 						   "Override MIP channel:", "Override MIP channel uncertainty:","SPACE",
 						   "Override Log ratio:", "Override Log ratio uncertainty:"};
-		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);
@@ -363,17 +363,26 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			double overrideLR = toDouble(panel.textFields[4].getText());
 			double overrideLRUnc = toDouble(panel.textFields[5].getText());			
 			
-			// save the override values
-			Double[] consts = constants.getItem(sector, layer, paddle);
-			consts[GEOMEAN_OVERRIDE] = overrideGM;
-			consts[GEOMEAN_UNC_OVERRIDE] = overrideGMUnc;
-			consts[LOGRATIO_OVERRIDE] = overrideLR;
-			consts[LOGRATIO_UNC_OVERRIDE] = overrideLRUnc;
-
-			fitGeoMean(sector, layer, paddle, minRange, maxRange);
-
-			// update the table
-			saveRow(sector,layer,paddle);
+			int minP = paddle;
+			int maxP = paddle;
+			if (panel.applyToAll) {
+				minP = 1;
+				maxP = NUM_PADDLES[layer-1];
+			}
+			
+			for (int p=minP; p<=maxP; p++) {
+				// save the override values
+				Double[] consts = constants.getItem(sector, layer, p);
+				consts[GEOMEAN_OVERRIDE] = overrideGM;
+				consts[GEOMEAN_UNC_OVERRIDE] = overrideGMUnc;
+				consts[LOGRATIO_OVERRIDE] = overrideLR;
+				consts[LOGRATIO_UNC_OVERRIDE] = overrideLRUnc;
+	
+				fitGeoMean(sector, layer, p, minRange, maxRange);
+	
+				// update the table
+				saveRow(sector,layer,p);
+			}
 			calib.fireTableDataChanged();
 			
 		}	 

@@ -180,7 +180,7 @@ public class TofRFEventListener extends TOFCalibrationEngine {
 	public void customFit(int sector, int layer, int paddle){
 
 		String[] fields = { "Override offset:"};
-		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);

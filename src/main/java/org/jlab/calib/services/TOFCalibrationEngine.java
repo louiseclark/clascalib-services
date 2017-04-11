@@ -1,5 +1,6 @@
 package org.jlab.calib.services;
 
+import java.awt.event.ActionEvent;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -14,6 +15,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
 
@@ -65,9 +67,9 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	// Values from previous calibration
 	// Need to be static as used by all engines
 	public static CalibrationConstants leftRightValues;
-	public static IndexedList<Double> p2pValues = new IndexedList<Double>(3);
-	public static IndexedList<Double> veffValues = new IndexedList<Double>(3);
-	public static IndexedList<double[]> timeWalkValues = new IndexedList<double[]>(3);
+	public static CalibrationConstants p2pValues;
+	public static CalibrationConstants veffValues;
+	public static CalibrationConstants timeWalkValues;
 
 	// Calculated counter status values
 	public static IndexedList<Integer> adcLeftStatus = new IndexedList<Integer>(3);
@@ -80,6 +82,12 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		TOFPaddle.tof = "FTOF";
 		leftRightValues = new CalibrationConstants(3,
 				"left_right/F");
+		veffValues = new CalibrationConstants(3,
+				"veff_left/F");
+		timeWalkValues = new CalibrationConstants(3,
+				"tw0_left/F:tw1_left/F:tw0_right/F:tw1_right/F");
+		p2pValues =	new CalibrationConstants(3,
+						"paddle2paddle/F");
 
 	}
 

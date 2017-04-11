@@ -56,6 +56,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 	// main panel
 	JPanel          pane         = null;
+	JFrame configFrame = new JFrame("Configure FTOF calibration settings");
 	
 	// detector panel
     DetectorPane2D            detectorView        = null;
@@ -260,6 +261,10 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			JOptionPane.showMessageDialog(new JPanel(),
 					engine.stepName + " calibration values written to "+outputFilename);
 		}
+		
+		if (e.getActionCommand().compareTo("OK")==0) {
+			configFrame.setVisible(false);
+		}
 	}
 
     public void dataEventAction(DataEvent event) {
@@ -431,90 +436,34 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         }
 	}
 
-	public void configure1() {
+	public void configure() {
 		
-		JFrame frame = new JFrame("Configure FTOF calibration settings");
-		frame.setSize(600, 300);
-		Container pane = frame.getContentPane();
+		configFrame.setSize(600, 600);
+		configFrame.setLocationRelativeTo(pane);
+		Container pane = configFrame.getContentPane();
+		JPanel confPanel = new JPanel(new FlowLayout());
+		TofPrevConfigPanel[] engPanels = {new TofPrevConfigPanel(new TOFCalibrationEngine()), 
+										  new TofPrevConfigPanel(new TOFCalibrationEngine()), 
+										  new TofPrevConfigPanel(new TOFCalibrationEngine()),
+										  new TofPrevConfigPanel(new TOFCalibrationEngine())};
 
-		JPanel configPanel = new JPanel(new GridBagLayout());
-		GridBagConstraints c = new GridBagConstraints();
-		
-		JRadioButton defaultRad = new JRadioButton("DEFAULT");
-		JRadioButton fileRad = new JRadioButton("FILE");
-		JRadioButton dbRad = new JRadioButton("DB");
-		defaultRad.setSelected(true);
-		ButtonGroup lrRadGroup = new ButtonGroup();
-		lrRadGroup.add(defaultRad);
-		lrRadGroup.add(fileRad);
-		lrRadGroup.add(dbRad);
-		defaultRad.addActionListener(this);
-		fileRad.addActionListener(this);
-		dbRad.addActionListener(this);
-		
-		JPanel drPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		drPanel.add(defaultRad);
-		c.anchor = c.LINE_START;
-		c.gridx = 0;
-		c.gridy = 0;
-		configPanel.add(drPanel,c);
-		c.gridx = 1;
-		c.gridy = 0;
-		configPanel.add(new JPanel(),c);
-		JPanel frPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		frPanel.add(fileRad);
-		c.gridx = 0;
-		c.gridy = 1;
-		configPanel.add(frPanel,c);
-		JFileChooser fc = new JFileChooser();
-		JPanel filePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-	    JLabel fileDisp = new JLabel("Selected file: /path/filename.txt");
-	    filePanel.add(fileDisp);
-	    JButton fileButton = new JButton("Select File");
-	    filePanel.add(fileButton,c);
-		c.gridx = 1;
-		c.gridy = 1;
-	    configPanel.add(filePanel,c);
-	    
-	    JPanel dbrPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-	    dbrPanel.add(dbRad);
-		c.gridx = 0;
-		c.gridy = 2;
-		configPanel.add(dbrPanel,c);
-		JPanel runPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		JLabel runLabel = new JLabel("Run number:");
-		JTextField runText = new JTextField("");
-		runPanel.add(runLabel);
-		runPanel.add(runText);
-		c.gridx = 1;
-		c.gridy = 2;
-		configPanel.add(runPanel,c);
+		for (int i=2; i< engines.length; i++) {  // skip HV and attenuation
+			engPanels[i-2] = new TofPrevConfigPanel(engines[i]);
+			confPanel.add(engPanels[i-2]);
+		}
 		
 		JPanel okPanel = new JPanel();
 		JButton okButton = new JButton("OK");
-	    okPanel.add(okButton);
-	    c.anchor = c.LINE_END;
-		c.gridx = 1;
-		c.gridy = 3;
-	    configPanel.add(okPanel,c);
+		for (int i=2; i< engines.length; i++) {  // skip HV and attenuation
+			okButton.addActionListener(engPanels[i-2]);
+		}
+		okButton.addActionListener(this);
+		okPanel.add(okButton);
+		confPanel.add(okPanel);
 		
-		configPanel.setBorder(BorderFactory.createTitledBorder("Left right"));
-		pane.add(configPanel);
+		pane.add(confPanel);
 		
-		frame.setVisible(true);
-		
-	}
-
-	public void configure() {
-		
-		JFrame frame = new JFrame("Configure FTOF calibration settings");
-		frame.setSize(600, 300);
-		Container pane = frame.getContentPane();
-
-		JPanel lrConfigPanel = new TofPrevConfigPanel(engines[LEFT_RIGHT]);
-		pane.add(lrConfigPanel);
-		
-		frame.setVisible(true);
+		configFrame.setVisible(true);
 		
 	}
 

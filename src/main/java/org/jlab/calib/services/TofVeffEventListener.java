@@ -21,6 +21,7 @@ import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.utils.CalibrationConstants;
 import org.jlab.detector.calib.utils.CalibrationConstantsListener;
 import org.jlab.detector.calib.utils.CalibrationConstantsView;
+import org.jlab.detector.calib.utils.DatabaseConstantProvider;
 import org.jlab.detector.decode.CodaEventDecoder;
 import org.jlab.detector.decode.DetectorDataDgtz;
 import org.jlab.detector.decode.DetectorDecoderView;
@@ -52,8 +53,6 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	public final double EXPECTED_VEFF = 16.0;
 	public final double ALLOWED_VEFF_DIFF = 0.1;
 
-	public H1F veffStatHist;	
-
 	public TofVeffEventListener() {
 
 		stepName = "Effective Velocity";
@@ -73,44 +72,26 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		calib.addConstraint(4, EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF),
 				EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 
-		calDBSource = CAL_DEFAULT;
+	}
+	
+	public void populatePrevCalib() {
 
-		if (calDBSource==TOFCalibrationEngine.CAL_FILE) {
+		if (calDBSource==CAL_FILE) {
 
-			// read in the veff values from the text file
-			//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_VEFF_20161215_1M_events_after_tw.txt";
-			//String inputFile = "/home/louise/workspace/clascalib-services/FTOF_CALIB_VEFF_20170103.test2.txt";
-			String inputFile = "/home/louise/workspace/clascalib-services/ftof.effective_velocity.smeared.txt";
-			//String inputFile = "test.txt";
-
+			// read in the values from the text file			
 			String line = null;
 			try { 
 
 				// Open the file
 				FileReader fileReader = 
-						new FileReader(inputFile);
+						new FileReader(prevCalFilename);
 
 				// Always wrap FileReader in BufferedReader
 				BufferedReader bufferedReader = 
 						new BufferedReader(fileReader);            
 
 				line = bufferedReader.readLine();
-				//line = bufferedReader.readLine(); // skip header
 
-//				while (line != null) {
-//
-//					int sector = Integer.parseInt(line.substring(0, 3).trim());
-//					int layer = Integer.parseInt(line.substring(3, 7).trim());
-//					int paddle = Integer.parseInt(line.substring(7, 11).trim());
-//					double veff = Double.parseDouble(line.substring(11,26).trim());
-//
-//					//System.out.println("veff SLC "+sector+layer+paddle+" "+veff);
-//
-//					veffValues.add(veff, sector, layer, paddle);
-//
-//					line = bufferedReader.readLine();
-//				}    
-				
 				while (line != null) {
 
 					String[] lineValues;
@@ -120,13 +101,13 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 					int layer = Integer.parseInt(lineValues[1]);
 					int paddle = Integer.parseInt(lineValues[2]);
 					double veff = Double.parseDouble(lineValues[3]);
+
+					veffValues.addEntry(sector, layer, paddle);
+					veffValues.setDoubleValue(veff,
+							"veff_left", sector, layer, paddle);
 					
-					System.out.println("veff SLC "+sector+layer+paddle+" "+veff);
-
-					veffValues.add(veff, sector, layer, paddle);
-
 					line = bufferedReader.readLine();
-				}    
+				}
 
 				bufferedReader.close();            
 			}
@@ -134,26 +115,57 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 				ex.printStackTrace();
 				System.out.println(
 						"Unable to open file '" + 
-								inputFile + "'");                
+								prevCalFilename + "'");                
 			}
 			catch(IOException ex) {
 				System.out.println(
 						"Error reading file '" 
-								+ inputFile + "'");                   
-				// Or we could just do this: 
-				// ex.printStackTrace();
+								+ prevCalFilename + "'");                   
+				ex.printStackTrace();
 			}			
+		}
+		else if (calDBSource==CAL_DEFAULT) {
+			for (int sector = 1; sector <= 6; sector++) {
+				for (int layer = 1; layer <= 3; layer++) {
+					int layer_index = layer - 1;
+					for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
+						veffValues.addEntry(sector, layer, paddle);
+						veffValues.setDoubleValue(EXPECTED_VEFF,
+								"veff_left", sector, layer, paddle);
+						
+					}
+				}
+			}			
+		}
+		else if (calDBSource==CAL_DB) {
+			DatabaseConstantProvider dcp = new DatabaseConstantProvider(prevCalRunNo, "default");
+			veffValues = dcp.readConstants("/calibration/ftof/effective_velocity");
+			dcp.disconnect();
 		}
 	}
 
 	@Override
 	public void resetEventListener() {
 
-		// create histogram of stats per layer / sector
-		veffStatHist = new H1F("veffStatHist","veffStatHist", 30,0.0,30.0);
-		veffStatHist.setTitle("Number of hits with tracking information");
-		veffStatHist.getXaxis().setTitle("Sector");
-		veffStatHist.getYaxis().setTitle("Number of hits");
+		// perform init processing
+		
+		// get the previous iteration calibration values
+		populatePrevCalib();
+		
+		System.out.println(stepName);
+		System.out.println("calDBSource "+calDBSource);
+		System.out.println("prevCalRunNo "+prevCalRunNo);
+		System.out.println("prevCalFilename "+prevCalFilename);
+		for (int i=0; i<veffValues.getRowCount(); i++) {
+			String line = new String();
+			for (int j=0; j<veffValues.getColumnCount(); j++) {
+				line = line+veffValues.getValueAt(i, j);
+				if (j<veffValues.getColumnCount()-1) {
+					line = line+" ";
+				}
+			}
+			System.out.println(line);
+		}
 
 		// LC perform init processing
 		for (int sector = 1; sector <= 6; sector++) {
@@ -233,7 +245,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 				dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
 						paddle.paddleY() + (paddleLength(sector,layer,component)/2), 
 						paddle.halfTimeDiff() + 15.0);
-				veffStatHist.fill(((layer-1)*10)+sector);
+				
 			}
 		}
 	}
@@ -258,7 +270,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		}
 		else {
 			//lowLimit = paddleLength(sector,layer,paddle) * -0.4;
-			lowLimit = paddleLength(sector,layer,paddle) * 0.1;
+			lowLimit = paddleLength(sector,layer,paddle) * 0.15;
 		}
 
 		if (maxRange != UNDEFINED_OVERRIDE) {
@@ -267,7 +279,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		}
 		else {
 			//highLimit = paddleLength(sector,layer,paddle) * 0.4;
-			highLimit = paddleLength(sector,layer,paddle) * 0.9;
+			highLimit = paddleLength(sector,layer,paddle) * 0.85;
 		}
 
 		F1D veffFunc = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc");
@@ -287,7 +299,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
 				"Override Effective Velocity:", "Override Effective Velocity uncertainty:"};
 
-		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);

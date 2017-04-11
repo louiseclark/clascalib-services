@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 import javax.swing.Box;
@@ -116,6 +117,23 @@ public class TOFHVAdjustPanel 	extends JPanel
 			File outputFile = new File(outputFileName);
 			FileWriter outputFw = new FileWriter(outputFile.getAbsoluteFile());
 			BufferedWriter outputBw = new BufferedWriter(outputFw);
+
+			// Write the header
+			outputBw.write("--- Start BURT header");
+			outputBw.newLine();
+			outputBw.write("FTOF Calibration HV recalculation");
+			outputBw.newLine();
+			Date today = new Date();
+			DateFormat dateFormat = new SimpleDateFormat("MMM dd yyyy HH:mm:ss");
+			String todayString = dateFormat.format(today);
+			outputBw.write("Date and time: "+todayString);
+			outputBw.newLine();
+			outputBw.write("Login ID: "+System.getProperty("user.name"));
+			outputBw.newLine();
+			outputBw.write("Input HV file: "+fc.getSelectedFile().getAbsolutePath());
+			outputBw.newLine();
+			outputBw.write("--- End BURT header");
+			outputBw.newLine();
 			
 			line = bufferedReader.readLine();
 			while (line != null) {
@@ -211,7 +229,7 @@ public class TOFHVAdjustPanel 	extends JPanel
 		for (File file : filesList) {
 			if (file.isFile()) {
 				String fileName = file.getName();
-				if (fileName.matches(filePrefix + "[.]\\d+[.]txt")) {
+				if (fileName.matches(filePrefix + "[.]\\d+[.]snp")) {
 					String fileNumString = fileName.substring(
 							fileName.indexOf('.') + 1,
 							fileName.lastIndexOf('.'));
@@ -223,7 +241,7 @@ public class TOFHVAdjustPanel 	extends JPanel
 			}
 		}
 
-		return filePrefix + "." + newFileNum + ".txt";
+		return filePrefix + "." + newFileNum + ".snp";
 	}	
 	
 }

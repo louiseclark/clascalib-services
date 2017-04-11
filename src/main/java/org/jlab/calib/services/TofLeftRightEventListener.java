@@ -66,31 +66,11 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		calib.setPrecision(3);
 
 		calib.addConstraint(3, -MAX_LEFTRIGHT, MAX_LEFTRIGHT);
-
-		calDBSource = CAL_DEFAULT;
-		//calDBSource = CAL_FILE;
-		//calDBSource = CAL_DB;
-		prevCalFilename = "/home/louise/workspace/clascalib-services/FTOF_CALIB_LEFTRIGHT_20170330.2.txt";
-		prevCalRunNo = 18;
-		populatePrevCalib();
-		
-		System.out.println("rowCount "+leftRightValues.getRowCount());
-		for (int i=0; i<leftRightValues.getRowCount(); i++) {
-			String line = new String();
-			for (int j=0; j<leftRightValues.getColumnCount(); j++) {
-				line = line+leftRightValues.getValueAt(i, j);
-				if (j<leftRightValues.getColumnCount()-1) {
-					line = line+" ";
-				}
-			}
-			System.out.println(line);
-		}
 		
 	}
 
 	public void populatePrevCalib() {
 
-		System.out.println("populatePrevCalib");
 		if (calDBSource==CAL_FILE) {
 
 			// read in the left right values from the text file			
@@ -117,12 +97,10 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 					int paddle = Integer.parseInt(lineValues[2]);
 					double lr = Double.parseDouble(lineValues[3]);
 
-					System.out.println("lr SLC "+sector+layer+paddle+" "+lr);
-
 					leftRightValues.addEntry(sector, layer, paddle);
 					leftRightValues.setDoubleValue(lr,
 							"left_right", sector, layer, paddle);
-
+					
 					line = bufferedReader.readLine();
 				}
 
@@ -146,7 +124,6 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 				for (int layer = 1; layer <= 3; layer++) {
 					int layer_index = layer - 1;
 					for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
-						System.out.println("Adding entry "+sector+layer+paddle);
 						leftRightValues.addEntry(sector, layer, paddle);
 						leftRightValues.setDoubleValue(0.0,
 								"left_right", sector, layer, paddle);
@@ -164,7 +141,27 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 
 	public void resetEventListener() {
 
-		// LC perform init processing
+		// perform init processing
+		
+		// get the previous iteration calibration values
+		populatePrevCalib();
+		
+		System.out.println(stepName);
+		System.out.println("calDBSource "+calDBSource);
+		System.out.println("prevCalRunNo "+prevCalRunNo);
+		System.out.println("prevCalFilename "+prevCalFilename);
+		for (int i=0; i<leftRightValues.getRowCount(); i++) {
+			String line = new String();
+			for (int j=0; j<leftRightValues.getColumnCount(); j++) {
+				line = line+leftRightValues.getValueAt(i, j);
+				if (j<leftRightValues.getColumnCount()-1) {
+					line = line+" ";
+				}
+			}
+			System.out.println(line);
+		}
+		
+		// create histograms
 		for (int sector = 1; sector <= 6; sector++) {
 			for (int layer = 1; layer <= 3; layer++) {
 				int layer_index = layer - 1;
@@ -317,7 +314,7 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		//System.out.println("Left right value from file is "+leftRightAdjustment(sector,layer,paddle));
 
 		String[] fields = { "Override centroid:" , "SPACE"};
-		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);

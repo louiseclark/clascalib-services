@@ -346,7 +346,7 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 		String[] fields = {"Min range for geometric mean fit:", "Max range for geometric mean fit:", "SPACE",
 				"Override MIP channel:", "Override MIP channel uncertainty:","SPACE",
 				"Override Log ratio:", "Override Log ratio uncertainty:"};
-		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);

@@ -240,7 +240,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
 				"Override Effective Velocity:", "Override Effective Velocity uncertainty:"};
 
-		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields);
+		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);
