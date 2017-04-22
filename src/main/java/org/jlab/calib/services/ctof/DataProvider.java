@@ -93,14 +93,15 @@ public class DataProvider {
 				TOFPaddle  paddle = new TOFPaddle(
 						(int) hitsBank.getByte("sector", hitIndex),
 						(int) hitsBank.getByte("layer", hitIndex),
-						(int) hitsBank.getShort("component", hitIndex),
+						(int) hitsBank.getShort("component", hitIndex));
+				paddle.setAdcTdc(
 						adcBank.getInt("ADC", hitsBank.getShort("adc_idx1", hitIndex)),
 						adcBank.getInt("ADC", hitsBank.getShort("adc_idx2", hitIndex)),
 						tdcBank.getInt("TDC", hitsBank.getShort("tdc_idx1", hitIndex)),
-						tdcBank.getInt("TDC", hitsBank.getShort("tdc_idx2", hitIndex)),
-						hitsBank.getFloat("tx", hitIndex),
-						hitsBank.getFloat("ty", hitIndex),
-						0.0); 
+						tdcBank.getInt("TDC", hitsBank.getShort("tdc_idx2", hitIndex)));
+				paddle.setPos(hitsBank.getFloat("tx", hitIndex),
+							  hitsBank.getFloat("ty", hitIndex),
+							  hitsBank.getFloat("tz", hitIndex)); 
 
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);
@@ -232,8 +233,8 @@ public class DataProvider {
 						TOFPaddle  paddle = new TOFPaddle(
 								sector,
 								layer,
-								component,
-								adcL, adcR, tdcL, tdcR);
+								component);
+						paddle.setAdcTdc(adcL, adcR, tdcL, tdcR);
 								// are they back to front??
 								//adcR, adcL, tdcR, tdcL);
 
@@ -281,131 +282,6 @@ public class DataProvider {
 		//
 		//		}
 
-		return paddleList;
-	}
-	
-	public static List<TOFPaddle> getPaddleListDgtz(DataEvent event){
-	
-		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
-		
-		boolean show = false;
-		int nonZeroHit = 0;
-		if (test) {
-			EvioDataEvent e = (EvioDataEvent) event;
-			e.show();
-			if (event.hasBank("CTOF::dgtz")) {
-				event.getBank("CTOF::dgtz").show();
-			}
-			
-			if (event.hasBank("CTOFRec::ctofhits")) {
-				//event.getBank("CTOFRec::ctofhits").show();
-				for (int i = 0; i < event.getBank("CTOFRec::ctofhits").rows(); i++) {
-					
-					if (event.getBank("CTOFRec::ctofhits").getFloat("tz", i) !=0) {
-						show = true;
-						nonZeroHit = i;
-					}
-					
-				}
-				if (show) {
-					event.getBank("CTOF::dgtz").show();
-					event.getBank("CTOFRec::ctofhits").show();
-				}
-			}
-		}
-		
-
-		if (event.hasBank("CTOF::dgtz")) {
-			EvioDataBank dgtzBank = (EvioDataBank) event.getBank("CTOF::dgtz");
-
-			for (int dgtzIndex = 0; dgtzIndex < dgtzBank.rows(); dgtzIndex++) {
-
-				int component = dgtzBank.getInt("paddle", dgtzIndex);
-				float zpos = 0; // lab hit co ords from SVT projection
-				float timeL = 0;
-				float timeR = 0;
-				
-				if (show) {
-					System.out.println("dgtz paddle_id "+component+" hitn "
-							+dgtzBank.getInt("hitn",dgtzIndex));
-				}
-				
-				if (event.hasBank("CTOFRec::ctofhits")) {
-					
-					// find the corresponding row in the ctofhits bank
-					// to get the hit position from tracking
-					EvioDataBank hitsBank = (EvioDataBank) event.getBank("CTOFRec::ctofhits");
-					for (int hitIndex = 0; hitIndex < hitsBank.rows(); hitIndex++) {
-						
-						if (show) {
-							System.out.println("hits paddle_id"+hitsBank.getInt("paddle_id", hitIndex));
-						}
-				
-						if (component==hitsBank.getInt("paddle",hitIndex)
-            				&&
-            				dgtzBank.getInt("hitn",dgtzIndex)==hitsBank.getInt("id", hitIndex)
-            				&&
-            				hitsBank.getFloat("tz", hitIndex) != 0) {
-							
-							zpos = hitsBank.getFloat("tz", hitIndex);
-							
-							if (event.hasBank("CTOFRec::rawhits")) {
-								// one to one correspondence between ftofhits and rawhits
-								EvioDataBank rawBank = (EvioDataBank) event.getBank("CTOFRec::rawhits");
-								timeL = rawBank.getFloat("time_up", hitIndex);
-								timeR = rawBank.getFloat("time_down", hitIndex);
-							}
-						}
-						
-					}
-
-				}
-
-				if (test) {
-					System.out.println("Creating paddle "+component);
-					System.out.println("TDCU/TDCD "+dgtzBank.getInt("TDCU", dgtzIndex)+" "+
-							dgtzBank.getInt("TDCD", dgtzIndex));
-				}
-				TOFPaddle  paddle = new TOFPaddle(
-						1,
-						1,
-						component,
-						dgtzBank.getInt("ADCU", dgtzIndex),
-						dgtzBank.getInt("ADCD", dgtzIndex),
-						dgtzBank.getInt("TDCU", dgtzIndex),
-						dgtzBank.getInt("TDCD", dgtzIndex),
-						0.0,
-						0.0,
-						zpos,
-						timeL,timeR);
-				
-				if (show) {
-					System.out.println("Paddle "+component+" zpos "+zpos+
-							" tz "+event.getBank("CTOFRec::ctofhits").getFloat("tz", nonZeroHit));
-				}
-				
-				// set status to ok if at least one reading
-				if (paddle.ADCL!=0.0) {
-					CTOFCalibrationEngine.adcLeftStatus.add(0, 1,1,component);
-				}
-				if (paddle.ADCR!=0.0) {
-					CTOFCalibrationEngine.adcRightStatus.add(0, 1,1,component);
-				}
-				if (paddle.TDCL!=0.0) {
-					CTOFCalibrationEngine.tdcLeftStatus.add(0, 1,1,component);
-				}
-				if (paddle.TDCR!=0.0) {
-					CTOFCalibrationEngine.tdcRightStatus.add(0, 1,1,component);
-				}
-
-				if (paddle.includeInCalib()) {
-					paddleList.add(paddle);
-					//System.out.println("Writing paddle");
-				}
-			}
-		}
-
-		//		System.out.println("returning paddle list "+paddleList.size());
 		return paddleList;
 	}
 

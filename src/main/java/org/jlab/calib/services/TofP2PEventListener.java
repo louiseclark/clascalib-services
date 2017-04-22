@@ -48,11 +48,19 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 	// indices for constants
 	public final int OFFSET_OVERRIDE = 0;
 
-	// Reference paddle
+	// Electron Reference paddle
 	public final int REF_SECTOR = 2;
 	public final int REF_LAYER = 1;
 	public final int REF_PADDLE = 13; 
 
+	// Pion reference paddle
+	public final int PREF_SECTOR = 2;
+	public final int PREF_LAYER = 1;
+	public final int PREF_PADDLE = 20; 	
+	
+	ArrayList<Double> Ci0j0k0l0 = new ArrayList<Double>();
+	IndexedList<ArrayList<Double>> Ci0j0kl = new IndexedList<ArrayList<Double>>(3);
+			
 	final double MAX_OFFSET = 10.0;
 	
 	private String showPlotType = "VERTEX_RF";
@@ -80,7 +88,6 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 
 		if (calDBSource==CAL_FILE) {
 
-			// read in the left right values from the text file			
 			String line = null;
 			try { 
 
@@ -196,13 +203,13 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 					H1F fineHistRaw = 
 							new H1F("fineHistRaw","Fine offset Sector "+sector+" Layer "+" Paddle "+paddle,
 									100, -2.0, 2.0);
-					fineHistRaw.setTitleX("Vertex time - RF time modulo beam bucket (ns)");
+					fineHistRaw.setTitleX("RF time - vertex time modulo beam bucket (ns)");
 					dg.addDataSet(fineHistRaw, 0);
 
 					H1F fineHist = 
 							new H1F("fineHist","Fine offset Sector "+sector+" Layer "+" Paddle "+paddle,
 									100, -2.0, 2.0);
-					fineHist.setTitleX("Vertex time - RF time modulo beam bucket (ns)");
+					fineHist.setTitleX("RF time - vertex time modulo beam bucket (ns)");
 					dg.addDataSet(fineHist, 1);
 
 					// create a dummy function in case there's no data to fit 
@@ -228,12 +235,22 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 					statHist.setTitleX("Number of coincidences - Paddle number");
 					dg.addDataSet(statHist, 4);
 
+					H1F Deltai0j0kl = 
+							new H1F("Deltai0j0kl","Delta i0,j0, "+sector+" Paddle "+paddle, 
+									99,-49.5*BEAM_BUCKET,49.5*BEAM_BUCKET);
+					Deltai0j0kl.setTitleX("#Delta i0, j0, "+sector+" "+paddle+" (ns)");
+					dg.addDataSet(Deltai0j0kl, 5);
+					
 					dataGroups.add(dg,sector,layer,paddle);    
 
 					// initialize the constants array
 					Double[] consts = {UNDEFINED_OVERRIDE};
 					// override values
 					constants.add(consts, sector, layer, paddle);
+					
+					// create array to store Ci0j0kl
+					ArrayList<Double> entry = new ArrayList<Double>();
+					Ci0j0kl.add(entry, sector,layer,paddle);
 				}
 			}
 		}
@@ -250,8 +267,6 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 	@Override
 	public void processPaddleList(List<TOFPaddle> paddleList) {
 
-		TOFPaddle eRefPaddle = new TOFPaddle(0,0,0);
-		boolean electronFound = false;
 		int numTracks = 0;
 
 		for (TOFPaddle pad : paddleList) {
@@ -263,7 +278,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 			int layer = pad.getDescriptor().getLayer();
 			int component = pad.getDescriptor().getComponent();
 
-			// fill the fine hist
+			// fill the fine hists
 			if (pad.trackFound()) {
 				dataGroups.getItem(sector,layer,component).getH1F("fineHistRaw").fill(
 						(pad.refTime()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
@@ -276,6 +291,10 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 				
                 // only include p >1.0 so that the beta=1 assumption is reasonable
                 if (jpad.P < 1.0) continue;
+                
+                int jSector = jpad.getDescriptor().getSector();
+                int jLayer = jpad.getDescriptor().getLayer();
+                int jComponent = jpad.getDescriptor().getComponent();
 
 				// fill hist of number of coincidences with other paddles
 				if (pad.trackFound() && jpad.trackFound()
@@ -285,29 +304,30 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 				}
 
 				// Look for electron in reference paddle
-				if (pad.getDescriptor().getSector()==REF_SECTOR && 
-						pad.getDescriptor().getLayer()==REF_LAYER && 
-						pad.getDescriptor().getComponent()==REF_PADDLE) { 
-					//    pad.PARTICLE_ID == 11) {
-
-					eRefPaddle = pad;
-					electronFound = true;
-					//break;
+				if (sector==REF_SECTOR && layer==REF_LAYER && component==REF_PADDLE) { 
 
 					dataGroups.getItem(jpad.getDescriptor().getSector(),
 							jpad.getDescriptor().getLayer(),
 							jpad.getDescriptor().getComponent()).getH1F("refHistAll").fill(pad.TOF_TIME - jpad.TOF_TIME);
-
+					
 					if (jpad.trackFound() && pad.trackFound() && pad.TRACK_ID != jpad.TRACK_ID) {
-						
-						System.out.println("p2p track ids "+pad.TRACK_ID+" "+jpad.TRACK_ID);
-		                System.out.println("ref paddle "+pad.getDescriptor().getSector()+pad.getDescriptor().getLayer()+pad.getDescriptor().getComponent());
-		                System.out.println("path "+pad.PATH_LENGTH+" startTime "+pad.startTime()+" trackFound "+pad.trackFound());
-		                System.out.println("other paddle "+jpad.getDescriptor().getSector()+jpad.getDescriptor().getLayer()+jpad.getDescriptor().getComponent());
-		                System.out.println("path "+jpad.PATH_LENGTH+" startTime "+jpad.startTime()+" trackFound "+jpad.trackFound());
+
+						System.out.println("pad");
+						pad.show();
+						System.out.println("jpad");
+						jpad.show();
 						dataGroups.getItem(jpad.getDescriptor().getSector(),
 								jpad.getDescriptor().getLayer(),
 								jpad.getDescriptor().getComponent()).getH1F("refHist").fill(pad.startTime() - jpad.startTime());
+						
+						// Store the Ci0j0k0l0
+						if (jSector==PREF_SECTOR && jLayer==PREF_LAYER && jComponent==PREF_PADDLE) {
+							System.out.println("Storing Ci0j0k0l0");
+							Ci0j0k0l0.add(pad.startTime() - jpad.startTime());
+						}
+						// Store the Ci0j0kl
+						System.out.println("Storing Ci0j0"+jSector+jLayer+jComponent); 
+						Ci0j0kl.getItem(jSector,jLayer,jComponent).add(pad.startTime()-jpad.startTime());
 					}
 
 				}
@@ -442,7 +462,19 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 			ex.printStackTrace();
 		}	
 		
-		fineHist.setOptStat(1111);
+		fineFunc.setOptStat(1001);
+		
+		// Fill the Deltai0j0kl histogram		
+		System.out.println("SLC "+sector+layer+paddle);
+		System.out.println("Ci0j0k0l0 size "+Ci0j0k0l0.size());
+		System.out.println("Ci0j0kl size "+Ci0j0kl.getItem(sector,layer,paddle).size());
+		
+		for (double c1: Ci0j0k0l0) {
+			for (double c2: Ci0j0kl.getItem(sector,layer,paddle)) {
+				dataGroups.getItem(sector,layer,paddle).getH1F("Deltai0j0kl").fill(c1-c2);
+			}
+		}
+		
 	}
 
 	private Double formatDouble(double val) {
@@ -495,7 +527,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 				fineOffset= fineFunc.getParameter(1);
 			}
 			//offset = refOffset + fineOffset;
-			offset = -fineOffset;
+			offset = fineOffset;
 
 		}
 		return offset;

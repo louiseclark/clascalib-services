@@ -152,11 +152,11 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					int layer_index = layer - 1;
 					for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 						timeWalkValues.addEntry(sector, layer, paddle);
-						timeWalkValues.setDoubleValue(fitLambda[0],
+						timeWalkValues.setDoubleValue(0.0, //fitLambda[0],
 								"tw0_left", sector, layer, paddle);
 						timeWalkValues.setDoubleValue(fitOrder[0],
 								"tw1_left", sector, layer, paddle);
-						timeWalkValues.setDoubleValue(fitLambda[1],
+						timeWalkValues.setDoubleValue(0.0, //fitLambda[1],
 								"tw0_right", sector, layer, paddle);
 						timeWalkValues.setDoubleValue(fitOrder[1],
 								"tw1_right", sector, layer, paddle);
@@ -344,7 +344,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			int component = paddle.getDescriptor().getComponent();
 
 			// fill timeResidual vs ADC
-			if (paddle.trackFound()) { //(paddle.includeInTimeWalk()) {
+			if (paddle.includeInTimeWalk()) {
 			
 				dataGroups.getItem(sector,layer,component).getH2F("trLeftHist").fill(paddle.ADCL, paddle.deltaTLeft());
 				dataGroups.getItem(sector,layer,component).getH2F("trRightHist").fill(paddle.ADCR, paddle.deltaTRight());

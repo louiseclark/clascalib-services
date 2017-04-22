@@ -21,8 +21,6 @@ public class TOFPaddle {
 	public int TDCR = 0;
 	public float ADC_TIMEL = 0;
 	public float ADC_TIMER = 0;
-	public double TIMEL = 0.0;
-	public double TIMER = 0.0;
 	public double XPOS = 0.0;
 	public double YPOS = 0.0;
 	public double ZPOS = 0.0;
@@ -32,10 +30,7 @@ public class TOFPaddle {
 	public int TRACK_ID = -1;
 	public double RF_TIME = 124.25;
 	public double TOF_TIME = 0.0;
-	public double FLIGHT_TIME = 0.0;
-	public double VERTEX_Z = 0.0;
 	public int PARTICLE_ID = -1;
-	public double START_TIME = 0.0;
 
 	public static final int PID_ELECTRON = 11;
 	public static final int PID_PION = 211;
@@ -44,51 +39,18 @@ public class TOFPaddle {
 	public TOFPaddle(int sector, int layer, int paddle) {
 		this.desc.setSectorLayerComponent(sector, layer, paddle);
 	}
-
-	public TOFPaddle(int sector, int layer, int paddle, int adcL, int adcR,
-			int tdcL, int tdcR) {
-		this.desc.setSectorLayerComponent(sector, layer, paddle);
+	
+	public void setAdcTdc(int adcL, int adcR, int tdcL, int tdcR) {
 		this.ADCL = adcL;
 		this.ADCR = adcR;
 		this.TDCL = tdcL;
 		this.TDCR = tdcR;
 	}
-
-	public TOFPaddle(int sector, int layer, int paddle, int adcL, int adcR,
-			int tdcL, int tdcR, double xpos, double ypos, double pathlength) {
-		this.desc.setSectorLayerComponent(sector, layer, paddle);
-		this.ADCL = adcL;
-		this.ADCR = adcR;
-		this.TDCL = tdcL;
-		this.TDCR = tdcR;
-		this.XPOS = xpos;
-		this.YPOS = ypos;
-		this.PATH_LENGTH = pathlength;
-	}
-
-	public TOFPaddle(int sector, int layer, int paddle, int adcL, int adcR,
-			int tdcL, int tdcR, double xpos, double ypos, double zpos,
-			double timeL, double timeR) {
-		this.desc.setSectorLayerComponent(sector, layer, paddle);
-		this.ADCL = adcL;
-		this.ADCR = adcR;
-		this.TDCL = tdcL;
-		this.TDCR = tdcR;
-		this.XPOS = xpos;
-		this.YPOS = ypos;
-		this.ZPOS = zpos;
-		this.TIMEL = timeL;
-		this.TIMER = timeR;
-	}
-
-	public final void setData(int adcL, int adcR, int tdcL, int tdcR,
-			double xpos, double ypos) {
-		this.ADCL = adcL;
-		this.ADCR = adcR;
-		this.TDCL = tdcL;
-		this.TDCR = tdcR;
-		this.XPOS = xpos;
-		this.YPOS = ypos;
+	
+	public void setPos(double xPos, double yPos, double zPos) {
+		this.XPOS = xPos;
+		this.YPOS = yPos;
+		this.ZPOS = zPos;
 	}
 
 	public int paddleNumber() {
@@ -202,7 +164,7 @@ public class TOFPaddle {
 
 
 	public boolean includeInTimeWalk() {
-		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0);		
+		return (trackFound() && P > 1.0);		
 	}	
 	
 	public double startTime() {
@@ -222,10 +184,10 @@ public class TOFPaddle {
 		
 		double lr = leftRightAdjustment();
 		
-		double tL = timeLeftAfterTW() - (lr/2) + 
+		double tL = timeLeftAfterTW() - (lr/2) 
 				- ((0.5*paddleLength() + paddleY())/this.veff());
 		
-		double tR = timeRightAfterTW() + (lr/2) +
+		double tR = timeRightAfterTW() + (lr/2)
 				- ((0.5*paddleLength() - paddleY())/this.veff());
 		
 		return (tL+tR)/2.0;
@@ -234,7 +196,7 @@ public class TOFPaddle {
 	
 
 	public double refTime() {
-		return this.startTime() - this.RF_TIME;
+		return this.RF_TIME - this.startTime();
 	}	
 	
 	public double deltaTLeft() {
@@ -333,13 +295,6 @@ public class TOFPaddle {
 		return (timeL - timeR - leftRightAdjustment()) / 2;
 	}
 
-	public double recHalfTimeDiff() {
-
-		//		return (TIMEL - TIMER - leftRightAdjustment(desc.getSector(),
-		//				desc.getLayer(), desc.getComponent())) / 2;
-		return (TIMEL - TIMER) / 2;
-	}
-
 	public double leftRightAdjustment() {
 
 		double lr = 0.0;
@@ -399,10 +354,6 @@ public class TOFPaddle {
 		return halfTimeDiff() * veff();
 	}
 
-	public double recPosition() {
-		return recHalfTimeDiff() * veff();
-	} 
-
 	public double paddleY() {
 
 		int sector = desc.getSector();
@@ -411,7 +362,8 @@ public class TOFPaddle {
 	}
 	
 	public boolean trackFound() {
-		return (XPOS !=0.0 || YPOS !=0.0 || ZPOS !=0.0);
+		return TRACK_ID != -1;
+//		return (XPOS !=0.0 || YPOS !=0.0 || ZPOS !=0.0);
 	};
 
 	public double zPosCTOF() {
@@ -427,6 +379,18 @@ public class TOFPaddle {
 				+ desc.getComponent() + " ADCR " + ADCR + " ADCL " + ADCL
 				+ " TDCR " + TDCR + " TDCL " + TDCL + " Geometric Mean "
 				+ geometricMean() + " Log ratio " + logRatio();
+	}
+	
+	public void show() {
+		System.out.println("S " + desc.getSector() + " L " + desc.getLayer() + " C "
+				+ desc.getComponent() + " ADCR " + ADCR + " ADCL " + ADCL
+				+ " TDCR " + TDCR + " TDCL " + TDCL);
+		System.out.println("XPOS "+XPOS+" YPOS "+YPOS+" ZPOS "+ZPOS+" PATH_LENGTH "+PATH_LENGTH+" TRACK_ID "+TRACK_ID);
+		System.out.println("BETA "+BETA+" P "+P+" RF_TIME "+RF_TIME+" TOF_TIME "+TOF_TIME);
+		System.out.println("startTime "+startTime()+" averageHitTime "+p2pAverageHitTime());
+		System.out.println("lamL "+lamL()+" ordL "+ordL()+" lamR "+lamR()+" ordR "+ordR()+" LR "+leftRightAdjustment()+" veff "+veff());
+		System.out.println("paddleLength "+paddleLength()+" paddleY "+paddleY());
+
 	}
 
 }

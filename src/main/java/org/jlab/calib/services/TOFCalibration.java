@@ -251,7 +251,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         	hvFrame.setVisible(true);
         	hvFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         	// *** TEST CODE while issue with EVENT_STOP
-			engine.analyze();
+			//engine.analyze();
 
 		}
 		else if (e.getActionCommand().compareTo(buttons[WRITE])==0) {
