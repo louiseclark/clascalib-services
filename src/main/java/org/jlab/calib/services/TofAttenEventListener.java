@@ -240,12 +240,6 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 
 	public void customFit(int sector, int layer, int paddle){
 
-		// draw the stats
-		TCanvas c1 = new TCanvas("Hits per bank",1200,800);
-		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-		c1.cd(0);
-		c1.draw(TOFCalibration.hitsPerBankHist);
-
 		outputGraph(sector, layer, paddle);
 
 		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",

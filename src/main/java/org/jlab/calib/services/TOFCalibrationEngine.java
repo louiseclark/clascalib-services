@@ -70,6 +70,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public static CalibrationConstants p2pValues;
 	public static CalibrationConstants veffValues;
 	public static CalibrationConstants timeWalkValues;
+	public static CalibrationConstants rfpadValues;
 
 	// Calculated counter status values
 	public static IndexedList<Integer> adcLeftStatus = new IndexedList<Integer>(3);
@@ -88,6 +89,8 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 				"tw0_left/F:tw1_left/F:tw0_right/F:tw1_right/F");
 		p2pValues =	new CalibrationConstants(3,
 						"paddle2paddle/F");
+		rfpadValues =	new CalibrationConstants(3,
+				"rfpad/F");
 
 	}
 

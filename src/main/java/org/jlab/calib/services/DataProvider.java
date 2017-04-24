@@ -204,13 +204,13 @@ public class DataProvider {
 						paddle.P = mom;
 						paddle.TRACK_ID = trkId;
 						
-						if (paddle.getDescriptor().getComponent()==9 &&
+						if (paddle.getDescriptor().getComponent()==13 &&
 								paddle.getDescriptor().getLayer()== 1 && trkId !=-1) {
-							refPaddleFound = true;
+							//refPaddleFound = true;
 						}
 						if (paddle.getDescriptor().getComponent()==35 &&
 								paddle.getDescriptor().getLayer()== 2 && trkId !=-1) {
-							testPaddleFound = true;
+							//testPaddleFound = true;
 						}
 
 						// check if it's an electron by matching to the generated particle

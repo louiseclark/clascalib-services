@@ -5,7 +5,7 @@ import org.jlab.detector.base.DetectorDescriptor;
 
 /**
  *
- * @author gavalian
+ * @author louiseclark
  */
 public class TOFPaddle {
 
@@ -125,7 +125,8 @@ public class TOFPaddle {
 		double p2p = 0.0;
 		if (tof == "FTOF") {
 			p2p = TOFCalibrationEngine.p2pValues.getDoubleValue("paddle2paddle",
-					desc.getSector(), desc.getLayer(), desc.getComponent());
+					desc.getSector(), desc.getLayer(), desc.getComponent())
+				+ TOFCalibrationEngine.rfpadValues.getDoubleValue("rfpad", desc.getSector(), desc.getLayer(), desc.getComponent());
 			//System.out.println("p2p "+desc.getSector()+desc.getLayer()+desc.getComponent()+" "+p2p);
 		} else {
 			p2p = 0.0;
@@ -133,6 +134,17 @@ public class TOFPaddle {
 		}
 
 		return p2p;
+	}
+	
+	public double rfpad() {
+		double rfpad = 0.0;
+		if (tof == "FTOF") {
+			rfpad = TOFCalibrationEngine.rfpadValues.getDoubleValue("rfpad", desc.getSector(), desc.getLayer(), desc.getComponent());
+		}
+		else {
+			rfpad = 0.0;
+		}
+		return rfpad;
 	}
 	
 	public double combinedRes() {
@@ -180,6 +192,10 @@ public class TOFPaddle {
 		return startTime;
 	}
 	
+	public double startTimeRFCorr() {
+		return startTime() + rfpad();
+	}
+	
 	public double p2pAverageHitTime() {
 		
 		double lr = leftRightAdjustment();
@@ -192,6 +208,10 @@ public class TOFPaddle {
 		
 		return (tL+tR)/2.0;
 		
+	}
+	
+	public double tofTimeRFCorr() {
+		return p2pAverageHitTime() + rfpad();
 	}
 	
 

@@ -61,8 +61,8 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 		filename = nextFileName();
 
 		calib = new CalibrationConstants(3,
-				"left_right/F:paddle2paddle/F");
-		calib.setName("/calibration/ftof/timing_offset");
+				"left_right/F");
+		calib.setName("/calibration/ftof/timing_offset/left_right");
 		calib.setPrecision(3);
 
 		calib.addConstraint(3, -MAX_LEFTRIGHT, MAX_LEFTRIGHT);
@@ -360,8 +360,6 @@ public class TofLeftRightEventListener extends TOFCalibrationEngine {
 	public void saveRow(int sector, int layer, int paddle) {
 		calib.setDoubleValue(getCentroid(sector,layer,paddle),
 				"left_right", sector, layer, paddle);
-		calib.setDoubleValue(0.0,
-				"paddle2paddle", sector, layer, paddle);
 	}
 
 	@Override

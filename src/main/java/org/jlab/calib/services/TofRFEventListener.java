@@ -135,7 +135,7 @@ public class TofRFEventListener extends TOFCalibrationEngine {
 			int jBin=fineHist.getxAxis().getBin(1.0+1.0e-10);
 			do {
 				fineHist.setBinContent(jBin, fineHist.getBinContent(iBin));
-				fineHist.setBinContent(iBin,0);
+				//fineHist.setBinContent(iBin,0);
 				iBin++;
 				jBin++;
 			}
@@ -148,7 +148,7 @@ public class TofRFEventListener extends TOFCalibrationEngine {
 			int jBin=fineHist.getxAxis().getBin(-2.0+1.0e-10);
 			do {
 				fineHist.setBinContent(jBin, fineHist.getBinContent(iBin));
-				fineHist.setBinContent(iBin,0);
+				//fineHist.setBinContent(iBin,0);
 				iBin++;
 				jBin++;
 			}

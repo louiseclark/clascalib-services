@@ -75,6 +75,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     		new TofLeftRightEventListener(),
     		new TofVeffEventListener(),
     		new TofTimeWalkEventListener(),
+    		new TofRFPadEventListener(),
     		new TofP2PEventListener()};
     
     // engine indices
@@ -83,14 +84,16 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     public final int LEFT_RIGHT = 2;
     public final int VEFF = 3;
     public final int TW = 4;
-    public final int P2P = 5;
-    public final int RF_OFFSET = 6;
+    public final int RFPAD = 5;
+    public final int P2P = 6;
+    public final int RF_OFFSET = 7;
     
     String[] dirs = {"/calibration/ftof/gain_balance",
     				 "/calibration/ftof/attenuation",
-    				 "/calibration/ftof/timing_offset",
+    				 "/calibration/ftof/timing_offset/left_right",
     				 "/calibration/ftof/effective_velocity",
     				 "/calibration/ftof/time_walk",
+    				 "/calibration/ftof/timing_offset/rfpad",
     				 "/calibration/ftof/timing_offset/P2P",
     				 "/calibration/ftof/RF_offset"};
 	
@@ -105,24 +108,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public final int FIT_OVERRIDE = 1;
 	public final int ADJUST_HV = 2;
 	public final int WRITE = 3;
-	
-	public static H1F totalStatHist;
-	public static H1F trackingZeroStatHist;
-	public static H1F trackingStatHist;
-	public static H1F adcLeftHist1A;
-	public static H1F adcRightHist1A;
-	public static H1F trackingAdcLeftHist1A;
-	public static H1F trackingAdcRightHist1A;
-	public static H1F adcLeftHist1B;
-	public static H1F adcRightHist1B;
-	public static H1F trackingAdcLeftHist1B;
-	public static H1F trackingAdcRightHist1B;
-	public static H1F paddleHist;
-	public static H1F trackingPaddleHist;
-	public static H1F hitsPerBankHist;
-	
-	//public static EventDecoder decoder = new EventDecoder();
-	
+		
 	public TOFCalibration() {
 		
 		DataProvider.init();
@@ -203,9 +189,6 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		
 		TOFCalibrationEngine engine = engines[HV];
 
-		System.out.println("before selectedDir = "+selectedDir);
-		System.out.println("dirs[RF_OFFSET] = "+dirs[RF_OFFSET]);
-		
 		if (selectedDir == dirs[HV]) {
 			engine = engines[HV];
 		} else if (selectedDir == dirs[ATTEN]) {
@@ -216,6 +199,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			engine = engines[VEFF];
 		} else if (selectedDir == dirs[TW]) {
 			engine = engines[TW];
+		} else if (selectedDir == dirs[RFPAD]) {
+			engine = engines[RFPAD];
 		} else if (selectedDir == dirs[P2P]) {
 			engine = engines[P2P];
 		} else if (selectedDir == dirs[RF_OFFSET]) {
@@ -232,7 +217,6 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		
 		if (e.getActionCommand().compareTo(buttons[VIEW_ALL])==0) {
 
-			System.out.println("View all clicked");
 			engine.showPlots(selectedSector, selectedLayer);
 
 		}
@@ -362,43 +346,31 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 	public void constantsEvent(CalibrationConstants cc, int col, int row) {
 
-		System.out.println("constantsEvent 403");
 		String str_sector    = (String) cc.getValueAt(row, 0);
         String str_layer     = (String) cc.getValueAt(row, 1);
         String str_component = (String) cc.getValueAt(row, 2);
         
-        System.out.println("constantsEvent 408");
         if (cc.getName() != selectedDir) {
         	selectedDir = cc.getName();
         	this.updateDetectorView(false);
-        	System.out.println("constantsEvent 412");
     	}
         
-        System.out.println("constantsEvent 415");
         selectedSector    = Integer.parseInt(str_sector);
         selectedLayer     = Integer.parseInt(str_layer);
         selectedPaddle = Integer.parseInt(str_component);
         
-        System.out.println("constantsEvent 420");
         updateCanvas();
-        System.out.println("constantsEvent 422");
 	}
 
 	public void updateCanvas() {
 
-		System.out.println("updateCanvas 427");
 		IndexedList<DataGroup> group = getSelectedEngine().getDataGroup();
-		System.out.println("updateCanvas 429");
 		getSelectedEngine().setPlotTitle(selectedSector,selectedLayer,selectedPaddle);
-		System.out.println("updateCanvas 431");
 		
         if(group.hasItem(selectedSector,selectedLayer,selectedPaddle)==true){
-        	System.out.println("updateCanvas 434");
             DataGroup dataGroup = group.getItem(selectedSector,selectedLayer,selectedPaddle);
-            System.out.println("updateCanvas 435");
             this.canvas.clear();
             this.canvas.draw(dataGroup);
-            System.out.println("updateCanvas 439");
             canvas.getPad(0).setTitle(TOFCalibrationEngine.LAYER_NAME[selectedLayer-1]+" Sector "+selectedSector+" Paddle "+selectedPaddle);
             this.canvas.update();
         } else {
@@ -426,9 +398,6 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		int i = ccview.getTabbedPane().getSelectedIndex();
 		String tabTitle = ccview.getTabbedPane().getTitleAt(i);
 		
-		System.out.println("stateChanged");
-		System.out.println("tabTitle "+tabTitle);
-		System.out.println("selectedDir "+selectedDir);
         if (tabTitle != selectedDir) {
         	selectedDir = tabTitle;
         	this.updateDetectorView(false);
@@ -438,12 +407,14 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 	public void configure() {
 		
-		configFrame.setSize(600, 600);
+		configFrame.setSize(600, 800);
 		configFrame.setLocationRelativeTo(pane);
 		Container pane = configFrame.getContentPane();
 		JPanel confPanel = new JPanel(new FlowLayout());
+		//JPanel confPanel = new JPanel(new BorderLayout());
 		TofPrevConfigPanel[] engPanels = {new TofPrevConfigPanel(new TOFCalibrationEngine()), 
 										  new TofPrevConfigPanel(new TOFCalibrationEngine()), 
+										  new TofPrevConfigPanel(new TOFCalibrationEngine()),
 										  new TofPrevConfigPanel(new TOFCalibrationEngine()),
 										  new TofPrevConfigPanel(new TOFCalibrationEngine())};
 
