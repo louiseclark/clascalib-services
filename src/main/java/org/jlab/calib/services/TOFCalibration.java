@@ -241,7 +241,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		else if (e.getActionCommand().compareTo(buttons[WRITE])==0) {
 			
 			String outputFilename = engine.nextFileName();
-			engine.calib.save(outputFilename);
+			engine.writeFile(outputFilename);
 			JOptionPane.showMessageDialog(new JPanel(),
 					engine.stepName + " calibration values written to "+outputFilename);
 		}
@@ -268,6 +268,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     			engines[i].processPaddleList(paddleList);
     		}
     		else if (event.getType()==DataEventType.EVENT_STOP) {
+    			System.out.println("EVENT_STOP for "+engines[i].stepName);
     			engines[i].analyze();
     		} 
 

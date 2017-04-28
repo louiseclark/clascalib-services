@@ -6,6 +6,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
@@ -33,6 +34,8 @@ implements ActionListener {
 	public TofPrevConfigPanel(TOFCalibrationEngine engineIn) {
 
 		engine = engineIn;
+		File workDir = new File(System.getProperty("user.dir"));
+		fc.setCurrentDirectory(workDir);
 
 		this.setLayout(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
@@ -91,11 +94,11 @@ implements ActionListener {
 	}
 
 	public void actionPerformed(ActionEvent e) {
-
-		System.out.println("prevConfig.actionPerformed");
+		
 		if (e.getActionCommand() == "Select File") {
 			int returnValue = fc.showOpenDialog(null);
 			if (returnValue == JFileChooser.APPROVE_OPTION) {
+				engine.calDBSource = engine.CAL_FILE;
 				engine.prevCalFilename = fc.getSelectedFile().getAbsolutePath();
 				fileDisp.setText("Selected file: "+ fc.getSelectedFile().getAbsolutePath());
 				fileRad.setSelected(true);

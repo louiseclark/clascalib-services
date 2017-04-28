@@ -91,7 +91,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 					int sector = Integer.parseInt(lineValues[0]);
 					int layer = Integer.parseInt(lineValues[1]);
 					int paddle = Integer.parseInt(lineValues[2]);
-					double p2p = Double.parseDouble(lineValues[4]);
+					double p2p = Double.parseDouble(lineValues[3]);
 
 					p2pValues.addEntry(sector, layer, paddle);
 					p2pValues.setDoubleValue(p2p,

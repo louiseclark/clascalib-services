@@ -303,7 +303,7 @@ public class TOFPaddle {
 	}
 
 	double tdcToTime(double value) {
-		double c1 = 0.024; // constant value for CLAS12
+		double c1 = 0.0235; 
 		double c0 = 0;
 		return c0 + c1 * value;
 	}
@@ -402,14 +402,18 @@ public class TOFPaddle {
 	}
 	
 	public void show() {
+		System.out.println("");
 		System.out.println("S " + desc.getSector() + " L " + desc.getLayer() + " C "
 				+ desc.getComponent() + " ADCR " + ADCR + " ADCL " + ADCL
 				+ " TDCR " + TDCR + " TDCL " + TDCL);
 		System.out.println("XPOS "+XPOS+" YPOS "+YPOS+" ZPOS "+ZPOS+" PATH_LENGTH "+PATH_LENGTH+" TRACK_ID "+TRACK_ID);
 		System.out.println("BETA "+BETA+" P "+P+" RF_TIME "+RF_TIME+" TOF_TIME "+TOF_TIME);
-		System.out.println("startTime "+startTime()+" averageHitTime "+p2pAverageHitTime());
-		System.out.println("lamL "+lamL()+" ordL "+ordL()+" lamR "+lamR()+" ordR "+ordR()+" LR "+leftRightAdjustment()+" veff "+veff());
+		System.out.println("refTime "+refTime()+" startTime "+startTime()+" averageHitTime "+p2pAverageHitTime());
+		System.out.println("tofTimeRFCorr "+tofTimeRFCorr()+" startTimeRFCorr "+startTimeRFCorr());
+		System.out.println("rfpad "+rfpad()+" p2p "+p2p()+" lamL "+lamL()+" ordL "+ordL()+" lamR "+lamR()+" ordR "+ordR()+" LR "+leftRightAdjustment()+" veff "+veff());
 		System.out.println("paddleLength "+paddleLength()+" paddleY "+paddleY());
+		System.out.println("timeLeftAfterTW "+timeLeftAfterTW()+" timeRightAfterTW "+timeRightAfterTW());
+		System.out.println("deltaTLeft "+this.deltaTLeft()+ " deltaTRight "+this.deltaTRight());
 
 	}
 

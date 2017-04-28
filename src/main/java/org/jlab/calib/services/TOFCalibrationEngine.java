@@ -212,7 +212,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		//calib.save(filename);
 		// current CalibrationConstants object does not write file in correct format
 		// use local method for the moment
-		writeFile(filename);
+		this.writeFile(filename);
 	}
 
 	public void writeFile(String filename) {

@@ -2,8 +2,11 @@ package org.jlab.calib.services;
 
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -76,7 +79,7 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 					int sector = Integer.parseInt(lineValues[0]);
 					int layer = Integer.parseInt(lineValues[1]);
 					int paddle = Integer.parseInt(lineValues[2]);
-					double rfpad = Double.parseDouble(lineValues[4]);
+					double rfpad = Double.parseDouble(lineValues[3]);
 
 					rfpadValues.addEntry(sector, layer, paddle);
 					rfpadValues.setDoubleValue(rfpad,
@@ -161,21 +164,22 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 					// create all the histograms and functions
 					H1F fineHistRaw = 
 							new H1F("fineHistRaw","Fine offset Sector "+sector+" Layer "+" Paddle "+paddle,
-									100, -2.0, 2.0);
+									160, -2.0, 2.0);
 					fineHistRaw.setTitleX("RF time - vertex time modulo beam bucket (ns)");
 					dg.addDataSet(fineHistRaw, 0);
 
 					H1F fineHist = 
 							new H1F("fineHist","Fine offset Sector "+sector+" Layer "+" Paddle "+paddle,
-									100, -2.0, 2.0);
+									160, -2.0, 2.0);
 					fineHist.setTitleX("RF time - vertex time modulo beam bucket (ns)");
 					dg.addDataSet(fineHist, 1);
 
 					// create a dummy function in case there's no data to fit 
-					F1D fineFunc = new F1D("fineFunc","[amp]*gaus(x,[mean],[sigma])+[a]", -1.0, 1.0);
+					F1D fineFunc = new F1D("fineFunc","[amp]*gaus(x,[mean],[sigma])+[a]*x^2+[b]*x+[c]", -1.0, 1.0);
 					fineFunc.setLineColor(FUNC_COLOUR);
 					fineFunc.setLineWidth(FUNC_LINE_WIDTH);
 					dg.addDataSet(fineFunc, 1);
+					fineFunc.setOptStat(1110);		
 
 					dataGroups.add(dg,sector,layer,paddle);    
 
@@ -212,72 +216,122 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 			if (pad.trackFound()) {
 				dataGroups.getItem(sector,layer,component).getH1F("fineHistRaw").fill(
 						(pad.refTime()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
-				dataGroups.getItem(sector,layer,component).getH1F("fineHist").fill(
-						(pad.refTime()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
+//				dataGroups.getItem(sector,layer,component).getH1F("fineHist").fill(
+//						(pad.refTime()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
 			}
 		}
 	}    
 
-	@Override
-	public void timerUpdate() {
-		// don't analyze until the end or it will mess up the fine hists
-		save();
-		calib.fireTableDataChanged();
-	}
+//	@Override
+//	public void timerUpdate() {
+//		// don't analyze until the end or it will mess up the fine hists
+//		save();
+//		calib.fireTableDataChanged();
+//	}
 		
 	@Override
 	public void fit(int sector, int layer, int paddle, double minRange, double maxRange) {
 		
+		H1F rawHist = dataGroups.getItem(sector,layer,paddle).getH1F("fineHistRaw");
 		H1F fineHist = dataGroups.getItem(sector,layer,paddle).getH1F("fineHist");
-		
-		int maxBin = fineHist.getMaximumBin();
-		double maxPos = fineHist.getxAxis().getBinCenter(maxBin);
+//		fineHist.reset();
+//		fineHist = rawHist.histClone("fineHist");
+//		fineHist = 
+//				new H1F("fineHist","Fine offset Sector "+sector+" Layer "+" Paddle "+paddle,
+//						100, -2.0, 2.0);
+//		
+		int maxBin = rawHist.getMaximumBin();
+		double maxPos = rawHist.getxAxis().getBinCenter(maxBin);
 
 		// arrangeFine
 
 		// if maxPos > 0.65 move bin contents of (-1,0) to (1,2)
-		if (maxPos > 0.65) {
-			int iBin=fineHist.getxAxis().getBin(-1.0+1.0e-10);
-			int jBin=fineHist.getxAxis().getBin(1.0+1.0e-10);
+		if (maxPos > 0.5) {
+			int iBin=rawHist.getxAxis().getBin(-1.0+1.0e-10);
+			int jBin=rawHist.getxAxis().getBin(1.0+1.0e-10);
 			do {
-				fineHist.setBinContent(jBin, fineHist.getBinContent(iBin));
+				fineHist.setBinContent(jBin, rawHist.getBinContent(iBin));
 				fineHist.setBinContent(iBin,0);
 				iBin++;
 				jBin++;
 			}
-			while (fineHist.getXaxis().getBinCenter(iBin) < 0);
+			while (rawHist.getXaxis().getBinCenter(iBin) < 0);
 		}
+//		else {
+//			// set (1,2) to zero
+//			int jBin=rawHist.getxAxis().getBin(1.0+1.0e-10);
+//			do {
+//				fineHist.setBinContent(jBin,0);
+//				jBin++;
+//			}
+//			while (rawHist.getXaxis().getBinCenter(jBin) < 2);			
+//		}
 
 		// if maxPos < -0.65 move bin contents of (0,1) to (-2,-1)
-		if (maxPos < -0.65) {
-			int iBin=fineHist.getxAxis().getBin(0.0+1.0e-10);
-			int jBin=fineHist.getxAxis().getBin(-2.0+1.0e-10);
+		if (maxPos < -0.5) {
+			int iBin=rawHist.getxAxis().getBin(0.0+1.0e-10);
+			int jBin=rawHist.getxAxis().getBin(-2.0+1.0e-10);
 			do {
-				fineHist.setBinContent(jBin, fineHist.getBinContent(iBin));
+				fineHist.setBinContent(jBin, rawHist.getBinContent(iBin));
 				fineHist.setBinContent(iBin,0);
 				iBin++;
 				jBin++;
 			}
-			while (fineHist.getXaxis().getBinCenter(iBin) < 1);
+			while (rawHist.getXaxis().getBinCenter(iBin) < 1);
 		}
+//		else {
+//			// set (-2,-1) to zero
+//			int jBin=rawHist.getxAxis().getBin(-2.0+1.0e-10);
+//			do {
+//				fineHist.setBinContent(jBin,0);
+//				jBin++;
+//			}
+//			while (rawHist.getXaxis().getBinCenter(jBin) < -1);
+//		}
+		
+		// copy contents of (-1,1) to new hist
+		int bin=rawHist.getxAxis().getBin(-1.0+1.0e-10);
+		do {
+			fineHist.setBinContent(bin, rawHist.getBinContent(bin));
+			bin++;
+		}
+		while (rawHist.getXaxis().getBinCenter(bin) < 1);
 
 		// fit gaussian
 		F1D fineFunc = dataGroups.getItem(sector,layer,paddle).getF1D("fineFunc");
 
-		fineFunc.setRange(maxPos-0.5, maxPos+0.5);
+		// find the range for the fit
+		double lowLimit;
+		double highLimit;
+		if (minRange != UNDEFINED_OVERRIDE) {
+			// use custom values for fit
+			lowLimit = minRange;
+		}
+		else {
+			lowLimit = maxPos-0.65;
+		}
+		if (maxRange != UNDEFINED_OVERRIDE) {
+			// use custom values for fit
+			highLimit = maxRange;
+		}
+		else {
+			highLimit = maxPos+0.65;
+		}
+		
+		fineFunc.setRange(lowLimit, highLimit);
 		fineFunc.setParameter(0, fineHist.getBinContent(maxBin));
+		fineFunc.setParLimits(0, 0, fineHist.getBinContent(maxBin)+1.5);
 		fineFunc.setParameter(1, maxPos);
 		fineFunc.setParameter(2, 0.5);
 
 		try {
 			DataFitter.fit(fineFunc, fineHist, "RNQ");
-			fineHist.setTitle(fineHist.getTitle() + " Fine offset = " + formatDouble(fineFunc.getParameter(1)));
+			//fineHist.setTitle(fineHist.getTitle() + " Fine offset = " + formatDouble(fineFunc.getParameter(1)));
 		}
 		catch(Exception ex) {
 			ex.printStackTrace();
 		}	
 		
-		fineFunc.setOptStat(1001);
 	}
 
 	private Double formatDouble(double val) {
@@ -287,19 +341,25 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 	@Override
 	public void customFit(int sector, int layer, int paddle){
 
-		String[] fields = { "Override offset:"};
+		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
+//				"Amp:", "Mean:", "Sigma:", "Offset:", "SPACE",
+				"Override offset:"};
 		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
 				"Adjust Fit / Override for paddle "+paddle, JOptionPane.OK_CANCEL_OPTION);
 		if (result == JOptionPane.OK_OPTION) {
 
-			double override = toDouble(panel.textFields[0].getText());
+			double minRange = toDouble(panel.textFields[0].getText());
+			double maxRange = toDouble(panel.textFields[1].getText());
+			double override = toDouble(panel.textFields[2].getText());
 
 			// save the override values
 			Double[] consts = constants.getItem(sector, layer, paddle);
 			consts[OFFSET_OVERRIDE] = override;
 
+			fit(sector, layer, paddle, minRange, maxRange);
+			
 			// update the table
 			saveRow(sector,layer,paddle);
 			calib.fireTableDataChanged();
@@ -317,9 +377,9 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 		}
 		else {
 			F1D fineFunc = dataGroups.getItem(sector,layer,paddle).getF1D("fineFunc");
-			H1F fineHist = dataGroups.getItem(sector,layer,paddle).getH1F("fineHist");
+			H1F rawHist = dataGroups.getItem(sector,layer,paddle).getH1F("fineHistRaw");
 			double fineOffset = 0.0;
-			if (fineHist.getEntries() != 0){
+			if (rawHist.getEntries() != 0){
 				fineOffset= fineFunc.getParameter(1);
 			}
 			offset = fineOffset;
@@ -336,10 +396,48 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 	}
 	
 	@Override
+	public void writeFile(String filename) {
+
+		// write sigmas to a file then call the super method to write the rfpad
+		try { 
+
+			String sigFilename = filename.replace("RFPAD", "RFPAD_SIGMA");
+			// Open the output file
+			File outputFile = new File(sigFilename);
+			FileWriter outputFw = new FileWriter(outputFile.getAbsoluteFile());
+			BufferedWriter outputBw = new BufferedWriter(outputFw);
+
+			for (int sector = 1; sector <= 6; sector++) {
+				for (int layer = 1; layer <= 3; layer++) {
+					int layer_index = layer - 1;
+					for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
+						String line = new String();
+						F1D fineFunc = dataGroups.getItem(sector,layer,paddle).getF1D("fineFunc");
+						line = sector+" "+layer+" "+paddle+" "+new DecimalFormat("0.000").format(fineFunc.getParameter(2));
+						outputBw.write(line);
+						outputBw.newLine();
+					}
+				}
+			}
+
+			outputBw.close();
+		}
+		catch(IOException ex) {
+			System.out.println(
+					"Error writing file '" );                   
+			// Or we could just do this: 
+			ex.printStackTrace();
+		}
+		
+		super.writeFile(filename);
+
+	}	
+	
+	@Override
 	public void showPlots(int sector, int layer) {
 
 		showPlotType = "VERTEX_RF";
-		stepName = "Vertex time - RF";
+		stepName = "RF - Vertex Time";
 		super.showPlots(sector, layer);
 
 	}
@@ -352,6 +450,7 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 		if (showPlotType == "VERTEX_RF") { 
 			hist = dataGroups.getItem(sector,layer,paddle).getH1F("fineHist");
 			func = dataGroups.getItem(sector,layer,paddle).getF1D("fineFunc");
+			//func.setOptStat(0);
 			hist.setTitle("Paddle "+paddle);
 			hist.setTitleX("");
 			hist.setTitleY("");

@@ -289,9 +289,13 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		veffFunc.setParameter(1, 1.0/16.0);
 		//		veffFunc.setParLimits(0, -5.0, 5.0);
 		//		veffFunc.setParLimits(1, 1.0/20.0, 1.0/12.0);
+		try {
+			DataFitter.fit(veffFunc, veffGraph, "RNQ");
 
-		DataFitter.fit(veffFunc, veffGraph, "RNQ");
-
+		} catch (Exception e) {
+			System.out.println("Fit error with sector "+sector+" layer "+layer+" paddle "+paddle);
+			e.printStackTrace();
+		}
 	}
 
 	public void customFit(int sector, int layer, int paddle){
