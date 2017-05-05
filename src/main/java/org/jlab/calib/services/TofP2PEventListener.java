@@ -66,13 +66,16 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 
 	}
 	
+	@Override
 	public void populatePrevCalib() {
-
+		
+		System.out.println("Populating "+stepName+" previous calibration values");
 		if (calDBSource==CAL_FILE) {
 
 			String line = null;
 			try { 
 
+				System.out.println("File: "+prevCalFilename);
 				// Open the file
 				FileReader fileReader = 
 						new FileReader(prevCalFilename);
@@ -103,19 +106,20 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 				bufferedReader.close();            
 			}
 			catch(FileNotFoundException ex) {
-				ex.printStackTrace();
 				System.out.println(
 						"Unable to open file '" + 
-								prevCalFilename + "'");                
+								prevCalFilename + "'");
+				return;
 			}
 			catch(IOException ex) {
 				System.out.println(
 						"Error reading file '" 
-								+ prevCalFilename + "'");                   
-				ex.printStackTrace();
+								+ prevCalFilename + "'");
+				return;
 			}			
 		}
 		else if (calDBSource==CAL_DEFAULT) {
+			System.out.println("Default");
 			for (int sector = 1; sector <= 6; sector++) {
 				for (int layer = 1; layer <= 3; layer++) {
 					int layer_index = layer - 1;
@@ -123,42 +127,24 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 						p2pValues.addEntry(sector, layer, paddle);
 						p2pValues.setDoubleValue(0.0,
 								"paddle2paddle", sector, layer, paddle);
-						System.out.println("p2p check "+sector+layer+paddle+" "+
-								TOFCalibrationEngine.p2pValues.getDoubleValue("paddle2paddle",
-								sector,layer,paddle));						
 					}
 				}
 			}			
 		}
 		else if (calDBSource==CAL_DB) {
+			System.out.println("Database Run No: "+prevCalRunNo);
 			DatabaseConstantProvider dcp = new DatabaseConstantProvider(prevCalRunNo, "default");
 			p2pValues = dcp.readConstants("/calibration/ftof/timing_offset");
 			dcp.disconnect();
 		}
+		prevCalRead = true;
+		System.out.println(stepName+" previous calibration values populated successfully");
 	}
 
 	@Override
 	public void resetEventListener() {
 
 		// perform init processing
-		
-		// get the previous iteration calibration values
-		populatePrevCalib();
-		
-		System.out.println(stepName);
-		System.out.println("calDBSource "+calDBSource);
-		System.out.println("prevCalRunNo "+prevCalRunNo);
-		System.out.println("prevCalFilename "+prevCalFilename);
-		for (int i=0; i<p2pValues.getRowCount(); i++) {
-			String line = new String();
-			for (int j=0; j<p2pValues.getColumnCount(); j++) {
-				line = line+p2pValues.getValueAt(i, j);
-				if (j<p2pValues.getColumnCount()-1) {
-					line = line+" ";
-				}
-			}
-			System.out.println(line);
-		}
 		
 		// create the histograms for the first iteration
 		createHists();

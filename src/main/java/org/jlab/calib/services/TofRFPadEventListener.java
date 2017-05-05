@@ -34,6 +34,8 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 	public final int OFFSET_OVERRIDE = 0;
 				
 	private String showPlotType = "VERTEX_RF";
+	
+	private String fitOption = "RNQ";
 
 	public TofRFPadEventListener() {
 
@@ -54,13 +56,15 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 
 	}
 	
+	@Override
 	public void populatePrevCalib() {
 
+		System.out.println("Populating "+stepName+" previous calibration values");
 		if (calDBSource==CAL_FILE) {
 
 			String line = null;
 			try { 
-
+				System.out.println("File: "+prevCalFilename);
 				// Open the file
 				FileReader fileReader = 
 						new FileReader(prevCalFilename);
@@ -91,19 +95,20 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 				bufferedReader.close();            
 			}
 			catch(FileNotFoundException ex) {
-				ex.printStackTrace();
 				System.out.println(
 						"Unable to open file '" + 
-								prevCalFilename + "'");                
+								prevCalFilename + "'");
+				return;
 			}
 			catch(IOException ex) {
 				System.out.println(
 						"Error reading file '" 
-								+ prevCalFilename + "'");                   
-				ex.printStackTrace();
+								+ prevCalFilename + "'");
+				return;
 			}			
 		}
 		else if (calDBSource==CAL_DEFAULT) {
+			System.out.println("Default");
 			for (int sector = 1; sector <= 6; sector++) {
 				for (int layer = 1; layer <= 3; layer++) {
 					int layer_index = layer - 1;
@@ -111,43 +116,25 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 						rfpadValues.addEntry(sector, layer, paddle);
 						rfpadValues.setDoubleValue(0.0,
 								"rfpad", sector, layer, paddle);
-						System.out.println("rfpad check "+sector+layer+paddle+" "+
-								TOFCalibrationEngine.rfpadValues.getDoubleValue("rfpad",
-								sector,layer,paddle));						
 					}
 				}
 			}			
 		}
 		else if (calDBSource==CAL_DB) {
+			System.out.println("Database Run No: "+prevCalRunNo);
 			DatabaseConstantProvider dcp = new DatabaseConstantProvider(prevCalRunNo, "default");
 			rfpadValues = dcp.readConstants("/calibration/ftof/timing_offset");
 			dcp.disconnect();
 		}
+		prevCalRead = true;
+		System.out.println(stepName+" previous calibration values populated successfully");
 	}
 
 	@Override
 	public void resetEventListener() {
 
 		// perform init processing
-		
-		// get the previous iteration calibration values
-		populatePrevCalib();
-		
-		System.out.println(stepName);
-		System.out.println("calDBSource "+calDBSource);
-		System.out.println("prevCalRunNo "+prevCalRunNo);
-		System.out.println("prevCalFilename "+prevCalFilename);
-		for (int i=0; i<rfpadValues.getRowCount(); i++) {
-			String line = new String();
-			for (int j=0; j<rfpadValues.getColumnCount(); j++) {
-				line = line+rfpadValues.getValueAt(i, j);
-				if (j<rfpadValues.getColumnCount()-1) {
-					line = line+" ";
-				}
-			}
-			System.out.println(line);
-		}
-		
+				
 		// create the histograms for the first iteration
 		createHists();
 	}
@@ -325,7 +312,7 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 		fineFunc.setParameter(2, 0.5);
 
 		try {
-			DataFitter.fit(fineFunc, fineHist, "RNQ");
+			DataFitter.fit(fineFunc, fineHist, fitOption);
 			//fineHist.setTitle(fineHist.getTitle() + " Fine offset = " + formatDouble(fineFunc.getParameter(1)));
 		}
 		catch(Exception ex) {

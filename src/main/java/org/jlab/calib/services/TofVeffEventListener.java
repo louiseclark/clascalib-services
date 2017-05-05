@@ -74,10 +74,13 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 
 	}
 	
+	@Override
 	public void populatePrevCalib() {
 
+		System.out.println("Populating "+stepName+" previous calibration values");
 		if (calDBSource==CAL_FILE) {
 
+			System.out.println("File: "+prevCalFilename);
 			// read in the values from the text file			
 			String line = null;
 			try { 
@@ -112,19 +115,20 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 				bufferedReader.close();            
 			}
 			catch(FileNotFoundException ex) {
-				ex.printStackTrace();
 				System.out.println(
 						"Unable to open file '" + 
-								prevCalFilename + "'");                
+								prevCalFilename + "'");
+				return;
 			}
 			catch(IOException ex) {
 				System.out.println(
 						"Error reading file '" 
-								+ prevCalFilename + "'");                   
-				ex.printStackTrace();
+								+ prevCalFilename + "'");
+				return;
 			}			
 		}
 		else if (calDBSource==CAL_DEFAULT) {
+			System.out.println("Default");
 			for (int sector = 1; sector <= 6; sector++) {
 				for (int layer = 1; layer <= 3; layer++) {
 					int layer_index = layer - 1;
@@ -138,10 +142,13 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 			}			
 		}
 		else if (calDBSource==CAL_DB) {
+			System.out.println("Database Run No: "+prevCalRunNo);
 			DatabaseConstantProvider dcp = new DatabaseConstantProvider(prevCalRunNo, "default");
 			veffValues = dcp.readConstants("/calibration/ftof/effective_velocity");
 			dcp.disconnect();
 		}
+		prevCalRead = true;
+		System.out.println(stepName+" previous calibration values populated successfully");
 	}
 
 	@Override
@@ -149,24 +156,6 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 
 		// perform init processing
 		
-		// get the previous iteration calibration values
-		populatePrevCalib();
-		
-		System.out.println(stepName);
-		System.out.println("calDBSource "+calDBSource);
-		System.out.println("prevCalRunNo "+prevCalRunNo);
-		System.out.println("prevCalFilename "+prevCalFilename);
-		for (int i=0; i<veffValues.getRowCount(); i++) {
-			String line = new String();
-			for (int j=0; j<veffValues.getColumnCount(); j++) {
-				line = line+veffValues.getValueAt(i, j);
-				if (j<veffValues.getColumnCount()-1) {
-					line = line+" ";
-				}
-			}
-			System.out.println(line);
-		}
-
 		// LC perform init processing
 		for (int sector = 1; sector <= 6; sector++) {
 			for (int layer = 1; layer <= 3; layer++) {

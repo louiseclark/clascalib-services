@@ -93,6 +93,11 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	}
 
 	@Override
+	public void populatePrevCalib() {
+		prevCalRead = true;
+	}
+	
+	@Override
 	public void resetEventListener() {
 
 		// create histogram of stats per layer / sector

@@ -63,7 +63,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     
     // event reading panel
     DataSourceProcessorPane processorPane = null;
-    public final int UPDATE_RATE = 100000;
+    public final int UPDATE_RATE = 2000000;
     
     // calibration view
 	EmbeddedCanvas 	canvas = null;   
@@ -94,8 +94,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     				 "/calibration/ftof/effective_velocity",
     				 "/calibration/ftof/time_walk",
     				 "/calibration/ftof/timing_offset/rfpad",
-    				 "/calibration/ftof/timing_offset/P2P",
-    				 "/calibration/ftof/RF_offset"};
+    				 "/calibration/ftof/timing_offset/P2P"};
 	
 	String selectedDir = dirs[HV];
 	int selectedSector = 1;
@@ -111,7 +110,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		
 	public TOFCalibration() {
 		
-		DataProvider.init();
+		//DataProvider.init();
 
         pane = new JPanel();
         pane.setLayout(new BorderLayout());
@@ -246,8 +245,21 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 					engine.stepName + " calibration values written to "+outputFilename);
 		}
 		
+		// previous config settings
 		if (e.getActionCommand().compareTo("OK")==0) {
 			configFrame.setVisible(false);
+			
+			// get the previous iteration calibration values
+			for (int i=0; i< engines.length; i++) {
+				engines[i].populatePrevCalib();
+
+				if (!engines[i].prevCalRead) {
+					System.out.println("Problem populating "+engines[i].stepName+" previous calibration values - exiting");
+					System.exit(0);
+				}
+
+			}
+			
 		}
 	}
 

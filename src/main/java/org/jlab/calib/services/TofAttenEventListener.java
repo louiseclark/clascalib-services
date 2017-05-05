@@ -82,6 +82,11 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		}
 
 	}
+	
+	@Override
+	public void populatePrevCalib() {
+		prevCalRead = true;
+	}	
 
 	@Override
 	public void resetEventListener() {

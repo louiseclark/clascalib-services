@@ -63,6 +63,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public static final int CAL_DB = 2;
 	public String prevCalFilename;
 	public int prevCalRunNo;
+	public boolean prevCalRead = false;
 
 	// Values from previous calibration
 	// Need to be static as used by all engines
@@ -93,7 +94,11 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 				"rfpad/F");
 
 	}
-
+	
+	public void populatePrevCalib() {
+		// overridden in calibration step classes
+	}
+	
 	@Override
 	public void dataEventAction(DataEvent event) {
 
@@ -124,7 +129,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 
 	public void analyze() {
 
-		System.out.println(stepName+" analyze");
+		//System.out.println(stepName+" analyze");
 		for (int sector = 1; sector <= 6; sector++) {
 			for (int layer = 1; layer <= 3; layer++) {
 				int layer_index = layer - 1;

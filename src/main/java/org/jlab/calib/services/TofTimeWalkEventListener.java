@@ -23,6 +23,7 @@ import org.jlab.groot.data.GraphErrors;
 import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
 import org.jlab.groot.fitter.DataFitter;
+import org.jlab.groot.fitter.ParallelSliceFitter;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
 //import org.jlab.calib.temp.DataGroup;
@@ -44,15 +45,17 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	public final int LAMBDA_RIGHT_OVERRIDE = 2;
 	public final int ORDER_RIGHT_OVERRIDE = 3;
 
-	private final double[]        ADC_MIN = {0.0, 150.0,  500.0,  150.0};
-	private final double[]        ADC_MAX = {0.0, 2000.0, 3500.0, 2000.0};
-	private final double[]        FIT_MIN = {0.0,  200.0, 1200.0, 400.0};
-	private final double[]        FIT_MAX = {0.0, 1000.0, 2400.0, 1000.0};
-
-//	private final double[]        ADC_MIN = {0.0, 300.0, 500.0, 300.0};
-//	private final double[]        ADC_MAX = {0.0, 3000.0,    5000.0,    3000.0};
-//	private final double[]        FIT_MIN = {0.0,  500.0,    1200.0,     500.0};
-//	private final double[]        FIT_MAX = {0.0, 1100.0,    2400.0,    1100.0};
+	private final double[]        FIT_MIN = {0.0,  450.0, 1400.0, 350.0};
+	private final double[]        FIT_MAX = {0.0, 650.0, 1900.0, 800.0};
+	private final double[]        ADC_MIN = {0.0,  450.0, 1400.0, 350.0};
+	private final double[]        ADC_MAX = {0.0, 650.0, 1900.0, 800.0};
+//	private final double[]        FIT_MIN = {0.0,  200.0, 1200.0, 400.0};
+//	private final double[]        FIT_MAX = {0.0, 1000.0, 2400.0, 1000.0};
+//	private final double[]        ADC_MIN = {0.0, 150.0,  500.0,  150.0};
+//	private final double[]        ADC_MAX = {0.0, 2000.0, 3500.0, 2000.0};
+	
+	private int xbins = 20;
+	private int ybins = 60;
 
 	final double[] fitLambda = {40.0,40.0};  // default values for the constants
 	final double[] fitOrder = {0.5,0.5};  // default values for the constants
@@ -61,6 +64,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 	private IndexedList<H2F[]> offsetHists = new IndexedList<H2F[]>(4);  // indexed by s,l,c, offset (in beam bucket multiples), H2F has {left, right}
 	private final int NUM_OFFSET_HISTS = 20;
+	
+	private String fitOption = "RNQ";
 
 	public TofTimeWalkEventListener() {
 
@@ -87,10 +92,13 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 	}
 
+	@Override
 	public void populatePrevCalib() {
 
+		System.out.println("Populating "+stepName+" previous calibration values");
 		if (calDBSource==CAL_FILE) {
 
+			System.out.println("File: "+prevCalFilename);
 			// read in the left right values from the text file			
 			String line = null;
 			try { 
@@ -134,19 +142,20 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 				bufferedReader.close();            
 			}
 			catch(FileNotFoundException ex) {
-				ex.printStackTrace();
 				System.out.println(
 						"Unable to open file '" + 
-								prevCalFilename + "'");                
+								prevCalFilename + "'");
+				return;
 			}
 			catch(IOException ex) {
 				System.out.println(
 						"Error reading file '" 
-								+ prevCalFilename + "'");                   
-				ex.printStackTrace();
+								+ prevCalFilename + "'"); 
+				return;
 			}			
 		}
 		else if (calDBSource==CAL_DEFAULT) {
+			System.out.println("Default");
 			for (int sector = 1; sector <= 6; sector++) {
 				for (int layer = 1; layer <= 3; layer++) {
 					int layer_index = layer - 1;
@@ -165,10 +174,13 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			}			
 		}
 		else if (calDBSource==CAL_DB) {
+			System.out.println("Database Run No: "+prevCalRunNo);
 			DatabaseConstantProvider dcp = new DatabaseConstantProvider(prevCalRunNo, "default");
 			timeWalkValues = dcp.readConstants("/calibration/ftof/time_walk");
 			dcp.disconnect();
 		}
+		prevCalRead = true;
+		System.out.println(stepName+" previous calibration values populated successfully");
 	}
 	
 	@Override
@@ -176,24 +188,6 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 		// perform init processing
 		
-		// get the previous iteration calibration values
-		populatePrevCalib();
-		
-		System.out.println(stepName);
-		System.out.println("calDBSource "+calDBSource);
-		System.out.println("prevCalRunNo "+prevCalRunNo);
-		System.out.println("prevCalFilename "+prevCalFilename);
-		for (int i=0; i<timeWalkValues.getRowCount(); i++) {
-			String line = new String();
-			for (int j=0; j<timeWalkValues.getColumnCount(); j++) {
-				line = line+timeWalkValues.getValueAt(i, j);
-				if (j<timeWalkValues.getColumnCount()-1) {
-					line = line+" ";
-				}
-			}
-			System.out.println(line);
-		}
-
 		// create the histograms
 		for (int sector = 1; sector <= 6; sector++) {
 			for (int layer = 1; layer <= 3; layer++) {
@@ -207,13 +201,13 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					H2F leftHist = new H2F("trLeftHist",
 							"Time residual vs ADC LEFT Sector "+sector+
 							" Paddle "+paddle,
-							100, ADC_MIN[layer], ADC_MAX[layer],
-							100, -1.0, 3.0);
+							xbins, ADC_MIN[layer], ADC_MAX[layer],
+							ybins, -1.0, 3.0);
 					H2F rightHist = new H2F("trRightHist",
 							"Time residual vs ADC RIGHT Sector "+sector+
 							" Paddle "+paddle,
-							100, ADC_MIN[layer], ADC_MAX[layer],
-							100, -1.0, 3.0);
+							xbins, ADC_MIN[layer], ADC_MAX[layer],
+							ybins, -1.0, 3.0);
 
 					leftHist.setTitle("Time residual vs ADC LEFT : " + LAYER_NAME[layer_index] 
 							+ " Sector "+sector+" Paddle "+paddle);
@@ -301,14 +295,14 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 						H2F offLeftHist = new H2F("offsetLeft",
 								"Time residual vs ADC Left Sector "+sector+
 								" Paddle "+paddle+" Offset = "+offset+"+ ns",
-								100, ADC_MIN[layer], ADC_MAX[layer],
-								100, -1.0, 3.0);
+								xbins, ADC_MIN[layer], ADC_MAX[layer],
+								ybins, -1.0, 3.0);
 
 						H2F offRightHist = new H2F("offsetRight",
 								"Time residual vs ADC Right Sector "+sector+
 								" Paddle "+paddle+" Offset = "+offset+"+ ns",
-								100, ADC_MIN[layer], ADC_MAX[layer],
-								100, -1.0, 3.0);
+								xbins, ADC_MIN[layer], ADC_MAX[layer],
+								ybins, -1.0, 3.0);
 
 						H2F[] hists = {offLeftHist, offRightHist};
 						offsetHists.add(hists, sector,layer,paddle,i);
@@ -432,9 +426,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 			if (leftGraph.getDataSize(0) != 0) {
 				try {
-					DataFitter.fit(nomFunc, leftGraph, "RNQ");
+					//System.out.println("Starting fit L "+sector+layer+paddle+" "+i);
+					DataFitter.fit(nomFunc, leftGraph, fitOption);
+					//System.out.println("Completed fit L "+sector+layer+paddle+" "+i);
 				}
 				catch (Exception e) {
+					//System.out.println("Exception L "+sector+layer+paddle+" "+i);
 					e.printStackTrace();
 				}
 				if (nomFunc.getChiSquare() < minChiSqLeft) {
@@ -449,9 +446,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			rightGraph.setLineThickness(MARKER_LINE_WIDTH);
 			if (rightGraph.getDataSize(0) != 0) {
 				try {
-					DataFitter.fit(nomFunc, rightGraph, "RNQ");
+					//System.out.println("Starting fit R "+sector+layer+paddle+" "+i);
+					DataFitter.fit(nomFunc, rightGraph, fitOption);
+					//System.out.println("Completed fit R "+sector+layer+paddle+" "+i);
 				}
 				catch (Exception e) {
+					//System.out.println("Exception R "+sector+layer+paddle+" "+i);
 					e.printStackTrace();
 				}
 				if (nomFunc.getChiSquare() < minChiSqRight) {
@@ -469,11 +469,27 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		H2F twR = offsetHists.getItem(sector,layer,paddle,offsetIdxRight)[1];
 
 		GraphErrors twLGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trLeftGraph"); 
-		twLGraph.copy(twL.getProfileX());
+//		if ((sector==2 && layer==1 && paddle==8) ||
+//			(sector==2 && layer==2 && paddle==20)) {
+//			ParallelSliceFitter psfL = new ParallelSliceFitter(twL);
+//			psfL.fitSlicesX();
+//			twLGraph.copy(psfL.getMeanSlices());
+//		}
+//		else {
+			twLGraph.copy(twL.getProfileX());
+//		}
 
 		GraphErrors twRGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trRightGraph"); 
-		twRGraph.copy(twR.getProfileX());
-
+//		if ((sector==2 && layer==1 && paddle==8) ||
+//				(sector==2 && layer==2 && paddle==20)) {		
+//			ParallelSliceFitter psfR = new ParallelSliceFitter(twR);
+//			psfR.fitSlicesX();
+//			twRGraph.copy(psfR.getMeanSlices());
+//		}
+//		else {
+			twRGraph.copy(twR.getProfileX());
+//		}
+			
 		// fit function to the graph of means
 		F1D twLFunc = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc");
 		F1D twLFuncHist = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFuncHist");
@@ -485,9 +501,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		twLFunc.setParLimits(1, 0.45, 0.55);
 		//if (fitLeft) {
 			try {
-				DataFitter.fit(twLFunc, twLGraph, "RNQ");
+				//System.out.println("Starting fit L "+sector+layer+paddle);
+				DataFitter.fit(twLFunc, twLGraph, fitOption);
+				//System.out.println("Completed fit L "+sector+layer+paddle);
 			}
 			catch (Exception e) {
+				//System.out.println("Exception L "+sector+layer+paddle);
 				e.printStackTrace();
 			}
 		//}
@@ -508,14 +527,12 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		
 		//if (fitRight) {
 			try {
-				if (paddle==20) {
-					DataFitter.fit(twRFunc, twRGraph, "RNQ");
-				}
-				else {
-					DataFitter.fit(twRFunc, twRGraph, "RNQ");
-				}
+				//System.out.println("Starting fit R "+sector+layer+paddle);
+				DataFitter.fit(twRFunc, twRGraph, fitOption);
+				//System.out.println("Completed fit R "+sector+layer+paddle);
 			}
 			catch (Exception e) {
+				//System.out.println("Exception R "+sector+layer+paddle);
 				e.printStackTrace();
 			}
 		//}
@@ -773,7 +790,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			leftGraph.setLineThickness(MARKER_LINE_WIDTH);
 			if (leftGraph.getDataSize(0) != 0) {
 				try {
-					DataFitter.fit(nomFunc, leftGraph, "RNQ");
+					DataFitter.fit(nomFunc, leftGraph, fitOption);
 				}
 				catch (Exception e) {
 					e.printStackTrace();
@@ -796,7 +813,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			rightGraph.setLineThickness(MARKER_LINE_WIDTH);
 			if (rightGraph.getDataSize(0) != 0) {
 				try {
-					DataFitter.fit(nomFunc, rightGraph, "RNQ");
+					DataFitter.fit(nomFunc, rightGraph, fitOption);
 				}
 				catch (Exception e) {
 					e.printStackTrace();

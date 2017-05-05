@@ -47,16 +47,16 @@ import org.jlab.utils.groups.IndexedTable;
 public class DataProvider {
 
 	private static	boolean test = false;
-	public static CodaEventDecoder codaDecoder;
-	public static DetectorEventDecoder eventDecoder;
-	public static List<DetectorDataDgtz> detectorData;
+//	public static CodaEventDecoder codaDecoder;
+//	public static DetectorEventDecoder eventDecoder;
+//	public static List<DetectorDataDgtz> detectorData;
 
-	public static void init() {
-
-		codaDecoder = new CodaEventDecoder();
-		eventDecoder = new DetectorEventDecoder();
-		detectorData = new ArrayList<DetectorDataDgtz>();
-	}
+//	public static void init() {
+//
+//		codaDecoder = new CodaEventDecoder();
+//		eventDecoder = new DetectorEventDecoder();
+//		detectorData = new ArrayList<DetectorDataDgtz>();
+//	}
 
 	public static List<TOFPaddle> getPaddleList(DataEvent event) {
 
