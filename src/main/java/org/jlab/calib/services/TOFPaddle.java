@@ -35,6 +35,7 @@ public class TOFPaddle {
 	public static final int PID_ELECTRON = 11;
 	public static final int PID_PION = 211;
 	private final double C = 29.98;
+	private final double BEAM_BUCKET = 2.004;
 
 	public TOFPaddle(int sector, int layer, int paddle) {
 		this.desc.setSectorLayerComponent(sector, layer, paddle);
@@ -219,7 +220,7 @@ public class TOFPaddle {
 		return this.RF_TIME - this.startTime();
 	}	
 	
-	public double deltaTLeft() {
+	public double deltaTLeft(double offset) {
 
 		double lr = leftRightAdjustment();
 		double p2p = p2p();
@@ -233,12 +234,18 @@ public class TOFPaddle {
 				- ((0.5*paddleLength() + paddleY())/this.veff())
 				- (PATH_LENGTH/(beta*29.98))
 				- this.RF_TIME;
-		
-		dtL = ((dtL +120.0)%2.0);
+
+        // subtract the value of the nominal function
+        dtL = dtL - (40.0 / (Math.pow(ADCL,0.5)));
+        dtL = dtL + offset;
+        dtL = (dtL+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET;
+        
+        //dtL = ((dtL +120.0)%BEAM_BUCKET);
+
 		return dtL;
 	}
 
-	public double deltaTRight() {
+	public double deltaTRight(double offset) {
 					
 		double lr = leftRightAdjustment();
 		double p2p = p2p();
@@ -252,8 +259,12 @@ public class TOFPaddle {
 				- ((0.5*paddleLength() - paddleY())/this.veff())
 				- (PATH_LENGTH/(beta*29.98))
 				- this.RF_TIME;
-
-		dtR = ((dtR +120.0)%2.0);
+		
+		dtR = dtR - (40.0 / (Math.pow(ADCR,0.5)));
+		dtR = dtR + offset;
+		dtR = (dtR+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET;
+        //dtR = ((dtR +120.0)%BEAM_BUCKET);
+        
 		return dtR;
 	}
 	
@@ -413,7 +424,7 @@ public class TOFPaddle {
 		System.out.println("rfpad "+rfpad()+" p2p "+p2p()+" lamL "+lamL()+" ordL "+ordL()+" lamR "+lamR()+" ordR "+ordR()+" LR "+leftRightAdjustment()+" veff "+veff());
 		System.out.println("paddleLength "+paddleLength()+" paddleY "+paddleY());
 		System.out.println("timeLeftAfterTW "+timeLeftAfterTW()+" timeRightAfterTW "+timeRightAfterTW());
-		System.out.println("deltaTLeft "+this.deltaTLeft()+ " deltaTRight "+this.deltaTRight());
+		System.out.println("deltaTLeft "+this.deltaTLeft(0.0)+ " deltaTRight "+this.deltaTRight(0.0));
 
 	}
 

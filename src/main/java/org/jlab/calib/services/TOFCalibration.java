@@ -63,7 +63,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     
     // event reading panel
     DataSourceProcessorPane processorPane = null;
-    public final int UPDATE_RATE = 2000000;
+    public final int UPDATE_RATE = 200000;
     
     // calibration view
 	EmbeddedCanvas 	canvas = null;   
@@ -299,7 +299,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
     	for (int i=0; i< engines.length; i++) {
 		//for (int i=4; i< 5; i++) {
-    		System.out.println("Timer update for "+engines[i].stepName);
+    		//System.out.println("Timer update for "+engines[i].stepName);
     		engines[i].timerUpdate();
     	}
 		
