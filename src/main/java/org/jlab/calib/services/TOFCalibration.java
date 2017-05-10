@@ -40,6 +40,7 @@ import org.jlab.detector.view.DetectorListener;
 import org.jlab.detector.view.DetectorPane2D;
 import org.jlab.detector.view.DetectorShape2D;
 import org.jlab.groot.data.H1F;
+import org.jlab.groot.data.H2F;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
 import org.jlab.groot.math.F1D;
@@ -72,6 +73,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     TOFCalibrationEngine[] engines = {
     		new TofHVEventListener(),
     		new TofAttenEventListener(),
+    		new TofTdcConvEventListener(),
     		new TofLeftRightEventListener(),
     		new TofVeffEventListener(),
     		new TofTimeWalkEventListener(),
@@ -81,15 +83,17 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     // engine indices
     public final int HV = 0;
     public final int ATTEN = 1;
-    public final int LEFT_RIGHT = 2;
-    public final int VEFF = 3;
-    public final int TW = 4;
-    public final int RFPAD = 5;
-    public final int P2P = 6;
-    public final int RF_OFFSET = 7;
+    public final int TDC_CONV = 2;    
+    public final int LEFT_RIGHT = 3;
+    public final int VEFF = 4;
+    public final int TW = 5;
+    public final int RFPAD = 6;
+    public final int P2P = 7;
+    //public final int RF_OFFSET = 8;
     
     String[] dirs = {"/calibration/ftof/gain_balance",
     				 "/calibration/ftof/attenuation",
+    				 "/calibration/ftof/tdc_conv",
     				 "/calibration/ftof/timing_offset/left_right",
     				 "/calibration/ftof/effective_velocity",
     				 "/calibration/ftof/time_walk",
@@ -107,6 +111,14 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public final int FIT_OVERRIDE = 1;
 	public final int ADJUST_HV = 2;
 	public final int WRITE = 3;
+	
+	// test histograms
+	public static H1F trackRCS = new H1F("red_chi_sq","Reduced chi^2 for tracks", 
+			200, 0.0, 200.0);
+	public static H1F trackRCS2 = new H1F("red_chi_sq2","Reduced chi^2 for tracks", 
+			100, 0.0, 40.0);
+	public static H1F vertexHist = new H1F("vertex_hist","Vertex z", 
+			160, -40.0, 40.0);
 		
 	public TOFCalibration() {
 		
@@ -192,6 +204,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			engine = engines[HV];
 		} else if (selectedDir == dirs[ATTEN]) {
 			engine = engines[ATTEN];
+		} else if (selectedDir == dirs[TDC_CONV]) {
+			engine = engines[TDC_CONV];
 		} else if (selectedDir == dirs[LEFT_RIGHT]) {
 			engine = engines[LEFT_RIGHT];
 		} else if (selectedDir == dirs[VEFF]) {
@@ -202,8 +216,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			engine = engines[RFPAD];
 		} else if (selectedDir == dirs[P2P]) {
 			engine = engines[P2P];
-		} else if (selectedDir == dirs[RF_OFFSET]) {
-			engine = engines[RF_OFFSET];
+//		} else if (selectedDir == dirs[RF_OFFSET]) {
+//			engine = engines[RF_OFFSET];
 		}
 
 		return engine;
@@ -287,6 +301,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     		if (event.getType()==DataEventType.EVENT_STOP) {
     			this.updateDetectorView(false);
     			this.updateCanvas();
+    			//if (i==0) this.showTestHists();
     		} 
     	}
 	}
@@ -417,6 +432,36 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         	this.updateCanvas();
         }
 	}
+	
+	public void showTestHists() {
+		JFrame frame = new JFrame("Track Reduced Chi Squared");
+		frame.setSize(1000, 800);
+		EmbeddedCanvas canvas = new EmbeddedCanvas();
+		canvas.cd(0);
+		canvas.draw(trackRCS);
+		frame.add(canvas);
+		frame.setVisible(true);
+		frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+		
+		JFrame frame2 = new JFrame("Track Reduced Chi Squared");
+		frame2.setSize(1000, 800);
+		EmbeddedCanvas canvas2 = new EmbeddedCanvas();
+		canvas2.cd(0);
+		canvas2.draw(trackRCS2);
+		frame2.add(canvas2);
+		frame2.setVisible(true);
+		frame2.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+		
+		JFrame frame3 = new JFrame("Vertex z");
+		frame3.setSize(1000, 800);
+		EmbeddedCanvas canvas3 = new EmbeddedCanvas();
+		canvas3.cd(0);
+		canvas3.draw(vertexHist);
+		frame3.add(canvas3);
+		frame3.setVisible(true);
+		frame3.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+
+	}
 
 	public void configure() {
 		
@@ -431,15 +476,15 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 										  new TofPrevConfigPanel(new TOFCalibrationEngine()),
 										  new TofPrevConfigPanel(new TOFCalibrationEngine())};
 
-		for (int i=2; i< engines.length; i++) {  // skip HV and attenuation
-			engPanels[i-2] = new TofPrevConfigPanel(engines[i]);
-			confPanel.add(engPanels[i-2]);
+		for (int i=3; i< engines.length; i++) {  // skip HV, attenuation and TDC
+			engPanels[i-3] = new TofPrevConfigPanel(engines[i]);
+			confPanel.add(engPanels[i-3]);
 		}
 		
 		JPanel okPanel = new JPanel();
 		JButton okButton = new JButton("OK");
-		for (int i=2; i< engines.length; i++) {  // skip HV and attenuation
-			okButton.addActionListener(engPanels[i-2]);
+		for (int i=3; i< engines.length; i++) {  // skip HV and attenuation
+			okButton.addActionListener(engPanels[i-3]);
 		}
 		okButton.addActionListener(this);
 		okPanel.add(okButton);

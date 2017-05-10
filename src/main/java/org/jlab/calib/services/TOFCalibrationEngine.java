@@ -67,6 +67,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 
 	// Values from previous calibration
 	// Need to be static as used by all engines
+	public static CalibrationConstants convValues;
 	public static CalibrationConstants leftRightValues;
 	public static CalibrationConstants p2pValues;
 	public static CalibrationConstants veffValues;
@@ -82,6 +83,8 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public TOFCalibrationEngine() {
 		// controlled by calibration step class
 		TOFPaddle.tof = "FTOF";
+		convValues = new CalibrationConstants(3,
+				"tdc_conv/F");
 		leftRightValues = new CalibrationConstants(3,
 				"left_right/F");
 		veffValues = new CalibrationConstants(3,

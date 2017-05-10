@@ -47,10 +47,10 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	public final int ORDER_RIGHT_OVERRIDE = 3;
 
 	// Slice fitter ranges
-//	private final double[]        FIT_MIN = {0.0,  450.0, 1400.0, 350.0};
-//	private final double[]        FIT_MAX = {0.0, 650.0, 1900.0, 800.0};
-//	private final double[]        ADC_MIN = {0.0,  450.0, 1400.0, 350.0};
-//	private final double[]        ADC_MAX = {0.0, 800.0, 1900.0, 800.0};
+//	private final double[]        FIT_MIN = {0.0,  400.0, 1200.0, 400.0};
+//	private final double[]        FIT_MAX = {0.0, 800.0, 2300.0, 800.0};
+//	private final double[]        ADC_MIN = {0.0,  400.0, 1200.0, 400.0};
+//	private final double[]        ADC_MAX = {0.0, 800.0, 2300.0, 800.0};
 	
 	// Preferred ranges
 	private final double[]        FIT_MIN = {0.0,  200.0, 1200.0, 400.0};
@@ -59,7 +59,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	private final double[]        ADC_MAX = {0.0, 2000.0, 3500.0, 2000.0};
 	
 	// Slice fitter bins
-	//private int[] xbins = {0, 15, 13, 15};
+//	private int[] xbins = {0, 20, 20, 20};
 	// Preferred bins
 	private int[] xbins = {0, 80, 80, 80};
 	private int ybins = 60;
@@ -73,6 +73,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	private final int NUM_OFFSET_HISTS = 20;
 	
 	private String fitOption = "RNQ";
+	private int fitMethod = 1; //  0=SLICES 1=MAX 2=PROFILE	
 
 	public TofTimeWalkEventListener() {
 
@@ -168,11 +169,11 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					int layer_index = layer - 1;
 					for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 						timeWalkValues.addEntry(sector, layer, paddle);
-						timeWalkValues.setDoubleValue(0.0, //fitLambda[0],
+						timeWalkValues.setDoubleValue(fitLambda[0],
 								"tw0_left", sector, layer, paddle);
 						timeWalkValues.setDoubleValue(fitOrder[0],
 								"tw1_left", sector, layer, paddle);
-						timeWalkValues.setDoubleValue(0.0, //fitLambda[1],
+						timeWalkValues.setDoubleValue(fitLambda[1],
 								"tw0_right", sector, layer, paddle);
 						timeWalkValues.setDoubleValue(fitOrder[1],
 								"tw1_right", sector, layer, paddle);
@@ -401,90 +402,62 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		}		
 
 		// Find the best offset hist
-		// create function for the nominal values
-		//F1D nomFunc = new F1D("nomFunc", "(([a]/(x^[b]))-(40.0/(x^0.5))+[c])", startChannelForFit, endChannelForFit);
-		F1D nomFunc = new F1D("nomFunc", "(([a]/(x^[b]))-(40.0/(x^0.5)))", startChannelForFit, endChannelForFit);
-		nomFunc.setParLimits(0, 39.9, 40.1);
-		nomFunc.setParLimits(1, 0.49, 0.51);
-		//nomFunc.setParLimits(2, 0.99, 1.01);
-
-		double minChiSqLeft = 1000.0;
-		double minChiSqRight = 1000.0;
+		
 		int offsetIdxLeft = 0;
 		int offsetIdxRight = 0;
+		double minYmaxLeft = 9999.0;
+		double minYmaxRight = 9999.0;
 
-		for (int i=0; i < NUM_OFFSET_HISTS; i++) {
-
-			H2F leftHist = offsetHists.getItem(sector,layer,paddle,i)[0];
-			GraphErrors leftGraph = leftHist.getProfileX();
-			leftGraph.setMarkerSize(MARKER_SIZE);
-			leftGraph.setLineThickness(MARKER_LINE_WIDTH);
-
-			if (leftGraph.getDataSize(0) != 0) {
-				try {
-					//System.out.println("Starting fit L "+sector+layer+paddle+" "+i);
-					DataFitter.fit(nomFunc, leftGraph, fitOption);
-					//System.out.println("Completed fit L "+sector+layer+paddle+" "+i);
-				}
-				catch (Exception e) {
-					//System.out.println("Exception L "+sector+layer+paddle+" "+i);
-					e.printStackTrace();
-				}
-				if (nomFunc.getChiSquare() < minChiSqLeft) {
-					minChiSqLeft = nomFunc.getChiSquare();
-					offsetIdxLeft = i;
-				}
-			}
+		for (int i=0; i<NUM_OFFSET_HISTS; i++) {
 			
-			H2F rightHist = offsetHists.getItem(sector,layer,paddle,i)[1];
-			GraphErrors rightGraph = rightHist.getProfileX();
-			rightGraph.setMarkerSize(MARKER_SIZE);
-			rightGraph.setLineThickness(MARKER_LINE_WIDTH);
-			if (rightGraph.getDataSize(0) != 0) {
-				try {
-					//System.out.println("Starting fit R "+sector+layer+paddle+" "+i);
-					DataFitter.fit(nomFunc, rightGraph, fitOption);
-					//System.out.println("Completed fit R "+sector+layer+paddle+" "+i);
-				}
-				catch (Exception e) {
-					//System.out.println("Exception R "+sector+layer+paddle+" "+i);
-					e.printStackTrace();
-				}
-				if (nomFunc.getChiSquare() < minChiSqRight) {
-					minChiSqRight = nomFunc.getChiSquare();
-					offsetIdxRight = i;
-				}
-			}
-		}			
+			// Get the max position of the y projection
+			H1F yProjL = offsetHists.getItem(sector,layer,paddle,i)[0].projectionY();
+			int ymaxBinL = yProjL.getMaximumBin();
+			double ymaxL = yProjL.getxAxis().getBinCenter(ymaxBinL);
+			
+			H1F yProjR = offsetHists.getItem(sector,layer,paddle,i)[1].projectionY();
+			int ymaxBinR = yProjR.getMaximumBin();
+			double ymaxR = yProjR.getxAxis().getBinCenter(ymaxBinR);
 
-		//System.out.println("Best offset hists are "+offsetIdxLeft+" "+minChiSqLeft+" "+offsetIdxRight+" "+minChiSqRight);
-		
-		//System.out.println("Fitting "+sector+layer+paddle+" start");
+			if (Math.abs(ymaxL) < minYmaxLeft) {
+				minYmaxLeft = Math.abs(ymaxL);
+				offsetIdxLeft = i;
+			}
+
+			if (Math.abs(ymaxR) < minYmaxRight) {
+				minYmaxRight = Math.abs(ymaxR);
+				offsetIdxRight = i;
+			}
+		}
 
 		H2F twL = offsetHists.getItem(sector,layer,paddle,offsetIdxLeft)[0];
 		H2F twR = offsetHists.getItem(sector,layer,paddle,offsetIdxRight)[1];
 
 		GraphErrors twLGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trLeftGraph"); 
-//		if ((sector==2 && layer==1 && paddle==8) ||
-//			(sector==2 && layer==2 && paddle==20)) {
-//			ParallelSliceFitter psfL = new ParallelSliceFitter(twL);
-//			psfL.fitSlicesX();
-//			twLGraph.copy(psfL.getMeanSlices());
-//		}
-//		else {
+		if (fitMethod==0 && sector==2) {
+			ParallelSliceFitter psfL = new ParallelSliceFitter(twL);
+			psfL.fitSlicesX();
+			twLGraph.copy(psfL.getMeanSlices());
+		}
+		else if (fitMethod==1) {
+			twLGraph.copy(maxGraph(twL, "trLeftGraph"));
+		}
+		else {
 			twLGraph.copy(twL.getProfileX());
-//		}
+		}
 
 		GraphErrors twRGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trRightGraph"); 
-//		if ((sector==2 && layer==1 && paddle==8) ||
-//				(sector==2 && layer==2 && paddle==20)) {		
-//			ParallelSliceFitter psfR = new ParallelSliceFitter(twR);
-//			psfR.fitSlicesX();
-//			twRGraph.copy(psfR.getMeanSlices());
-//		}
-//		else {
+		if (fitMethod==0 && sector==2) {
+			ParallelSliceFitter psfR = new ParallelSliceFitter(twR);
+			psfR.fitSlicesX();
+			twRGraph.copy(psfR.getMeanSlices());
+		}
+		else if (fitMethod==1) {
+			twRGraph.copy(maxGraph(twR, "trRightGraph"));
+		}
+		else {
 			twRGraph.copy(twR.getProfileX());
-//		}
+		}
 			
 		// fit function to the graph of means
 		F1D twLFunc = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc");
@@ -530,6 +503,31 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		dg.addDataSet(offsetHists.getItem(sector,layer,paddle,offsetIdxRight)[1], 3);
 	}
 	
+	public GraphErrors maxGraph(H2F hist, String graphName) {
+		
+		ArrayList<H1F> slices = hist.getSlicesX();
+		int nBins = hist.getXAxis().getNBins();
+		double[] sliceMax = new double[nBins];
+		double[] maxErrs = new double[nBins];
+		double[] adcs = new double[nBins];
+		double[] adcErrs = new double[nBins];
+		
+		for (int i=0; i<nBins; i++) {
+			int maxBin = slices.get(i).getMaximumBin();
+			sliceMax[i] = slices.get(i).getxAxis().getBinCenter(maxBin);
+			maxErrs[i] = 0.1;
+			
+			adcs[i] = hist.getXAxis().getBinCenter(i);
+			adcErrs[i] = hist.getXAxis().getBinWidth(i)/2.0;
+		}
+		
+		GraphErrors maxGraph = new GraphErrors(graphName, adcs, sliceMax, adcErrs, maxErrs);
+		maxGraph.setName(graphName);
+		
+		return maxGraph;
+		
+	}
+	
 	public void writeSlicesFile(int sector, int layer, int paddle) {
 
 		try { 
@@ -571,8 +569,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	public void customFit(int sector, int layer, int paddle){
 		
 		//showOffsetHists(sector,layer,paddle);
-		//writeSlicesFile(sector,layer,paddle);
-		//showSlices(sector,layer,paddle);
+//		writeSlicesFile(sector,layer,paddle);
+//		showSlices(sector,layer,paddle);
 
 		String[] fields = {"Min range for fit:", "Max range for fit:", "SPACE", 
 				"Override Lambda Left:", "Override Order Left:", "SPACE",
