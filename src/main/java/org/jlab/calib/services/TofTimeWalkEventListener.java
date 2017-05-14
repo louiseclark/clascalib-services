@@ -61,7 +61,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	// Slice fitter bins
 //	private int[] xbins = {0, 20, 20, 20};
 	// Preferred bins
-	private int[] xbins = {0, 80, 80, 80};
+	private int[] xbins = {0, 80, 40, 80};
 	private int ybins = 60;
 
 	final double[] fitLambda = {40.0,40.0};  // default values for the constants
@@ -73,7 +73,6 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	private final int NUM_OFFSET_HISTS = 20;
 	
 	private String fitOption = "RNQ";
-	private int fitMethod = 1; //  0=SLICES 1=MAX 2=PROFILE	
 
 	public TofTimeWalkEventListener() {
 
@@ -193,7 +192,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	
 	@Override
 	public void resetEventListener() {
-
+		
 		// perform init processing
 		
 		// create the histograms
@@ -340,7 +339,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			int component = paddle.getDescriptor().getComponent();
 
 			// fill timeResidual vs ADC
-			if (paddle.includeInTimeWalk()) {
+			if (paddle.goodTrackFound()) {
 			
 				dataGroups.getItem(sector,layer,component).getH2F("trLeftHist").fill(paddle.ADCL, paddle.deltaTLeft(0.0));
 				dataGroups.getItem(sector,layer,component).getH2F("trRightHist").fill(paddle.ADCR, paddle.deltaTRight(0.0));
@@ -359,6 +358,16 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			}
 		}
 	}    
+	
+	@Override
+	public void timerUpdate() {
+		if (fitMethod!=0) {
+			// only analyze at end of file for slice fitter - takes too long
+			analyze();
+		}
+		save();
+		calib.fireTableDataChanged();
+	}
 
 	@Override
 	public void fit(int sector, int layer, int paddle, double minRange, double maxRange) {
@@ -437,7 +446,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		if (fitMethod==0 && sector==2) {
 			ParallelSliceFitter psfL = new ParallelSliceFitter(twL);
 			psfL.fitSlicesX();
-			twLGraph.copy(psfL.getMeanSlices());
+			twLGraph.copy(fixGraph(psfL.getMeanSlices(),"trLeftGraph"));
 		}
 		else if (fitMethod==1) {
 			twLGraph.copy(maxGraph(twL, "trLeftGraph"));
@@ -447,10 +456,10 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		}
 
 		GraphErrors twRGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trRightGraph"); 
-		if (fitMethod==0 && sector==2) {
+		if (fitMethod==0) {
 			ParallelSliceFitter psfR = new ParallelSliceFitter(twR);
 			psfR.fitSlicesX();
-			twRGraph.copy(psfR.getMeanSlices());
+			twRGraph.copy(fixGraph(psfR.getMeanSlices(),"trRightGraph"));
 		}
 		else if (fitMethod==1) {
 			twRGraph.copy(maxGraph(twR, "trRightGraph"));
@@ -503,30 +512,56 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		dg.addDataSet(offsetHists.getItem(sector,layer,paddle,offsetIdxRight)[1], 3);
 	}
 	
-	public GraphErrors maxGraph(H2F hist, String graphName) {
-		
-		ArrayList<H1F> slices = hist.getSlicesX();
-		int nBins = hist.getXAxis().getNBins();
-		double[] sliceMax = new double[nBins];
-		double[] maxErrs = new double[nBins];
-		double[] adcs = new double[nBins];
-		double[] adcErrs = new double[nBins];
-		
-		for (int i=0; i<nBins; i++) {
-			int maxBin = slices.get(i).getMaximumBin();
-			sliceMax[i] = slices.get(i).getxAxis().getBinCenter(maxBin);
-			maxErrs[i] = 0.1;
-			
-			adcs[i] = hist.getXAxis().getBinCenter(i);
-			adcErrs[i] = hist.getXAxis().getBinWidth(i)/2.0;
-		}
-		
-		GraphErrors maxGraph = new GraphErrors(graphName, adcs, sliceMax, adcErrs, maxErrs);
-		maxGraph.setName(graphName);
-		
-		return maxGraph;
-		
-	}
+//	public GraphErrors maxGraph(H2F hist, String graphName) {
+//		
+//		ArrayList<H1F> slices = hist.getSlicesX();
+//		int nBins = hist.getXAxis().getNBins();
+//		double[] sliceMax = new double[nBins];
+//		double[] maxErrs = new double[nBins];
+//		double[] adcs = new double[nBins];
+//		double[] adcErrs = new double[nBins];
+//		
+//		for (int i=0; i<nBins; i++) {
+//			int maxBin = slices.get(i).getMaximumBin();
+//			sliceMax[i] = slices.get(i).getxAxis().getBinCenter(maxBin);
+//			maxErrs[i] = 0.1;
+//			
+//			adcs[i] = hist.getXAxis().getBinCenter(i);
+//			adcErrs[i] = hist.getXAxis().getBinWidth(i)/2.0;
+//		}
+//		
+//		GraphErrors maxGraph = new GraphErrors(graphName, adcs, sliceMax, adcErrs, maxErrs);
+//		maxGraph.setName(graphName);
+//		
+//		return maxGraph;
+//		
+//	}
+//	
+//	public GraphErrors fixGraph(GraphErrors graphIn, String graphName) {
+//		
+//		int n = graphIn.getDataSize(0);
+//		double[] x = new double[n];
+//		double[] xerr = new double[n];
+//		double[] y = new double[n];
+//		double[] yerr = new double[n];
+//		
+//		for (int i=0; i<n; i++) {
+//			
+//			if (graphIn.getDataEY(i) < 0.3) {
+//				x[i] = graphIn.getDataX(i);
+//				xerr[i] = graphIn.getDataEX(i);
+//				y[i] = graphIn.getDataY(i);
+//				yerr[i] = graphIn.getDataEY(i);
+//				
+//			}
+//		}
+//		
+//		GraphErrors fixGraph = new GraphErrors(graphName, x, y, xerr, yerr);
+//		fixGraph.setName(graphName);
+//		
+//		return fixGraph;
+//		
+//	}	
 	
 	public void writeSlicesFile(int sector, int layer, int paddle) {
 
@@ -738,16 +773,16 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 
 		H2F hist = new H2F();
 		F1D func = new F1D("trFunc");
-		F1D smfunc = new F1D("trsmFunc");
+		//F1D smfunc = new F1D("trsmFunc");
 		if (showPlotType == "TW_LEFT") { 
 			hist = dataGroups.getItem(sector,layer,paddle).getH2F("offsetLeft");
 			func = dataGroups.getItem(sector,layer,paddle).getF1D("trLeftFunc");
-			smfunc = dataGroups.getItem(sector,layer,paddle).getF1D("smLeftFunc");
+			//smfunc = dataGroups.getItem(sector,layer,paddle).getF1D("smLeftFunc");
 		}
 		else {
 			hist = dataGroups.getItem(sector,layer,paddle).getH2F("offsetRight");
 			func = dataGroups.getItem(sector,layer,paddle).getF1D("trRightFunc");
-			smfunc = dataGroups.getItem(sector,layer,paddle).getF1D("smRightFunc");
+			//smfunc = dataGroups.getItem(sector,layer,paddle).getF1D("smRightFunc");
 		}
 
 		hist.setTitle("Paddle "+paddle);
@@ -755,7 +790,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		hist.setTitleY("");
 		canvas.draw(hist);    
 		canvas.draw(func, "same");
-		canvas.draw(smfunc, "same");
+		//canvas.draw(smfunc, "same");
 	}
 
 	@Override

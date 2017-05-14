@@ -33,6 +33,7 @@ import org.jlab.groot.data.GraphErrors;
 import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
 import org.jlab.groot.fitter.DataFitter;
+import org.jlab.groot.fitter.ParallelSliceFitter;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
 //import org.jlab.calib.temp.DataGroup;
@@ -55,6 +56,11 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
     
     private String fitOption = "RNQ";
 	private String showPlotType = "CONV_LEFT";
+	
+	private final double[]        FIT_MIN = {0.0,  26000.0, 25300.0, 26000.0};
+	private final double[]        FIT_MAX = {0.0, 26800.0, 26100.0, 26800.0};
+	private final double[]        TDC_MIN = {0.0, 25000.0,  24000.0,  25000.0};
+	private final double[]        TDC_MAX = {0.0, 28000.0, 27000.0, 28000.0};	
 
     public TofTdcConvEventListener() {
 
@@ -166,8 +172,8 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
                 for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 
                     // create all the histograms
-                    H2F histL = new H2F("tdcConvLeft","tdcConvLeft",200, 24000.0, 27000.0, 
-                                    100, -1.0, 1.0);
+                    H2F histL = new H2F("tdcConvLeft","tdcConvLeft",50, TDC_MIN[layer], TDC_MAX[layer], 
+                                    50, -1.0, 1.0);
 
                     histL.setName("tdcConvLeft");
                     histL.setTitle("RF offset vs TDC left : " + LAYER_NAME[layer_index] 
@@ -175,8 +181,8 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
                     histL.setTitleX("TDC Left");
                     histL.setTitleY("RF offset (ns)");
 
-                    H2F histR = new H2F("tdcConvRight","tdcConvRight",200, 24000.0, 27000.0, 
-                                    100, -1.0, 1.0);
+                    H2F histR = new H2F("tdcConvRight","tdcConvRight",50, TDC_MIN[layer], TDC_MAX[layer], 
+                                    50, -1.0, 1.0);
 
                     histR.setName("tdcConvRight");
                     histR.setTitle("RF offset vs TDC right : " + LAYER_NAME[layer_index] 
@@ -185,7 +191,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
                     histR.setTitleY("RF offset (ns)");
                     
                     // create all the functions and graphs
-                    F1D convFuncLeft = new F1D("convFuncLeft", "[a]+[b]*x", 24000.0, 27000.0);
+                    F1D convFuncLeft = new F1D("convFuncLeft", "[a]+[b]*x", FIT_MIN[layer], FIT_MAX[layer]);
                     GraphErrors convGraphLeft = new GraphErrors();
                     convGraphLeft.setName("convGraphLeft");
                     convFuncLeft.setLineColor(FUNC_COLOUR);
@@ -193,7 +199,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
                     convGraphLeft.setMarkerSize(MARKER_SIZE);
                     convGraphLeft.setLineThickness(MARKER_LINE_WIDTH);
 
-                    F1D convFuncRight = new F1D("convFuncRight", "[a]+[b]*x", 24000.0, 27000.0);
+                    F1D convFuncRight = new F1D("convFuncRight", "[a]+[b]*x", FIT_MIN[layer], FIT_MAX[layer]);
                     GraphErrors convGraphRight = new GraphErrors();
                     convGraphRight.setName("convGraphRight");
                     convFuncRight.setLineColor(FUNC_COLOUR);
@@ -203,9 +209,9 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
                     
                     DataGroup dg = new DataGroup(2,2);
                     dg.addDataSet(histL, 0);
-                    dg.addDataSet(convGraphLeft, 1);
-                    dg.addDataSet(convFuncLeft, 1);
-                    dg.addDataSet(histR, 2);
+                    dg.addDataSet(convGraphLeft, 2);
+                    dg.addDataSet(convFuncLeft, 2);
+                    dg.addDataSet(histR, 1);
                     dg.addDataSet(convGraphRight, 3);
                     dg.addDataSet(convFuncRight, 3);
 
@@ -240,7 +246,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
             int layer = paddle.getDescriptor().getLayer();
             int component = paddle.getDescriptor().getComponent();
 
-            if (paddle.P > 1.0 && paddle.trackFound()) {
+            if (paddle.goodTrackFound() && paddle.TDCL!=0 && paddle.TDCR!=0) {
                 dataGroups.getItem(sector,layer,component).getH2F("tdcConvLeft").fill(
                          paddle.TDCL, 
                          (paddle.refTime()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
@@ -251,6 +257,16 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
             }
         }
     }
+    
+	@Override
+	public void timerUpdate() {
+		if (fitMethod!=0) {
+			// only analyze at end of file for slice fitter - takes too long
+			analyze();
+		}
+		save();
+		calib.fireTableDataChanged();
+	}
 
     @Override
     public void fit(int sector, int layer, int paddle,
@@ -258,12 +274,26 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
 
         H2F convHistL = dataGroups.getItem(sector,layer,paddle).getH2F("tdcConvLeft");
         H2F convHistR = dataGroups.getItem(sector,layer,paddle).getH2F("tdcConvRight");
+        GraphErrors convGraphLeft = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("convGraphLeft");
+        GraphErrors convGraphRight = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("convGraphRight");
 
         // fit function to the graph of means
-        GraphErrors convGraphLeft = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("convGraphLeft");
-        convGraphLeft.copy(convHistL.getProfileX());
-        GraphErrors convGraphRight = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("convGraphRight");
-        convGraphRight.copy(convHistR.getProfileX());
+        if (fitMethod==0 && sector==2) {
+			ParallelSliceFitter psfL = new ParallelSliceFitter(convHistL);
+			psfL.fitSlicesX();
+			convGraphLeft.copy(fixGraph(psfL.getMeanSlices(),"convGraphLeft"));
+			ParallelSliceFitter psfR = new ParallelSliceFitter(convHistR);
+			psfR.fitSlicesX();
+			convGraphRight.copy(fixGraph(psfR.getMeanSlices(),"convGraphRight"));
+		}
+		else if (fitMethod==1) {
+			convGraphLeft.copy(maxGraph(convHistL, "convGraphLeft"));
+			convGraphRight.copy(maxGraph(convHistR, "convGraphRight"));
+		}
+		else {
+			convGraphLeft.copy(convHistL.getProfileX());
+			convGraphRight.copy(convHistR.getProfileX());
+		}
 
         // find the range for the fit
         double lowLimit;
@@ -274,7 +304,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
             lowLimit = minRange;
         }
         else {
-            lowLimit = 24500.0;
+            lowLimit = FIT_MIN[layer];
         }
 
         if (maxRange != UNDEFINED_OVERRIDE) {
@@ -282,7 +312,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
             highLimit = maxRange;
         }
         else {
-            highLimit = 26500.0;
+            highLimit = FIT_MAX[layer];
         }
 
         F1D convFuncLeft = dataGroups.getItem(sector,layer,paddle).getF1D("convFuncLeft");
@@ -296,7 +326,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
             System.out.println("Fit error with sector "+sector+" layer "+layer+" paddle "+paddle);
             e.printStackTrace();
         }
-
+        
         F1D convFuncRight = dataGroups.getItem(sector,layer,paddle).getF1D("convFuncRight");
         convFuncRight.setRange(lowLimit, highLimit);
 

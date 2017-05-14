@@ -95,7 +95,7 @@ public class TofRFEventListener extends TOFCalibrationEngine {
 		for (TOFPaddle pad : paddleList) {
 
 			// fill the fine hist
-			if (pad.trackFound()) {
+			if (pad.goodTrackFound()) {
 				dataGroups.getItem(1,1,1).getH1F("fineHistRaw").fill(
 						(pad.refTime()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
 				dataGroups.getItem(1,1,1).getH1F("fineHist").fill(

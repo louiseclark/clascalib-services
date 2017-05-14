@@ -28,6 +28,8 @@ public class TOFPaddle {
 	public double BETA = 0.0;
 	public double P = 0.0;
 	public int TRACK_ID = -1;
+	public double VERTEX_Z = 0.0;
+	public double TRACK_REDCHI2 = 0.0;
 	public double RF_TIME = 124.25;
 	public double TOF_TIME = 0.0;
 	public int PARTICLE_ID = -1;
@@ -173,11 +175,6 @@ public class TOFPaddle {
 		tr[RIGHT] = timeR - this.ADC_TIMER;
 
 		return tr;
-	}	
-
-
-	public boolean includeInTimeWalk() {
-		return (trackFound() && P > 1.0);		
 	}	
 	
 	public double startTime() {
@@ -396,6 +393,10 @@ public class TOFPaddle {
 		return TRACK_ID != -1;
 //		return (XPOS !=0.0 || YPOS !=0.0 || ZPOS !=0.0);
 	};
+	
+	public boolean goodTrackFound() {
+		return (trackFound() && P > 1.0 && Math.abs(VERTEX_Z) <10.0 && TRACK_REDCHI2 < TOFCalibration.maxRcs);		
+	}	
 
 	public double zPosCTOF() {
 		return ZPOS + 10.0;

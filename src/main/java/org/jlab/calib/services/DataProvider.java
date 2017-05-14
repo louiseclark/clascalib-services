@@ -117,16 +117,16 @@ public class DataProvider {
 		DataBank  adcBank = event.getBank("FTOF::adc");
 		DataBank  tdcBank = event.getBank("FTOF::tdc");
 		
-		if (event.hasBank("TimeBasedTrkg::TBTracks")) {
-			DataBank testBank = event.getBank("TimeBasedTrkg::TBTracks");
-			for (int tbtIdx=0; tbtIdx<testBank.rows(); tbtIdx++) {
-				// fill test hist
-				TOFCalibration.trackRCS.fill(testBank.getFloat("chi2", tbtIdx)/testBank.getShort("ndf", tbtIdx));
-				TOFCalibration.trackRCS2.fill(testBank.getFloat("chi2", tbtIdx)/testBank.getShort("ndf", tbtIdx));
-				TOFCalibration.vertexHist.fill(testBank.getFloat("Vtx0_z", tbtIdx));
-				
-			}
-		}
+//		if (event.hasBank("TimeBasedTrkg::TBTracks")) {
+//			DataBank testBank = event.getBank("TimeBasedTrkg::TBTracks");
+//			for (int tbtIdx=0; tbtIdx<testBank.rows(); tbtIdx++) {
+//				// fill test hist
+//				TOFCalibration.trackRCS.fill(testBank.getFloat("chi2", tbtIdx)/testBank.getShort("ndf", tbtIdx));
+//				TOFCalibration.trackRCS2.fill(testBank.getFloat("chi2", tbtIdx)/testBank.getShort("ndf", tbtIdx));
+//				TOFCalibration.vertexHist.fill(testBank.getFloat("Vtx0_z", tbtIdx));
+//				
+//			}
+//		}
 
 		// iterate through hits bank getting corresponding adc and tdc
 		if (event.hasBank("FTOF::hits")) {
@@ -193,6 +193,14 @@ public class DataProvider {
 						paddle.BETA = beta;
 						paddle.P = mom;
 						paddle.TRACK_ID = trkId;
+						paddle.VERTEX_Z = tbtBank.getFloat("Vtx0_z", trkId-1);
+						
+						if (TOFCalibration.maxRcs != 0.0) {
+							paddle.TRACK_REDCHI2 = tbtBank.getFloat("chi2", trkId-1)/tbtBank.getShort("ndf", trkId-1);
+						}
+						else {
+							paddle.TRACK_REDCHI2 = -1.0;
+						}
 						
 						if (paddle.getDescriptor().getComponent()==13 &&
 								paddle.getDescriptor().getLayer()== 1 && trkId !=-1) {

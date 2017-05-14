@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -21,7 +22,9 @@ import javax.swing.JTabbedPane;
 
 import org.jlab.detector.calib.tasks.CalibrationEngine;
 import org.jlab.detector.calib.utils.CalibrationConstants;
+import org.jlab.groot.data.GraphErrors;
 import org.jlab.groot.data.H1F;
+import org.jlab.groot.data.H2F;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
 //import org.jlab.calib.temp.DataGroup;
@@ -64,6 +67,8 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public String prevCalFilename;
 	public int prevCalRunNo;
 	public boolean prevCalRead = false;
+	
+	public int fitMethod = 0; //  0=SLICES 1=MAX 2=PROFILE	
 
 	// Values from previous calibration
 	// Need to be static as used by all engines
@@ -299,6 +304,64 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public IndexedList<DataGroup> getDataGroup() {
 		return dataGroups;
 	}
+	
+	public GraphErrors maxGraph(H2F hist, String graphName) {
+		
+		ArrayList<H1F> slices = hist.getSlicesX();
+		int nBins = hist.getXAxis().getNBins();
+		double[] sliceMax = new double[nBins];
+		double[] maxErrs = new double[nBins];
+		double[] adcs = new double[nBins];
+		double[] adcErrs = new double[nBins];
+		
+		for (int i=0; i<nBins; i++) {
+			int maxBin = slices.get(i).getMaximumBin();
+			sliceMax[i] = slices.get(i).getxAxis().getBinCenter(maxBin);
+			maxErrs[i] = 0.1;
+			
+			adcs[i] = hist.getXAxis().getBinCenter(i);
+			adcErrs[i] = hist.getXAxis().getBinWidth(i)/2.0;
+		}
+		
+		GraphErrors maxGraph = new GraphErrors(graphName, adcs, sliceMax, adcErrs, maxErrs);
+		maxGraph.setName(graphName);
+		
+		return maxGraph;
+		
+	}
+	
+	public GraphErrors fixGraph(GraphErrors graphIn, String graphName) {
+
+		int n = graphIn.getDataSize(0);
+		int m = 0;
+		for (int i=0; i<n; i++) {
+			if (graphIn.getDataEY(i) < 0.3) {
+				m++;
+			}
+		}		
+		
+		double[] x = new double[m];
+		double[] xerr = new double[m];
+		double[] y = new double[m];
+		double[] yerr = new double[m];
+		int j = 0;
+		
+		for (int i=0; i<n; i++) {
+			if (graphIn.getDataEY(i) < 0.3) {
+				x[j] = graphIn.getDataX(i);
+				xerr[j] = graphIn.getDataEX(i);
+				y[j] = graphIn.getDataY(i);
+				yerr[j] = graphIn.getDataEY(i);
+				j++;
+			}
+		}
+		
+		GraphErrors fixGraph = new GraphErrors(graphName, x, y, xerr, yerr);
+		fixGraph.setName(graphName);
+		
+		return fixGraph;
+		
+	}		
 
 	public boolean isGoodPaddle(int sector, int layer, int paddle) {
 		// Overridden in calibration step class

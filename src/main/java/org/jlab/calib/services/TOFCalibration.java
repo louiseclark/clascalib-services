@@ -10,13 +10,18 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.PrintStream;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -113,13 +118,21 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public final int WRITE = 3;
 	
 	// test histograms
-	public static H1F trackRCS = new H1F("red_chi_sq","Reduced chi^2 for tracks", 
-			200, 0.0, 200.0);
-	public static H1F trackRCS2 = new H1F("red_chi_sq2","Reduced chi^2 for tracks", 
-			100, 0.0, 40.0);
-	public static H1F vertexHist = new H1F("vertex_hist","Vertex z", 
-			160, -40.0, 40.0);
-		
+//	public static H1F trackRCS = new H1F("red_chi_sq","Reduced chi^2 for tracks", 
+//			200, 0.0, 200.0);
+//	public static H1F trackRCS2 = new H1F("red_chi_sq2","Reduced chi^2 for tracks", 
+//			100, 0.0, 40.0);
+//	public static H1F vertexHist = new H1F("vertex_hist","Vertex z", 
+//			160, -40.0, 40.0);
+	
+	// configuration settings
+	private JTextField rcsText = new JTextField(5);
+	public static double maxRcs = 0.0;
+	JComboBox<String> twFitList = new JComboBox<>();
+	JComboBox<String> tdcFitList = new JComboBox<>();
+
+	public final static PrintStream oldStdout = System.out;
+	
 	public TOFCalibration() {
 		
 		//DataProvider.init();
@@ -274,7 +287,29 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 			}
 			
+			// set the config values
+			if (rcsText.getText().compareTo("") != 0) {
+				maxRcs = Double.parseDouble(rcsText.getText());
+			}
+			engines[TW].fitMethod = twFitList.getSelectedIndex();
+			engines[TDC_CONV].fitMethod = tdcFitList.getSelectedIndex();
+			
+			System.out.println("");
+			System.out.println(todayString());
+			System.out.println("Configuration settings - Tracking");
+			System.out.println("---------------------------------");
+			System.out.println("Maximum reduced chi squared for tracks: "+maxRcs);
+			System.out.println("");
+			System.out.println("Configuration settings - TDC conversion");
+			System.out.println("---------------------------------------");
+			System.out.println("TDC graph: "+tdcFitList.getSelectedItem());
+			System.out.println("");
+			System.out.println("Configuration settings - Time walk");
+			System.out.println("----------------------------------");
+			System.out.println("Time walk graph: "+twFitList.getSelectedItem());
+			System.out.println("");
 		}
+		
 	}
 
     public void dataEventAction(DataEvent event) {
@@ -294,7 +329,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     			engines[i].processPaddleList(paddleList);
     		}
     		else if (event.getType()==DataEventType.EVENT_STOP) {
-    			System.out.println("EVENT_STOP for "+engines[i].stepName);
+    			System.setOut(oldStdout);
+    			System.out.println("EVENT_STOP for "+engines[i].stepName+" "+todayString());
     			engines[i].analyze();
     		} 
 
@@ -305,6 +341,14 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     		} 
     	}
 	}
+
+    private String todayString() {
+		Date today = new Date();
+		DateFormat dateFormat = new SimpleDateFormat("MMM dd yyyy HH:mm:ss");
+		String todayString = dateFormat.format(today);
+
+		return todayString;
+    }
     
 	public void resetEventListener() {
 		
@@ -433,41 +477,43 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         }
 	}
 	
-	public void showTestHists() {
-		JFrame frame = new JFrame("Track Reduced Chi Squared");
-		frame.setSize(1000, 800);
-		EmbeddedCanvas canvas = new EmbeddedCanvas();
-		canvas.cd(0);
-		canvas.draw(trackRCS);
-		frame.add(canvas);
-		frame.setVisible(true);
-		frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-		
-		JFrame frame2 = new JFrame("Track Reduced Chi Squared");
-		frame2.setSize(1000, 800);
-		EmbeddedCanvas canvas2 = new EmbeddedCanvas();
-		canvas2.cd(0);
-		canvas2.draw(trackRCS2);
-		frame2.add(canvas2);
-		frame2.setVisible(true);
-		frame2.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-		
-		JFrame frame3 = new JFrame("Vertex z");
-		frame3.setSize(1000, 800);
-		EmbeddedCanvas canvas3 = new EmbeddedCanvas();
-		canvas3.cd(0);
-		canvas3.draw(vertexHist);
-		frame3.add(canvas3);
-		frame3.setVisible(true);
-		frame3.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-
-	}
+//	public void showTestHists() {
+//		JFrame frame = new JFrame("Track Reduced Chi Squared");
+//		frame.setSize(1000, 800);
+//		EmbeddedCanvas canvas = new EmbeddedCanvas();
+//		canvas.cd(0);
+//		canvas.draw(trackRCS);
+//		frame.add(canvas);
+//		frame.setVisible(true);
+//		frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+//		
+//		JFrame frame2 = new JFrame("Track Reduced Chi Squared");
+//		frame2.setSize(1000, 800);
+//		EmbeddedCanvas canvas2 = new EmbeddedCanvas();
+//		canvas2.cd(0);
+//		canvas2.draw(trackRCS2);
+//		frame2.add(canvas2);
+//		frame2.setVisible(true);
+//		frame2.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+//		
+//		JFrame frame3 = new JFrame("Vertex z");
+//		frame3.setSize(1000, 800);
+//		EmbeddedCanvas canvas3 = new EmbeddedCanvas();
+//		canvas3.cd(0);
+//		canvas3.draw(vertexHist);
+//		frame3.add(canvas3);
+//		frame3.setVisible(true);
+//		frame3.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+//
+//	}
 
 	public void configure() {
 		
 		configFrame.setSize(600, 800);
 		configFrame.setLocationRelativeTo(pane);
-		Container pane = configFrame.getContentPane();
+		
+		JTabbedPane pane = new JTabbedPane();
+		//Container pane = configFrame.getContentPane();
 		JPanel confPanel = new JPanel(new FlowLayout());
 		//JPanel confPanel = new JPanel(new BorderLayout());
 		TofPrevConfigPanel[] engPanels = {new TofPrevConfigPanel(new TOFCalibrationEngine()), 
@@ -490,8 +536,47 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		okPanel.add(okButton);
 		confPanel.add(okPanel);
 		
-		pane.add(confPanel);
+		pane.add("Previous calibration values", confPanel);
 		
+		// Tracking options
+		JPanel trPanel = new JPanel(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		c.weighty = 1;
+		c.anchor = c.NORTHWEST;
+		c.insets = new Insets(3,3,3,3);
+		c.gridx = 0;
+		c.gridy = 0;
+		trPanel.add(new JLabel("Maximum reduced chi squared for track:"),c);
+		rcsText.addActionListener(this);
+		c.gridx = 1;
+		c.gridy = 0;
+		trPanel.add(rcsText,c);
+		c.gridx = 2;
+		c.gridy = 0;
+		trPanel.add(new JLabel("Enter 0 for no cut"),c);
+		pane.add("Tracking", trPanel);
+
+		// TDC options
+		JPanel tdcPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));
+		tdcPanel.add(new JLabel("TDC conversion graph:"));
+		tdcFitList.addItem("Gaussian mean of slices");
+		tdcFitList.addItem("Max position of slices");
+		tdcFitList.addItem("Profile");
+		tdcFitList.addActionListener(this);
+		tdcPanel.add(tdcFitList);
+		pane.add("TDC conversion", tdcPanel);		
+		
+		// Time walk options
+		JPanel twPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));
+		twPanel.add(new JLabel("Time walk graph:"));
+		twFitList.addItem("Gaussian mean of slices");
+		twFitList.addItem("Max position of slices");
+		twFitList.addItem("Profile");
+		twFitList.addActionListener(this);
+		twPanel.add(twFitList);
+		pane.add("Time walk", twPanel);
+		
+		configFrame.add(pane);
 		configFrame.setVisible(true);
 		
 	}

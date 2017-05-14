@@ -200,7 +200,7 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 			int component = pad.getDescriptor().getComponent();
 
 			// fill the fine hists
-			if (pad.trackFound()) {
+			if (pad.goodTrackFound()) {
 				dataGroups.getItem(sector,layer,component).getH1F("fineHistRaw").fill(
 						(pad.refTime()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
 //				dataGroups.getItem(sector,layer,component).getH1F("fineHist").fill(
