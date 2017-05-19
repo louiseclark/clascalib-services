@@ -192,15 +192,17 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 
 		for (TOFPaddle pad : paddleList) {
 			
-			// only include p >1.0 so that the beta=1 assumption is reasonable
-            if (pad.P < 1.0) continue;
-
 			int sector = pad.getDescriptor().getSector();
 			int layer = pad.getDescriptor().getLayer();
 			int component = pad.getDescriptor().getComponent();
+			
+//			System.out.println("SLC "+sector+layer+component);
+//			pad.show();
 
 			// fill the fine hists
 			if (pad.goodTrackFound()) {
+				
+//				System.out.println("Paddle included");
 				dataGroups.getItem(sector,layer,component).getH1F("fineHistRaw").fill(
 						(pad.refTime()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
 //				dataGroups.getItem(sector,layer,component).getH1F("fineHist").fill(

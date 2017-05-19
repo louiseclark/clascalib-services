@@ -228,7 +228,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
 
-			if (paddle.includeInVeff()) {
+			if (paddle.goodTrackFound()) {
 				//				dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
 				//					paddle.paddleY(), paddle.recHalfTimeDiff());
 				dataGroups.getItem(sector,layer,component).getH2F("veff").fill(

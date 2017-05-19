@@ -30,7 +30,9 @@ public class TOFPaddle {
 	public int TRACK_ID = -1;
 	public double VERTEX_Z = 0.0;
 	public double TRACK_REDCHI2 = 0.0;
+	public int CHARGE = 0;
 	public double RF_TIME = 124.25;
+	public int TRIGGER_BIT = 0;
 	public double TOF_TIME = 0.0;
 	public int PARTICLE_ID = -1;
 
@@ -86,16 +88,6 @@ public class TOFPaddle {
 		return (this.geometricMean() > 100.0 && ADCR>0 && ADCL>0 && TDCL>0 && TDCR>0);
 	}
 
-	public boolean includeInVeff() {
-		// exclude if position is zero or veff is unrealistic
-		return (this.XPOS != 0 || this.YPOS != 0 || this.ZPOS != 0);
-		//				&& (Math.abs(position() - paddleY()) < 40.0);
-		// &&
-		// (this.paddleY()/this.halfTimeDiff() > 4.0)
-		// &&
-		// (this.paddleY()/this.halfTimeDiff() < 28.0);
-	}
-
 	public boolean includeInCtofVeff() {
 		// exclude if position is zero or veff is unrealistic
 		return (this.ZPOS != 0)
@@ -124,20 +116,20 @@ public class TOFPaddle {
 		return veff;
 	}
 
-	public double p2p() {
-		double p2p = 0.0;
-		if (tof == "FTOF") {
-			p2p = TOFCalibrationEngine.p2pValues.getDoubleValue("paddle2paddle",
-					desc.getSector(), desc.getLayer(), desc.getComponent())
-				+ TOFCalibrationEngine.rfpadValues.getDoubleValue("rfpad", desc.getSector(), desc.getLayer(), desc.getComponent());
-			//System.out.println("p2p "+desc.getSector()+desc.getLayer()+desc.getComponent()+" "+p2p);
-		} else {
-			p2p = 0.0;
-			//p2p = CTOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
-		}
-
-		return p2p;
-	}
+//	public double p2p() {
+//		double p2p = 0.0;
+//		if (tof == "FTOF") {
+//			p2p = TOFCalibrationEngine.p2pValues.getDoubleValue("paddle2paddle",
+//					desc.getSector(), desc.getLayer(), desc.getComponent())
+//				+ TOFCalibrationEngine.rfpadValues.getDoubleValue("rfpad", desc.getSector(), desc.getLayer(), desc.getComponent());
+//			//System.out.println("p2p "+desc.getSector()+desc.getLayer()+desc.getComponent()+" "+p2p);
+//		} else {
+//			p2p = 0.0;
+//			//p2p = CTOFCalibrationEngine.p2pValues.getItem(desc.getSector(), desc.getLayer(), desc.getComponent());
+//		}
+//
+//		return p2p;
+//	}
 	
 	public double rfpad() {
 		double rfpad = 0.0;
@@ -215,19 +207,22 @@ public class TOFPaddle {
 
 	public double refTime() {
 		return this.RF_TIME - this.startTime();
-	}	
+	}
+	
+	public double refTimeCorr() {
+		return refTime() - rfpad();
+	}
 	
 	public double deltaTLeft(double offset) {
 
 		double lr = leftRightAdjustment();
-		double p2p = p2p();
 		
 		double beta = 1.0;
 		if (BETA != 0.0) {
 			beta = BETA;
 		}
 		
-		double dtL = tdcToTime(TDCL) - (lr/2) + p2p 
+		double dtL = tdcToTime(TDCL) - (lr/2) + rfpad() 
 				- ((0.5*paddleLength() + paddleY())/this.veff())
 				- (PATH_LENGTH/(beta*29.98))
 				- this.RF_TIME;
@@ -245,14 +240,13 @@ public class TOFPaddle {
 	public double deltaTRight(double offset) {
 					
 		double lr = leftRightAdjustment();
-		double p2p = p2p();
 		
 		double beta = 1.0;
 		if (BETA != 0.0) {
 			beta = BETA;
 		}
 		
-		double dtR = tdcToTime(TDCR) + (lr/2) + p2p
+		double dtR = tdcToTime(TDCR) + (lr/2) + rfpad()
 				- ((0.5*paddleLength() - paddleY())/this.veff())
 				- (PATH_LENGTH/(beta*29.98))
 				- this.RF_TIME;
@@ -391,12 +385,23 @@ public class TOFPaddle {
 	
 	public boolean trackFound() {
 		return TRACK_ID != -1;
-//		return (XPOS !=0.0 || YPOS !=0.0 || ZPOS !=0.0);
 	};
 	
 	public boolean goodTrackFound() {
-		return (trackFound() && P > 1.0 && Math.abs(VERTEX_Z) <10.0 && TRACK_REDCHI2 < TOFCalibration.maxRcs);		
+		return (trackFound() && 
+				TRACK_REDCHI2 < TOFCalibration.maxRcs &&		
+				VERTEX_Z > TOFCalibration.minV &&
+				VERTEX_Z < TOFCalibration.maxV &&
+				P > TOFCalibration.minP &&
+				chargeMatch()); 
 	}	
+	
+	public boolean chargeMatch() {
+		
+		return (TOFCalibration.trackCharge == TOFCalibration.TRACK_BOTH ||
+				TOFCalibration.trackCharge == TOFCalibration.TRACK_NEG && CHARGE == -1 ||
+				TOFCalibration.trackCharge == TOFCalibration.TRACK_POS && CHARGE == 1);
+	}
 
 	public double zPosCTOF() {
 		return ZPOS + 10.0;
@@ -420,9 +425,10 @@ public class TOFPaddle {
 				+ " TDCR " + TDCR + " TDCL " + TDCL);
 		System.out.println("XPOS "+XPOS+" YPOS "+YPOS+" ZPOS "+ZPOS+" PATH_LENGTH "+PATH_LENGTH+" TRACK_ID "+TRACK_ID);
 		System.out.println("BETA "+BETA+" P "+P+" RF_TIME "+RF_TIME+" TOF_TIME "+TOF_TIME);
+		System.out.println("VERTEX_Z "+VERTEX_Z+" TRACK_REDCHI2 "+TRACK_REDCHI2+" CHARGE "+CHARGE+" TRIGGER_BIT "+TRIGGER_BIT);
 		System.out.println("refTime "+refTime()+" startTime "+startTime()+" averageHitTime "+p2pAverageHitTime());
 		System.out.println("tofTimeRFCorr "+tofTimeRFCorr()+" startTimeRFCorr "+startTimeRFCorr());
-		System.out.println("rfpad "+rfpad()+" p2p "+p2p()+" lamL "+lamL()+" ordL "+ordL()+" lamR "+lamR()+" ordR "+ordR()+" LR "+leftRightAdjustment()+" veff "+veff());
+		System.out.println("rfpad "+rfpad()+" lamL "+lamL()+" ordL "+ordL()+" lamR "+lamR()+" ordR "+ordR()+" LR "+leftRightAdjustment()+" veff "+veff());
 		System.out.println("paddleLength "+paddleLength()+" paddleY "+paddleY());
 		System.out.println("timeLeftAfterTW "+timeLeftAfterTW()+" timeRightAfterTW "+timeRightAfterTW());
 		System.out.println("deltaTLeft "+this.deltaTLeft(0.0)+ " deltaTRight "+this.deltaTRight(0.0));

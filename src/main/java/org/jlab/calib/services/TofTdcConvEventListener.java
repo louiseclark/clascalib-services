@@ -249,10 +249,10 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
             if (paddle.goodTrackFound() && paddle.TDCL!=0 && paddle.TDCR!=0) {
                 dataGroups.getItem(sector,layer,component).getH2F("tdcConvLeft").fill(
                          paddle.TDCL, 
-                         (paddle.refTime()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
+                         (paddle.refTimeCorr()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
                 dataGroups.getItem(sector,layer,component).getH2F("tdcConvRight").fill(
                         paddle.TDCR, 
-                        (paddle.refTime()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
+                        (paddle.refTimeCorr()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
 
             }
         }
@@ -280,9 +280,11 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
         // fit function to the graph of means
         if (fitMethod==0 && sector==2) {
 			ParallelSliceFitter psfL = new ParallelSliceFitter(convHistL);
+			//psfL.setFitMode("L");
 			psfL.fitSlicesX();
 			convGraphLeft.copy(fixGraph(psfL.getMeanSlices(),"convGraphLeft"));
 			ParallelSliceFitter psfR = new ParallelSliceFitter(convHistR);
+			//psfR.setFitMode("L");
 			psfR.fitSlicesX();
 			convGraphRight.copy(fixGraph(psfR.getMeanSlices(),"convGraphRight"));
 		}

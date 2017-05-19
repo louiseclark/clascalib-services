@@ -445,6 +445,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		GraphErrors twLGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trLeftGraph"); 
 		if (fitMethod==0 && sector==2) {
 			ParallelSliceFitter psfL = new ParallelSliceFitter(twL);
+			//psfL.setFitMode("L");
 			psfL.fitSlicesX();
 			twLGraph.copy(fixGraph(psfL.getMeanSlices(),"trLeftGraph"));
 		}
@@ -454,10 +455,11 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		else {
 			twLGraph.copy(twL.getProfileX());
 		}
-
+		
 		GraphErrors twRGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trRightGraph"); 
 		if (fitMethod==0) {
 			ParallelSliceFitter psfR = new ParallelSliceFitter(twR);
+			//psfR.setFitMode("L");
 			psfR.fitSlicesX();
 			twRGraph.copy(fixGraph(psfR.getMeanSlices(),"trRightGraph"));
 		}

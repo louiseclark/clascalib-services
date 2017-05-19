@@ -128,8 +128,27 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	// configuration settings
 	private JTextField rcsText = new JTextField(5);
 	public static double maxRcs = 0.0;
-	JComboBox<String> twFitList = new JComboBox<>();
-	JComboBox<String> tdcFitList = new JComboBox<>();
+	private JTextField minVText = new JTextField(5);
+	public static double minV = -9999.0;
+	private JTextField maxVText = new JTextField(5);
+	public static double maxV = 9999.0;
+	private JTextField minPText = new JTextField(5);
+	public static double minP = 0.0;
+	JComboBox<String> trackChargeList = new JComboBox<String>();
+	public static int trackCharge = 2;
+	public final static int TRACK_BOTH = 0;
+	public final static int TRACK_NEG = 1;
+	public final static int TRACK_POS = 2;
+	JComboBox<String> pidList = new JComboBox<String>();
+	public static int trackPid = 2;
+	public final static int PID_BOTH = 0;
+	public final static int PID_E = 1;
+	public final static int PID_PI = 2;
+	private JTextField triggerText = new JTextField(10);
+	public static int triggerBit = 0;	
+	
+	JComboBox<String> twFitList = new JComboBox<String>();
+	JComboBox<String> tdcFitList = new JComboBox<String>();
 
 	public final static PrintStream oldStdout = System.out;
 	
@@ -291,14 +310,37 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			if (rcsText.getText().compareTo("") != 0) {
 				maxRcs = Double.parseDouble(rcsText.getText());
 			}
+			if (minVText.getText().compareTo("") != 0) {
+				minV = Double.parseDouble(minVText.getText());
+			}
+			if (maxVText.getText().compareTo("") != 0) {
+				maxV = Double.parseDouble(maxVText.getText());
+			}	
+			if (minPText.getText().compareTo("") != 0) {
+				minP = Double.parseDouble(minPText.getText());
+			}
+			trackCharge = trackChargeList.getSelectedIndex();
+			trackPid = pidList.getSelectedIndex();
+			if (triggerText.getText().compareTo("") != 0) {
+				triggerBit = Integer.parseInt(triggerText.getText());
+			}
+			
 			engines[TW].fitMethod = twFitList.getSelectedIndex();
 			engines[TDC_CONV].fitMethod = tdcFitList.getSelectedIndex();
 			
 			System.out.println("");
 			System.out.println(todayString());
-			System.out.println("Configuration settings - Tracking");
-			System.out.println("---------------------------------");
+			System.out.println("Configuration settings - Tracking/General");
+			System.out.println("-----------------------------------------");
 			System.out.println("Maximum reduced chi squared for tracks: "+maxRcs);
+			System.out.println("Minimum vertex z: "+minV);
+			System.out.println("Maximum vertex z: "+maxV);
+			System.out.println("Minimum momentum from tracking (GeV): "+minP);
+			System.out.println("Track charge: "+trackChargeList.getItemAt(trackCharge));
+			System.out.println("PID: "+pidList.getItemAt(trackPid));
+			System.out.println("Trigger: "+triggerBit);
+			
+			
 			System.out.println("");
 			System.out.println("Configuration settings - TDC conversion");
 			System.out.println("---------------------------------------");
@@ -539,11 +581,14 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		pane.add("Previous calibration values", confPanel);
 		
 		// Tracking options
+		JPanel trOuterPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));
 		JPanel trPanel = new JPanel(new GridBagLayout());
+		trOuterPanel.add(trPanel);
 		GridBagConstraints c = new GridBagConstraints();
 		c.weighty = 1;
 		c.anchor = c.NORTHWEST;
 		c.insets = new Insets(3,3,3,3);
+		// Chi squared
 		c.gridx = 0;
 		c.gridy = 0;
 		trPanel.add(new JLabel("Maximum reduced chi squared for track:"),c);
@@ -554,7 +599,69 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridx = 2;
 		c.gridy = 0;
 		trPanel.add(new JLabel("Enter 0 for no cut"),c);
-		pane.add("Tracking", trPanel);
+		// vertex min
+		c.gridx = 0;
+		c.gridy = 1;
+		trPanel.add(new JLabel("Minimum vertex z:"),c);
+		minVText.addActionListener(this);
+		c.gridx = 1;
+		c.gridy = 1;
+		trPanel.add(minVText,c);
+		// vertex max
+		c.gridx = 0;
+		c.gridy = 2;
+		trPanel.add(new JLabel("Maximum vertex z:"),c);
+		maxVText.addActionListener(this);
+		c.gridx = 1;
+		c.gridy = 2;
+		trPanel.add(maxVText,c);
+		// p min
+		c.gridx = 0;
+		c.gridy = 3;
+		trPanel.add(new JLabel("Minimum momentum from tracking (GeV):"),c);
+		minPText.addActionListener(this);
+		c.gridx = 1;
+		c.gridy = 3;
+		trPanel.add(minPText,c);
+		// track charge
+		c.gridx = 0;
+		c.gridy = 4;
+		trPanel.add(new JLabel("Track charge:"),c);
+		trackChargeList.addItem("Both");
+		trackChargeList.addItem("Negative");
+		trackChargeList.addItem("Positive");
+		trackChargeList.addActionListener(this);
+		c.gridx = 1;
+		c.gridy = 4;
+		trPanel.add(trackChargeList,c);
+		// PID
+		c.gridx = 0;
+		c.gridy = 5;
+		trPanel.add(new JLabel("PID:"),c);
+		pidList.addItem("Both");
+		pidList.addItem("Electrons");
+		pidList.addItem("Pions");
+		pidList.addActionListener(this);
+		c.gridx = 1;
+		c.gridy = 5;
+		trPanel.add(pidList,c);
+		c.gridx = 2;
+		c.gridy = 5;
+		trPanel.add(new JLabel("Not currently used"),c);
+		// trigger
+		c.gridx = 0;
+		c.gridy = 6;
+		trPanel.add(new JLabel("Trigger:"),c);
+		triggerText.addActionListener(this);
+		c.gridx = 1;
+		c.gridy = 6;
+		trPanel.add(triggerText,c);		
+		c.gridx = 2;
+		c.gridy = 6;
+		trPanel.add(new JLabel("Not currently used"),c);
+		
+		
+		pane.add("Tracking / General", trOuterPanel);
 
 		// TDC options
 		JPanel tdcPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));

@@ -102,6 +102,9 @@ public class DataProvider {
 			if (event.hasBank("RUN::rf")) {
 				event.getBank("RUN::rf").show();
 			}
+			if (event.hasBank("RUN::config")) {
+				event.getBank("RUN::config").show();
+			}
 			if (event.hasBank("MC::Particle")) {
 				event.getBank("MC::Particle").show();
 			}
@@ -160,6 +163,11 @@ public class DataProvider {
 					DataBank  tbtBank = event.getBank("TimeBasedTrkg::TBTracks");
 					DataBank  rfBank = event.getBank("RUN::rf");
 					
+					if (event.hasBank("RUN::config")) {
+						DataBank  configBank = event.getBank("RUN::config");
+						paddle.TRIGGER_BIT = configBank.getInt("trigger", 0);
+					}
+					
 					// get the RF time with id=1
 					double trf = 0.0; 
 					for (int rfIdx=0; rfIdx<rfBank.rows(); rfIdx++) {
@@ -194,6 +202,7 @@ public class DataProvider {
 						paddle.P = mom;
 						paddle.TRACK_ID = trkId;
 						paddle.VERTEX_Z = tbtBank.getFloat("Vtx0_z", trkId-1);
+						paddle.CHARGE = tbtBank.getInt("q", trkId-1);
 						
 						if (TOFCalibration.maxRcs != 0.0) {
 							paddle.TRACK_REDCHI2 = tbtBank.getFloat("chi2", trkId-1)/tbtBank.getShort("ndf", trkId-1);
