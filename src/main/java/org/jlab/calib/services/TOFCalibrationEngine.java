@@ -59,7 +59,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public String filename = "Unknown.txt";
 
 
-	// configuration - previous calibration values
+	// configuration
 	public int calDBSource = 0;
 	public static final int CAL_DEFAULT = 0;
 	public static final int CAL_FILE = 1;
@@ -67,8 +67,10 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public String prevCalFilename;
 	public int prevCalRunNo;
 	public boolean prevCalRead = false;
+	public boolean engineOn = true;
 	
 	public int fitMethod = 0; //  0=SLICES 1=MAX 2=PROFILE	
+	public double[] dummyPoint = {0.0}; // dummy point for graph to prevent canvas throwing error when drawing dataGroup
 
 	// Values from previous calibration
 	// Need to be static as used by all engines

@@ -114,7 +114,8 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 
 					// create all the functions and graphs
 					F1D attenFunc = new F1D("attenFunc", "[a]+[b]*x", -250.0, 250.0);
-					GraphErrors meanGraph = new GraphErrors();
+					attenFunc.setParameter(1, 2.0/expectedAttlen(sector,layer,paddle));
+					GraphErrors meanGraph = new GraphErrors("meanGraph",dummyPoint,dummyPoint,dummyPoint,dummyPoint);
 					meanGraph.setName("meanGraph");
 					attenFunc.setLineColor(FUNC_COLOUR);
 					attenFunc.setLineWidth(FUNC_LINE_WIDTH);
@@ -179,7 +180,12 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 
 		// fit function to the graph of means
 		GraphErrors meanGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("meanGraph");
-		meanGraph.copy(attenHist.getProfileX());
+		if (attenHist.getProfileX().getDataSize(0) != 0) {
+			meanGraph.copy(attenHist.getProfileX());
+		}
+		else {
+			return;
+		}
 
 		double lowLimit;
 		double highLimit;

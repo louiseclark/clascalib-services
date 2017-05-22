@@ -185,7 +185,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 					// create all the functions and graphs
 					//F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
 					F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", 0.0, 500.0);
-					GraphErrors veffGraph = new GraphErrors();
+					GraphErrors veffGraph = new GraphErrors("veffGraph",dummyPoint,dummyPoint,dummyPoint,dummyPoint);
 					veffGraph.setName("veffGraph");
 					veffFunc.setLineColor(FUNC_COLOUR);
 					veffFunc.setLineWidth(FUNC_LINE_WIDTH);

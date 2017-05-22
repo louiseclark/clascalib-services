@@ -474,7 +474,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		
 		// Don't bother recalculating if MIP peak is already acceptable
 		if (isGoodPaddle(sector,layer,paddle)) {
-			System.out.println("MIP peak already acceptable, no change to voltage");
+			System.out.println("SLC "+sector+layer+paddle+": MIP peak already acceptable, no change to voltage");
 			return origVoltage;
 		}
 		
@@ -508,17 +508,17 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		
 		// Safety check - don't exceed maximum voltage change
 		if (deltaV > MAX_DELTA_V) {
-			System.out.println("Max deltaV exceeded");
+			System.out.println("SLC "+sector+layer+paddle+": Max deltaV exceeded");
 
 			deltaV = MAX_DELTA_V;
 		} else if (deltaV < -MAX_DELTA_V) {
-			System.out.println("Max deltaV exceeded");
+			System.out.println("SLC "+sector+layer+paddle+": Max deltaV exceeded");
 			deltaV = -MAX_DELTA_V;
 		}
 		
 		// Don't change voltage if stats are low
 		if (dataGroups.getItem(sector,layer,paddle).getH1F("geomean").getEntries() < MIN_STATS) {
-			System.out.println("Low stats, deltaV set to zero");
+			System.out.println("SLC "+sector+layer+paddle+": Low stats, deltaV set to zero");
 			deltaV = 0.0;
 		};
 		
@@ -526,10 +526,10 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		
 		// Safety check - don't exceed maximum voltage
 		if (newVoltage > MAX_VOLTAGE[layer_index]) {
-			System.out.println("Max V exceeded");
+			System.out.println("SLC "+sector+layer+paddle+": Max V exceeded");
 			newVoltage = MAX_VOLTAGE[layer_index];
 		} else if (newVoltage < -MAX_VOLTAGE[layer_index]) {
-			System.out.println("Max V exceeded");
+			System.out.println("SLC "+sector+layer+paddle+": Max V exceeded");
 			newVoltage = -MAX_VOLTAGE[layer_index];
 		}			
 

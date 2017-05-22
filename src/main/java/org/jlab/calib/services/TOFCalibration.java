@@ -1,8 +1,10 @@
 package org.jlab.calib.services;
 
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Container;
+import java.awt.Dialog.ModalityType;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -10,6 +12,7 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
 import java.io.PrintStream;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
@@ -19,9 +22,13 @@ import java.util.Date;
 import java.util.List;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -31,6 +38,7 @@ import javax.swing.JRadioButton;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.TableModelEvent;
@@ -62,7 +70,9 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 	// main panel
 	JPanel          pane         = null;
-	JFrame configFrame = new JFrame("Configure FTOF calibration settings");
+	JFrame  innerConfigFrame = new JFrame("Configure FTOF calibration settings");
+	JDialog configFrame = new JDialog(innerConfigFrame, "Configure FTOF calibration settings");
+	JTabbedPane configPane = new JTabbedPane();
 	
 	// detector panel
     DetectorPane2D            detectorView        = null;
@@ -105,7 +115,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
     				 "/calibration/ftof/timing_offset/rfpad",
     				 "/calibration/ftof/timing_offset/P2P"};
 	
-	String selectedDir = dirs[HV];
+	String selectedDir = "None";
 	int selectedSector = 1;
 	int selectedLayer = 1;
 	int selectedPaddle = 1;
@@ -126,6 +136,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 //			160, -40.0, 40.0);
 	
 	// configuration settings
+	JCheckBox[] stepChecks = {new JCheckBox(),new JCheckBox(),new JCheckBox(),new JCheckBox(),
+			  new JCheckBox(),new JCheckBox(),new JCheckBox(),new JCheckBox()};	
 	private JTextField rcsText = new JTextField(5);
 	public static double maxRcs = 0.0;
 	private JTextField minVText = new JTextField(5);
@@ -154,8 +166,9 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	
 	public TOFCalibration() {
 		
-		//DataProvider.init();
-
+		configFrame.setModalityType(ModalityType.APPLICATION_MODAL);
+		configure();
+		
         pane = new JPanel();
         pane.setLayout(new BorderLayout());
 
@@ -192,7 +205,10 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         ccview.getTabbedPane().addChangeListener(this);
         
         for (int i=0; i < engines.length; i++) {
-        	ccview.addConstants(engines[i].getCalibrationConstants().get(0),this);
+        	if (engines[i].engineOn) {
+        		ccview.addConstants(engines[i].getCalibrationConstants().get(0),this);
+        		ccview.getTabbedPane().setEnabled(false);
+        	}
         }
         
         enginePane.setTopComponent(canvas);
@@ -230,7 +246,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 	public TOFCalibrationEngine getSelectedEngine() {
 		
-		TOFCalibrationEngine engine = engines[HV];
+		TOFCalibrationEngine engine = null; // = engines[HV];
 
 		if (selectedDir == dirs[HV]) {
 			engine = engines[HV];
@@ -253,11 +269,10 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		}
 
 		return engine;
-	}
-		
+	}	
 	
 	public void actionPerformed(ActionEvent e) {
-
+		
 		TOFCalibrationEngine engine = getSelectedEngine();
 		
 		if (e.getActionCommand().compareTo(buttons[VIEW_ALL])==0) {
@@ -273,14 +288,17 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		}
 		else if (e.getActionCommand().compareTo(buttons[ADJUST_HV])==0) {
 			
-			JFrame hvFrame = new JFrame("Adjust HV");
-        	hvFrame.add(new TOFHVAdjustPanel((TofHVEventListener) engines[HV]));
-            hvFrame.setSize(1000, 800);
-        	//hvFrame.pack();
-        	hvFrame.setVisible(true);
-        	hvFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-        	// *** TEST CODE while issue with EVENT_STOP
-			//engine.analyze();
+			if (engines[HV].engineOn) {
+				JFrame hvFrame = new JFrame("Adjust HV");
+	        	hvFrame.add(new TOFHVAdjustPanel((TofHVEventListener) engines[HV]));
+	            hvFrame.setSize(1000, 800);
+	        	hvFrame.setVisible(true);
+	        	hvFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+			}
+			else {
+				JOptionPane.showMessageDialog(new JPanel(),
+					"Adjust HV is available only when the HV calibration step has been included.");
+			}
 
 		}
 		else if (e.getActionCommand().compareTo(buttons[WRITE])==0) {
@@ -291,10 +309,51 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 					engine.stepName + " calibration values written to "+outputFilename);
 		}
 		
-		// previous config settings
-		if (e.getActionCommand().compareTo("OK")==0) {
+		// config settings
+//		if (e.getSource() == stepChecks[TDC_CONV]) {
+//			configPane.setEnabledAt(3, stepChecks[TDC_CONV].isSelected());
+//		}
+//		if (e.getSource() == stepChecks[TW]) {
+//			configPane.setEnabledAt(4, stepChecks[TW].isSelected());
+//		}
+		if (e.getActionCommand().compareTo("Next")==0) {
+			int currentTab = configPane.getSelectedIndex();
+			for (int i=currentTab+1; i<configPane.getTabCount(); i++) {
+				if (configPane.isEnabledAt(i)) {
+					configPane.setSelectedIndex(i);
+					break;
+				}
+			}
+		}
+		if (e.getActionCommand().compareTo("Back")==0) {
+			int currentTab = configPane.getSelectedIndex();
+			for (int i=currentTab-1; i>=0; i--) {
+				if (configPane.isEnabledAt(i)) {
+					configPane.setSelectedIndex(i);
+					break;
+				}
+			}		
+		}
+		if (e.getActionCommand().compareTo("Cancel")==0) {
+			System.exit(0);
+		}
+		
+		if (e.getActionCommand().compareTo("Finish")==0) {
 			configFrame.setVisible(false);
 			
+			System.out.println("Configuration settings - Selected steps");
+			System.out.println("---------------------------------------");
+			// step selection
+			for (int i=0; i < engines.length; i++) {
+				engines[i].engineOn = stepChecks[i].isSelected();
+				if (selectedDir.compareTo("None")==0 && engines[i].engineOn) {
+					selectedDir = dirs[i];
+				}
+				System.out.println(engines[i].stepName+" "+engines[i].engineOn);
+			}
+			
+			System.out.println("Configuration settings - Previous calibration values");
+			System.out.println("----------------------------------------------------");
 			// get the previous iteration calibration values
 			for (int i=0; i< engines.length; i++) {
 				engines[i].populatePrevCalib();
@@ -303,7 +362,6 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 					System.out.println("Problem populating "+engines[i].stepName+" previous calibration values - exiting");
 					System.exit(0);
 				}
-
 			}
 			
 			// set the config values
@@ -360,27 +418,29 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
     	
     	for (int i=0; i< engines.length; i++) {
-		//for (int i=4; i<5; i++) { //only timewalk
 		
-    		if (event.getType()==DataEventType.EVENT_START) {
-    			engines[i].resetEventListener();
-    			engines[i].processPaddleList(paddleList);
-    			
+    		if (engines[i].engineOn) {
+		
+	    		if (event.getType()==DataEventType.EVENT_START) {
+	    			engines[i].resetEventListener();
+	    			engines[i].processPaddleList(paddleList);
+	    			
+	    		}
+	    		else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
+	    			engines[i].processPaddleList(paddleList);
+	    		}
+	    		else if (event.getType()==DataEventType.EVENT_STOP) {
+	    			System.setOut(oldStdout);
+	    			System.out.println("EVENT_STOP for "+engines[i].stepName+" "+todayString());
+	    			engines[i].analyze();
+	    		} 
+	
+	    		if (event.getType()==DataEventType.EVENT_STOP) {
+	    			this.updateDetectorView(false);
+	    			this.updateCanvas();
+	    			//if (i==0) this.showTestHists();
+	    		}
     		}
-    		else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
-    			engines[i].processPaddleList(paddleList);
-    		}
-    		else if (event.getType()==DataEventType.EVENT_STOP) {
-    			System.setOut(oldStdout);
-    			System.out.println("EVENT_STOP for "+engines[i].stepName+" "+todayString());
-    			engines[i].analyze();
-    		} 
-
-    		if (event.getType()==DataEventType.EVENT_STOP) {
-    			this.updateDetectorView(false);
-    			this.updateCanvas();
-    			//if (i==0) this.showTestHists();
-    		} 
     	}
 	}
 
@@ -399,9 +459,10 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public void timerUpdate() {
 
     	for (int i=0; i< engines.length; i++) {
-		//for (int i=4; i< 5; i++) {
-    		//System.out.println("Timer update for "+engines[i].stepName);
-    		engines[i].timerUpdate();
+    		if (engines[i].engineOn) {
+    			engines[i].timerUpdate();
+    			ccview.getTabbedPane().setEnabled(true);
+    		}
     	}
 		
 		this.updateDetectorView(false);
@@ -553,11 +614,31 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		
 		configFrame.setSize(600, 800);
 		configFrame.setLocationRelativeTo(pane);
+		configFrame.setDefaultCloseOperation(configFrame.DO_NOTHING_ON_CLOSE);
 		
-		JTabbedPane pane = new JTabbedPane();
-		//Container pane = configFrame.getContentPane();
-		JPanel confPanel = new JPanel(new FlowLayout());
-		//JPanel confPanel = new JPanel(new BorderLayout());
+		// Which steps	
+		JPanel stepOuterPanel = new JPanel(new BorderLayout());
+		JPanel stepPanel = new JPanel(new GridBagLayout());
+		stepOuterPanel.add(stepPanel, BorderLayout.NORTH);
+		GridBagConstraints c = new GridBagConstraints();
+		
+		for (int i=0; i< engines.length; i++) {
+			c.gridx = 0; c.gridy = i;
+			c.anchor = c.WEST;
+			stepChecks[i].setName(engines[i].stepName);
+			stepChecks[i].setText(engines[i].stepName);
+			stepChecks[i].setSelected(true);
+			stepChecks[i].addActionListener(this);
+			stepPanel.add(stepChecks[i],c);
+		}
+		JPanel butPage1 = new configButtonPanel(this, false, "Next");
+		stepOuterPanel.add(butPage1, BorderLayout.SOUTH);
+		
+		configPane.add("Select steps", stepOuterPanel);	
+		
+		// Previous calibration values
+		JPanel confOuterPanel = new JPanel(new BorderLayout());
+		Box confPanel = new Box(BoxLayout.Y_AXIS);
 		TofPrevConfigPanel[] engPanels = {new TofPrevConfigPanel(new TOFCalibrationEngine()), 
 										  new TofPrevConfigPanel(new TOFCalibrationEngine()), 
 										  new TofPrevConfigPanel(new TOFCalibrationEngine()),
@@ -569,22 +650,16 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			confPanel.add(engPanels[i-3]);
 		}
 		
-		JPanel okPanel = new JPanel();
-		JButton okButton = new JButton("OK");
-		for (int i=3; i< engines.length; i++) {  // skip HV and attenuation
-			okButton.addActionListener(engPanels[i-3]);
-		}
-		okButton.addActionListener(this);
-		okPanel.add(okButton);
-		confPanel.add(okPanel);
+		JPanel butPage2 = new configButtonPanel(this, true, "Next");
+		confOuterPanel.add(confPanel, BorderLayout.NORTH);
+		confOuterPanel.add(butPage2, BorderLayout.SOUTH);
 		
-		pane.add("Previous calibration values", confPanel);
+		configPane.add("Previous calibration values", confOuterPanel);
 		
 		// Tracking options
-		JPanel trOuterPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));
+		JPanel trOuterPanel = new JPanel(new BorderLayout());
 		JPanel trPanel = new JPanel(new GridBagLayout());
-		trOuterPanel.add(trPanel);
-		GridBagConstraints c = new GridBagConstraints();
+		trOuterPanel.add(trPanel, BorderLayout.NORTH);
 		c.weighty = 1;
 		c.anchor = c.NORTHWEST;
 		c.insets = new Insets(3,3,3,3);
@@ -660,30 +735,42 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridy = 6;
 		trPanel.add(new JLabel("Not currently used"),c);
 		
+		JPanel butPage3 = new configButtonPanel(this, true, "Next");
+		trOuterPanel.add(butPage3, BorderLayout.SOUTH);
 		
-		pane.add("Tracking / General", trOuterPanel);
+		configPane.add("Tracking / General", trOuterPanel);
 
 		// TDC options
+		JPanel tdcOuterPanel = new JPanel(new BorderLayout());
 		JPanel tdcPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));
+		tdcOuterPanel.add(tdcPanel, BorderLayout.NORTH);
 		tdcPanel.add(new JLabel("TDC conversion graph:"));
 		tdcFitList.addItem("Gaussian mean of slices");
 		tdcFitList.addItem("Max position of slices");
 		tdcFitList.addItem("Profile");
 		tdcFitList.addActionListener(this);
 		tdcPanel.add(tdcFitList);
-		pane.add("TDC conversion", tdcPanel);		
+		
+		JPanel butPage4 = new configButtonPanel(this, true, "Next");
+		tdcOuterPanel.add(butPage4, BorderLayout.SOUTH);
+		configPane.add("TDC conversion", tdcOuterPanel);		
 		
 		// Time walk options
+		JPanel twOuterPanel = new JPanel(new BorderLayout());
 		JPanel twPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));
+		twOuterPanel.add(twPanel, BorderLayout.NORTH);
 		twPanel.add(new JLabel("Time walk graph:"));
 		twFitList.addItem("Gaussian mean of slices");
 		twFitList.addItem("Max position of slices");
 		twFitList.addItem("Profile");
 		twFitList.addActionListener(this);
 		twPanel.add(twFitList);
-		pane.add("Time walk", twPanel);
 		
-		configFrame.add(pane);
+		JPanel butPage5 = new configButtonPanel(this, true, "Finish");
+		twOuterPanel.add(butPage5, BorderLayout.SOUTH);
+		configPane.add("Time walk", twOuterPanel);
+		
+		configFrame.add(configPane);
 		configFrame.setVisible(true);
 		
 	}
@@ -691,7 +778,6 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public static void main(String[] args) {
 
         TOFCalibration calibGUI = new TOFCalibration();
-        calibGUI.configure();
 		
 	}
 

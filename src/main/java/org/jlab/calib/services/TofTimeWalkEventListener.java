@@ -75,7 +75,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	private String fitOption = "RNQ";
 
 	public TofTimeWalkEventListener() {
-
+		
 		stepName = "Timewalk";
 		fileNamePrefix = "FTOF_CALIB_TIMEWALK_";
 		// get file name here so that each timer update overwrites it
@@ -231,11 +231,11 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					// create all the functions and graphs
 					//F1D trLeftFunc = new F1D("trLeftFunc", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
 					F1D trLeftFunc = new F1D("trLeftFunc", "(([a]/(x^[b]))-(40.0/(x^0.5))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
-					GraphErrors trLeftGraph = new GraphErrors();
+					GraphErrors trLeftGraph = new GraphErrors("trLeftGraph",dummyPoint,dummyPoint,dummyPoint,dummyPoint);
 					trLeftGraph.setName("trLeftGraph");                    
 					//F1D trRightFunc = new F1D("trRightFunc", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
 					F1D trRightFunc = new F1D("trRightFunc", "(([a]/(x^[b]))-(40.0/(x^0.5))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
-					GraphErrors trRightGraph = new GraphErrors();
+					GraphErrors trRightGraph = new GraphErrors("trRightGraph",dummyPoint,dummyPoint,dummyPoint,dummyPoint);
 					trRightGraph.setName("trRightGraph");
 
 					trLeftFunc.setLineColor(FUNC_COLOUR);

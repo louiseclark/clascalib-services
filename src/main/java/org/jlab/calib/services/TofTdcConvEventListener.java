@@ -192,7 +192,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
                     
                     // create all the functions and graphs
                     F1D convFuncLeft = new F1D("convFuncLeft", "[a]+[b]*x", FIT_MIN[layer], FIT_MAX[layer]);
-                    GraphErrors convGraphLeft = new GraphErrors();
+                    GraphErrors convGraphLeft = new GraphErrors("convGraphLeft",dummyPoint,dummyPoint,dummyPoint,dummyPoint);
                     convGraphLeft.setName("convGraphLeft");
                     convFuncLeft.setLineColor(FUNC_COLOUR);
                     convFuncLeft.setLineWidth(FUNC_LINE_WIDTH);
@@ -200,7 +200,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
                     convGraphLeft.setLineThickness(MARKER_LINE_WIDTH);
 
                     F1D convFuncRight = new F1D("convFuncRight", "[a]+[b]*x", FIT_MIN[layer], FIT_MAX[layer]);
-                    GraphErrors convGraphRight = new GraphErrors();
+                    GraphErrors convGraphRight = new GraphErrors("convGraphRight",dummyPoint,dummyPoint,dummyPoint,dummyPoint);
                     convGraphRight.setName("convGraphRight");
                     convFuncRight.setLineColor(FUNC_COLOUR);
                     convFuncRight.setLineWidth(FUNC_LINE_WIDTH);
