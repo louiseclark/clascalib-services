@@ -160,8 +160,15 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public static int triggerBit = 0;	
 	
 	JComboBox<String> twFitList = new JComboBox<String>();
+	JComboBox<String> twFitModeList = new JComboBox<String>();
+	private JTextField minTWEventsText = new JTextField(5);
+	JComboBox<String> veffFitList = new JComboBox<String>();
+	JComboBox<String> veffFitModeList = new JComboBox<String>();
+	private JTextField minVeffEventsText = new JTextField(5);
 	JComboBox<String> tdcFitList = new JComboBox<String>();
-
+	JComboBox<String> tdcFitModeList = new JComboBox<String>();
+	private JTextField minTDCEventsText = new JTextField(5);	
+	
 	public final static PrintStream oldStdout = System.out;
 	
 	public TOFCalibration() {
@@ -341,6 +348,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		if (e.getActionCommand().compareTo("Finish")==0) {
 			configFrame.setVisible(false);
 			
+			System.out.println(todayString());
 			System.out.println("Configuration settings - Selected steps");
 			System.out.println("---------------------------------------");
 			// step selection
@@ -384,10 +392,24 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			}
 			
 			engines[TW].fitMethod = twFitList.getSelectedIndex();
+			engines[TW].fitMode = (String) twFitModeList.getSelectedItem();
+			if (minTWEventsText.getText().compareTo("") != 0) {
+				engines[TW].fitMinEvents = Integer.parseInt(minTWEventsText.getText());
+			}
+
+			engines[VEFF].fitMethod = veffFitList.getSelectedIndex();
+			engines[VEFF].fitMode = (String) veffFitModeList.getSelectedItem();
+			if (minVeffEventsText.getText().compareTo("") != 0) {
+				engines[VEFF].fitMinEvents = Integer.parseInt(minVeffEventsText.getText());
+			}
+
 			engines[TDC_CONV].fitMethod = tdcFitList.getSelectedIndex();
+			engines[TDC_CONV].fitMode = (String) tdcFitModeList.getSelectedItem();
+			if (minTDCEventsText.getText().compareTo("") != 0) {
+				engines[TDC_CONV].fitMinEvents = Integer.parseInt(minTDCEventsText.getText());
+			}
 			
 			System.out.println("");
-			System.out.println(todayString());
 			System.out.println("Configuration settings - Tracking/General");
 			System.out.println("-----------------------------------------");
 			System.out.println("Maximum reduced chi squared for tracks: "+maxRcs);
@@ -403,10 +425,20 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			System.out.println("Configuration settings - TDC conversion");
 			System.out.println("---------------------------------------");
 			System.out.println("TDC graph: "+tdcFitList.getSelectedItem());
+			System.out.println("TDC slicefitter mode: "+engines[TDC_CONV].fitMode);
+			System.out.println("TDC minimum events per slice: "+engines[TDC_CONV].fitMinEvents);
+			System.out.println("");
+			System.out.println("Configuration settings - Effective velocity");
+			System.out.println("----------------------------------");
+			System.out.println("Effective velocity graph: "+veffFitList.getSelectedItem());
+			System.out.println("Effective velocity slicefitter mode: "+engines[VEFF].fitMode);
+			System.out.println("Effective velocity minimum events per slice: "+engines[VEFF].fitMinEvents);
 			System.out.println("");
 			System.out.println("Configuration settings - Time walk");
 			System.out.println("----------------------------------");
 			System.out.println("Time walk graph: "+twFitList.getSelectedItem());
+			System.out.println("Time walk slicefitter mode: "+engines[TW].fitMode);
+			System.out.println("Time walk minimum events per slice: "+engines[TW].fitMinEvents);
 			System.out.println("");
 		}
 		
@@ -433,6 +465,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	    			System.setOut(oldStdout);
 	    			System.out.println("EVENT_STOP for "+engines[i].stepName+" "+todayString());
 	    			engines[i].analyze();
+	    			System.setOut(oldStdout);
 	    		} 
 	
 	    		if (event.getType()==DataEventType.EVENT_STOP) {
@@ -538,7 +571,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	}
 
 	public void updateCanvas() {
-
+		
 		IndexedList<DataGroup> group = getSelectedEngine().getDataGroup();
 		getSelectedEngine().setPlotTitle(selectedSector,selectedLayer,selectedPaddle);
 		
@@ -546,6 +579,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
             DataGroup dataGroup = group.getItem(selectedSector,selectedLayer,selectedPaddle);
             this.canvas.clear();
             this.canvas.draw(dataGroup);
+            getSelectedEngine().rescaleGraphs(canvas, selectedLayer);
             canvas.getPad(0).setTitle(TOFCalibrationEngine.LAYER_NAME[selectedLayer-1]+" Sector "+selectedSector+" Paddle "+selectedPaddle);
             this.canvas.update();
         } else {
@@ -612,7 +646,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 	public void configure() {
 		
-		configFrame.setSize(600, 800);
+		//configFrame.setSize(600, 800);
+		configFrame.setSize(1000, 600);
 		configFrame.setLocationRelativeTo(pane);
 		configFrame.setDefaultCloseOperation(configFrame.DO_NOTHING_ON_CLOSE);
 		
@@ -742,32 +777,125 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 		// TDC options
 		JPanel tdcOuterPanel = new JPanel(new BorderLayout());
-		JPanel tdcPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));
+		JPanel tdcPanel = new JPanel(new GridBagLayout());
 		tdcOuterPanel.add(tdcPanel, BorderLayout.NORTH);
-		tdcPanel.add(new JLabel("TDC conversion graph:"));
-		tdcFitList.addItem("Gaussian mean of slices");
+		c.weighty = 1;
+		c.anchor = c.NORTHWEST;
+		c.insets = new Insets(3,3,3,3);
+		// graph type
+		c.gridx = 0;
+		c.gridy = 0;
+		tdcPanel.add(new JLabel("TDC conversion graph:"),c);
+		c.gridx = 1;
+		c.gridy = 0;
+		//tdcFitList.addItem("Gaussian mean of slices");
 		tdcFitList.addItem("Max position of slices");
-		tdcFitList.addItem("Profile");
+		//tdcFitList.addItem("Profile");
 		tdcFitList.addActionListener(this);
-		tdcPanel.add(tdcFitList);
+		tdcPanel.add(tdcFitList,c);
+		// fit mode
+		c.gridx = 0;
+		c.gridy = 1;
+		tdcPanel.add(new JLabel("Slicefitter mode:"),c);
+		c.gridx = 1;
+		c.gridy = 1;
+		//tdcFitModeList.addItem("L");
+		tdcFitModeList.addItem("N");
+		tdcPanel.add(tdcFitModeList,c);
+		tdcFitModeList.addActionListener(this);
+		// min events
+		c.gridx = 0;
+		c.gridy = 2;
+		tdcPanel.add(new JLabel("Minimum events per slice:"),c);
+		minTDCEventsText.addActionListener(this);
+		c.gridx = 1;
+		c.gridy = 2;
+		tdcPanel.add(minTDCEventsText,c);
 		
 		JPanel butPage4 = new configButtonPanel(this, true, "Next");
 		tdcOuterPanel.add(butPage4, BorderLayout.SOUTH);
 		configPane.add("TDC conversion", tdcOuterPanel);		
 		
+		// Veff options
+		JPanel veffOuterPanel = new JPanel(new BorderLayout());
+		JPanel veffPanel = new JPanel(new GridBagLayout());
+		veffOuterPanel.add(veffPanel, BorderLayout.NORTH);
+		c.weighty = 1;
+		c.anchor = c.NORTHWEST;
+		c.insets = new Insets(3,3,3,3);
+		// graph type
+		c.gridx = 0;
+		c.gridy = 0;
+		veffPanel.add(new JLabel("Effective velocity graph:"),c);
+		c.gridx = 1;
+		c.gridy = 0;
+		//veffFitList.addItem("Gaussian mean of slices");
+		veffFitList.addItem("Max position of slices");
+		//veffFitList.addItem("Profile");
+		veffFitList.addActionListener(this);
+		veffPanel.add(veffFitList,c);
+		// fit mode
+		c.gridx = 0;
+		c.gridy = 1;
+		veffPanel.add(new JLabel("Slicefitter mode:"),c);
+		c.gridx = 1;
+		c.gridy = 1;
+		//veffFitModeList.addItem("L");
+		veffFitModeList.addItem("N");
+		veffPanel.add(veffFitModeList,c);
+		veffFitModeList.addActionListener(this);
+		// min events
+		c.gridx = 0;
+		c.gridy = 2;
+		veffPanel.add(new JLabel("Minimum events per slice:"),c);
+		minVeffEventsText.addActionListener(this);
+		c.gridx = 1;
+		c.gridy = 2;
+		veffPanel.add(minVeffEventsText,c);
+		
+		JPanel butPage5 = new configButtonPanel(this, true, "Next");
+		veffOuterPanel.add(butPage5, BorderLayout.SOUTH);
+		configPane.add("Effective Velocity", veffOuterPanel);			
+		
 		// Time walk options
 		JPanel twOuterPanel = new JPanel(new BorderLayout());
-		JPanel twPanel = new JPanel(new FlowLayout(FlowLayout.LEADING));
+		JPanel twPanel = new JPanel(new GridBagLayout());
 		twOuterPanel.add(twPanel, BorderLayout.NORTH);
-		twPanel.add(new JLabel("Time walk graph:"));
-		twFitList.addItem("Gaussian mean of slices");
+		c.weighty = 1;
+		c.anchor = c.NORTHWEST;
+		c.insets = new Insets(3,3,3,3);
+		// graph type
+		c.gridx = 0;
+		c.gridy = 0;
+		twPanel.add(new JLabel("Time walk graph:"),c);
+		c.gridx = 1;
+		c.gridy = 0;
+		//twFitList.addItem("Gaussian mean of slices");
 		twFitList.addItem("Max position of slices");
-		twFitList.addItem("Profile");
+		//twFitList.addItem("Profile");
 		twFitList.addActionListener(this);
-		twPanel.add(twFitList);
+		twPanel.add(twFitList,c);
+		// fit mode
+		c.gridx = 0;
+		c.gridy = 1;
+		twPanel.add(new JLabel("Slicefitter mode:"),c);
+		c.gridx = 1;
+		c.gridy = 1;
+		//twFitModeList.addItem("L");
+		twFitModeList.addItem("N");
+		twPanel.add(twFitModeList,c);
+		twFitModeList.addActionListener(this);
+		// min events
+		c.gridx = 0;
+		c.gridy = 2;
+		twPanel.add(new JLabel("Minimum events per slice:"),c);
+		minTWEventsText.addActionListener(this);
+		c.gridx = 1;
+		c.gridy = 2;
+		twPanel.add(minTWEventsText,c);
 		
-		JPanel butPage5 = new configButtonPanel(this, true, "Finish");
-		twOuterPanel.add(butPage5, BorderLayout.SOUTH);
+		JPanel butPage6 = new configButtonPanel(this, true, "Finish");
+		twOuterPanel.add(butPage6, BorderLayout.SOUTH);
 		configPane.add("Time walk", twOuterPanel);
 		
 		configFrame.add(configPane);

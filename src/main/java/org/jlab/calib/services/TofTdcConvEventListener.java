@@ -57,9 +57,9 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
     private String fitOption = "RNQ";
 	private String showPlotType = "CONV_LEFT";
 	
-	private final double[]        FIT_MIN = {0.0,  26000.0, 25300.0, 26000.0};
-	private final double[]        FIT_MAX = {0.0, 26800.0, 26100.0, 26800.0};
-	private final double[]        TDC_MIN = {0.0, 25000.0,  24000.0,  25000.0};
+	private final double[]        FIT_MIN = {0.0, 25500.0, 24800.0, 25500.0};
+	private final double[]        FIT_MAX = {0.0, 26800.0, 26200.0, 26800.0};
+	private final double[]        TDC_MIN = {0.0, 25000.0,  24000.0, 25000.0};
 	private final double[]        TDC_MAX = {0.0, 28000.0, 27000.0, 28000.0};	
 
     public TofTdcConvEventListener() {
@@ -192,7 +192,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
                     
                     // create all the functions and graphs
                     F1D convFuncLeft = new F1D("convFuncLeft", "[a]+[b]*x", FIT_MIN[layer], FIT_MAX[layer]);
-                    GraphErrors convGraphLeft = new GraphErrors("convGraphLeft",dummyPoint,dummyPoint,dummyPoint,dummyPoint);
+                    GraphErrors convGraphLeft = new GraphErrors("convGraphLeft");
                     convGraphLeft.setName("convGraphLeft");
                     convFuncLeft.setLineColor(FUNC_COLOUR);
                     convFuncLeft.setLineWidth(FUNC_LINE_WIDTH);
@@ -200,7 +200,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
                     convGraphLeft.setLineThickness(MARKER_LINE_WIDTH);
 
                     F1D convFuncRight = new F1D("convFuncRight", "[a]+[b]*x", FIT_MIN[layer], FIT_MAX[layer]);
-                    GraphErrors convGraphRight = new GraphErrors("convGraphRight",dummyPoint,dummyPoint,dummyPoint,dummyPoint);
+                    GraphErrors convGraphRight = new GraphErrors("convGraphRight");
                     convGraphRight.setName("convGraphRight");
                     convFuncRight.setLineColor(FUNC_COLOUR);
                     convFuncRight.setLineWidth(FUNC_LINE_WIDTH);
@@ -260,7 +260,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
     
 	@Override
 	public void timerUpdate() {
-		if (fitMethod!=0) {
+		if (fitMethod!=1) {
 			// only analyze at end of file for slice fitter - takes too long
 			analyze();
 		}
@@ -278,17 +278,37 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
         GraphErrors convGraphRight = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("convGraphRight");
 
         // fit function to the graph of means
-        if (fitMethod==0 && sector==2) {
+        if (fitMethod==1 && sector==2) {
 			ParallelSliceFitter psfL = new ParallelSliceFitter(convHistL);
-			//psfL.setFitMode("L");
-			psfL.fitSlicesX();
+			psfL.setFitMode(fitMode);
+			psfL.setMinEvents(fitMinEvents);
+			psfL.setNthreads(3);
+//			try {
+				psfL.fitSlicesX();
+//			}
+//			catch (Exception e) {
+				//System.setOut(TOFCalibration.oldStdout);
+				//e.printStackTrace();
+//			}
+			//System.setOut(TOFCalibration.oldStdout);
 			convGraphLeft.copy(fixGraph(psfL.getMeanSlices(),"convGraphLeft"));
+
 			ParallelSliceFitter psfR = new ParallelSliceFitter(convHistR);
-			//psfR.setFitMode("L");
+			psfR.setFitMode(fitMode);
+			psfR.setMinEvents(fitMinEvents);
+			psfR.setNthreads(3);
+//			try {
+				psfR.fitSlicesX();
+//			}
+//			catch (Exception e) {
+				//System.setOut(TOFCalibration.oldStdout);
+				//e.printStackTrace();
+//			}
+			//System.setOut(TOFCalibration.oldStdout);
 			psfR.fitSlicesX();
 			convGraphRight.copy(fixGraph(psfR.getMeanSlices(),"convGraphRight"));
 		}
-		else if (fitMethod==1) {
+		else if (fitMethod==0) {
 			convGraphLeft.copy(maxGraph(convHistL, "convGraphLeft"));
 			convGraphRight.copy(maxGraph(convHistR, "convGraphRight"));
 		}
@@ -512,5 +532,13 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
         return dg;
 
     }
+    
+    @Override
+	public void rescaleGraphs(EmbeddedCanvas canvas, int layer) {
+		
+    	canvas.getPad(2).setAxisRange(TDC_MIN[layer], TDC_MAX[layer], -1.0, 1.0);
+    	canvas.getPad(3).setAxisRange(TDC_MIN[layer], TDC_MAX[layer], -1.0, 1.0);
+    	
+	}
 
 }

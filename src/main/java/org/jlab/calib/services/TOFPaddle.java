@@ -216,21 +216,43 @@ public class TOFPaddle {
 	public double deltaTLeft(double offset) {
 
 		double lr = leftRightAdjustment();
+//		System.out.println("deltaTLeft");
+//		System.out.println("S " + desc.getSector() + " L " + desc.getLayer() + " C "
+//				+ desc.getComponent() + " ADCR " + ADCR + " ADCL " + ADCL
+//				+ " TDCR " + TDCR + " TDCL " + TDCL);
 		
 		double beta = 1.0;
 		if (BETA != 0.0) {
 			beta = BETA;
 		}
+//		System.out.println("TDCL is "+TDCL);
+//		System.out.println("tdcToTime is "+tdcToTime(TDCL));
+//		System.out.println("lr is "+lr);
+//		System.out.println("rfpad is "+rfpad());
+//		System.out.println("paddleLength is "+paddleLength());
+//		System.out.println("paddleY is "+paddleY());
+//		System.out.println("veff is "+veff());
+//		System.out.println("PATH_LENGTH is "+PATH_LENGTH);
+//		System.out.println("beta is "+beta);
+//		System.out.println("RF_TIME is "+RF_TIME);
+		
 		
 		double dtL = tdcToTime(TDCL) - (lr/2) + rfpad() 
 				- ((0.5*paddleLength() + paddleY())/this.veff())
 				- (PATH_LENGTH/(beta*29.98))
 				- this.RF_TIME;
-
+		
+//		System.out.println("dtL is "+dtL);
+//		System.out.println("ADCL is "+ADCL);
+		
         // subtract the value of the nominal function
         dtL = dtL - (40.0 / (Math.pow(ADCL,0.5)));
+//        System.out.println("dtL2 is "+dtL);
+//        System.out.println("offset is "+offset);
         dtL = dtL + offset;
+//        System.out.println("dtL3 is "+dtL);
         dtL = (dtL+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET;
+//        System.out.println("dtL4 is "+dtL);
         
         //dtL = ((dtL +120.0)%BEAM_BUCKET);
 
@@ -305,7 +327,8 @@ public class TOFPaddle {
 	}
 
 	double tdcToTime(double value) {
-		double c1 = 0.0235; 
+		//double c1 = 0.0235;
+		double c1 = 0.02345;
 		double c0 = 0;
 		return c0 + c1 * value;
 	}

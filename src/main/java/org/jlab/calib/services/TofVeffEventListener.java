@@ -33,6 +33,7 @@ import org.jlab.groot.data.GraphErrors;
 import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
 import org.jlab.groot.fitter.DataFitter;
+import org.jlab.groot.fitter.ParallelSliceFitter;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
 //import org.jlab.calib.temp.DataGroup;
@@ -52,6 +53,8 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 
 	public final double EXPECTED_VEFF = 16.0;
 	public final double ALLOWED_VEFF_DIFF = 0.1;
+	
+	private String fitOption = "RNQ";
 
 	public TofVeffEventListener() {
 
@@ -185,7 +188,8 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 					// create all the functions and graphs
 					//F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
 					F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", 0.0, 500.0);
-					GraphErrors veffGraph = new GraphErrors("veffGraph",dummyPoint,dummyPoint,dummyPoint,dummyPoint);
+					//GraphErrors veffGraph = new GraphErrors("veffGraph",dummyPoint,dummyPoint,dummyPoint,dummyPoint);
+					GraphErrors veffGraph = new GraphErrors("veffGraph");
 					veffGraph.setName("veffGraph");
 					veffFunc.setLineColor(FUNC_COLOUR);
 					veffFunc.setLineWidth(FUNC_LINE_WIDTH);
@@ -238,6 +242,16 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 			}
 		}
 	}
+	
+	@Override
+	public void timerUpdate() {
+		if (fitMethod!=1) {
+			// only analyze at end of file for slice fitter - takes too long
+			analyze();
+		}
+		save();
+		calib.fireTableDataChanged();
+	}	
 
 	@Override
 	public void fit(int sector, int layer, int paddle,
@@ -245,9 +259,6 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 
 		H2F veffHist = dataGroups.getItem(sector,layer,paddle).getH2F("veff");
 
-		// fit function to the graph of means
-		GraphErrors veffGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("veffGraph");
-		veffGraph.copy(veffHist.getProfileX());
 
 		// find the range for the fit
 		double lowLimit;
@@ -271,6 +282,26 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 			highLimit = paddleLength(sector,layer,paddle) * 0.85;
 		}
 
+		// fit function to the graph of means
+		GraphErrors veffGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("veffGraph");
+		
+		if (fitMethod==1 && sector==2) {
+			ParallelSliceFitter psfL = new ParallelSliceFitter(veffHist);
+			psfL.setFitMode(fitMode);
+			psfL.setMinEvents(fitMinEvents);
+			psfL.setNthreads(3);
+			psfL.fitSlicesX();
+			fitSliceMaxError = 2.0;
+			veffGraph.copy(fixGraph(psfL.getMeanSlices(),"veffGraph"));
+		}
+		else if (fitMethod==0) {
+			maxGraphError = 0.3;
+			veffGraph.copy(maxGraph(veffHist, "veffGraph"));
+		}
+		else {
+			veffGraph.copy(veffHist.getProfileX());
+		}
+				
 		F1D veffFunc = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc");
 		veffFunc.setRange(lowLimit, highLimit);
 
@@ -279,7 +310,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		//		veffFunc.setParLimits(0, -5.0, 5.0);
 		//		veffFunc.setParLimits(1, 1.0/20.0, 1.0/12.0);
 		try {
-			DataFitter.fit(veffFunc, veffGraph, "RNQ");
+			DataFitter.fit(veffFunc, veffGraph, fitOption);
 
 		} catch (Exception e) {
 			System.out.println("Fit error with sector "+sector+" layer "+layer+" paddle "+paddle);
@@ -422,7 +453,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		double[] paddleUncs = new double[NUM_PADDLES[layer_index]];
 		double[] veffs = new double[NUM_PADDLES[layer_index]];
 		double[] veffUncs = new double[NUM_PADDLES[layer_index]];
-
+		
 		for (int p = 1; p <= NUM_PADDLES[layer_index]; p++) {
 
 			paddleNumbers[p - 1] = (double) p;
@@ -434,6 +465,15 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 
 		GraphErrors summ = new GraphErrors("summ", paddleNumbers,
 				veffs, paddleUncs, veffUncs);
+		
+		// add the previous calibration values
+//		summ.setMarkerStyle(1);
+//		for (int p = 1; p <= NUM_PADDLES[layer_index]; p++) {
+//
+//			summ.addPoint(p, TOFCalibrationEngine.veffValues.getDoubleValue("veff_left", sector, layer, p),
+//						  0.0, 0.0);
+//		}
+		
 
 		summ.setTitleX("Paddle Number");
 		summ.setTitleY("Effective velocity (cm/ns)");

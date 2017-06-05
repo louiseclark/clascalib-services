@@ -30,5 +30,16 @@ public class TOFH1F extends H1F {
 
 		}
 	}
+	
+	public int getEntriesTOF() {
+		
+		int n = 0;
+		
+		for (int i=0; i<getxAxis().getNBins(); i++) {
+			n = (int) (n+this.getBinContent(i));
+		}
+		return n;
+		
+	}
 
 }

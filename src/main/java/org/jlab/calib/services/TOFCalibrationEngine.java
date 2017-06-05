@@ -70,7 +70,11 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public boolean engineOn = true;
 	
 	public int fitMethod = 0; //  0=SLICES 1=MAX 2=PROFILE	
-	public double[] dummyPoint = {0.0}; // dummy point for graph to prevent canvas throwing error when drawing dataGroup
+	public String fitMode = "L";
+	public int fitMinEvents = 0;
+	public double maxGraphError = 0.1;
+	public double fitSliceMaxError = 0.3;
+	//public double[] dummyPoint = {0.0}; // dummy point for graph to prevent canvas throwing error when drawing dataGroup
 
 	// Values from previous calibration
 	// Need to be static as used by all engines
@@ -307,25 +311,40 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		return dataGroups;
 	}
 	
+	public int getH1FEntries(H1F hist) {
+		int n = 0;
+		
+		for (int i=0; i<hist.getxAxis().getNBins(); i++) {
+			n = (int) (n+hist.getBinContent(i));
+		}
+		return n;
+	}
+	
 	public GraphErrors maxGraph(H2F hist, String graphName) {
 		
 		ArrayList<H1F> slices = hist.getSlicesX();
 		int nBins = hist.getXAxis().getNBins();
 		double[] sliceMax = new double[nBins];
 		double[] maxErrs = new double[nBins];
-		double[] adcs = new double[nBins];
-		double[] adcErrs = new double[nBins];
+		double[] xVals = new double[nBins];
+		double[] xErrs = new double[nBins];
 		
 		for (int i=0; i<nBins; i++) {
-			int maxBin = slices.get(i).getMaximumBin();
-			sliceMax[i] = slices.get(i).getxAxis().getBinCenter(maxBin);
-			maxErrs[i] = 0.1;
 			
-			adcs[i] = hist.getXAxis().getBinCenter(i);
-			adcErrs[i] = hist.getXAxis().getBinWidth(i)/2.0;
+//			System.out.println("getH1FEntries "+getH1FEntries(slices.get(i)));
+//			System.out.println("H1F getEntries "+slices.get(i).getEntries());
+			
+			if (getH1FEntries(slices.get(i)) > fitMinEvents) {
+				int maxBin = slices.get(i).getMaximumBin();
+				sliceMax[i] = slices.get(i).getxAxis().getBinCenter(maxBin);
+				maxErrs[i] = maxGraphError;
+
+				xVals[i] = hist.getXAxis().getBinCenter(i);
+				xErrs[i] = hist.getXAxis().getBinWidth(i)/2.0;
+			}
 		}
 		
-		GraphErrors maxGraph = new GraphErrors(graphName, adcs, sliceMax, adcErrs, maxErrs);
+		GraphErrors maxGraph = new GraphErrors(graphName, xVals, sliceMax, xErrs, maxErrs);
 		maxGraph.setName(graphName);
 		
 		return maxGraph;
@@ -337,7 +356,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		int n = graphIn.getDataSize(0);
 		int m = 0;
 		for (int i=0; i<n; i++) {
-			if (graphIn.getDataEY(i) < 0.3) {
+			if (graphIn.getDataEY(i) < fitSliceMaxError) {
 				m++;
 			}
 		}		
@@ -349,7 +368,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		int j = 0;
 		
 		for (int i=0; i<n; i++) {
-			if (graphIn.getDataEY(i) < 0.3) {
+			if (graphIn.getDataEY(i) < fitSliceMaxError) {
 				x[j] = graphIn.getDataX(i);
 				xerr[j] = graphIn.getDataEX(i);
 				y[j] = graphIn.getDataY(i);
@@ -471,6 +490,10 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		frame.setVisible(true);
 		frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 
+	}
+	
+	public void rescaleGraphs(EmbeddedCanvas canvas, int layer) {
+		// overridden in each step
 	}
 
 }
