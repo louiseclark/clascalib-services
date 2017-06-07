@@ -58,7 +58,6 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public String fileNamePrefix = "Unknown";
 	public String filename = "Unknown.txt";
 
-
 	// configuration
 	public int calDBSource = 0;
 	public static final int CAL_DEFAULT = 0;
@@ -492,8 +491,20 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 
 	}
 	
-	public void rescaleGraphs(EmbeddedCanvas canvas, int layer) {
+	public void rescaleGraphs(EmbeddedCanvas canvas, int sector, int layer, int paddle) {
 		// overridden in each step
 	}
 
+	public void setOutput(boolean outputOn) {
+		if (outputOn) {
+			System.setOut(TOFCalibration.oldStdout);
+		}
+		else {
+			System.setOut(new java.io.PrintStream(
+					new java.io.OutputStream() {
+						public void write(int b){}
+					}
+					));
+		}
+	}
 }

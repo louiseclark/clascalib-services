@@ -56,6 +56,10 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
     
     private String fitOption = "RNQ";
 	private String showPlotType = "CONV_LEFT";
+	int backgroundSF = 2;
+	boolean showSlices = false;
+	private int FIT_METHOD_SF = 0;
+	private int FIT_METHOD_MAX = 1;
 	
 	private final double[]        FIT_MIN = {0.0, 25500.0, 24800.0, 25500.0};
 	private final double[]        FIT_MAX = {0.0, 26800.0, 26200.0, 26800.0};
@@ -260,7 +264,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
     
 	@Override
 	public void timerUpdate() {
-		if (fitMethod!=1) {
+		if (fitMethod!=FIT_METHOD_SF) {
 			// only analyze at end of file for slice fitter - takes too long
 			analyze();
 		}
@@ -278,37 +282,37 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
         GraphErrors convGraphRight = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("convGraphRight");
 
         // fit function to the graph of means
-        if (fitMethod==1 && sector==2) {
+        if (fitMethod==FIT_METHOD_SF && sector==2) {
 			ParallelSliceFitter psfL = new ParallelSliceFitter(convHistL);
 			psfL.setFitMode(fitMode);
 			psfL.setMinEvents(fitMinEvents);
-			psfL.setNthreads(3);
-//			try {
-				psfL.fitSlicesX();
-//			}
-//			catch (Exception e) {
-				//System.setOut(TOFCalibration.oldStdout);
-				//e.printStackTrace();
-//			}
-			//System.setOut(TOFCalibration.oldStdout);
+			psfL.setBackgroundOrder(backgroundSF);
+			psfL.setNthreads(1);
+			//psfL.setShowProgress(false);
+			setOutput(false);
+			psfL.fitSlicesX();
+			setOutput(true);
+			if (showSlices) {
+				psfL.inspectFits();
+			}
 			convGraphLeft.copy(fixGraph(psfL.getMeanSlices(),"convGraphLeft"));
 
 			ParallelSliceFitter psfR = new ParallelSliceFitter(convHistR);
 			psfR.setFitMode(fitMode);
 			psfR.setMinEvents(fitMinEvents);
-			psfR.setNthreads(3);
-//			try {
-				psfR.fitSlicesX();
-//			}
-//			catch (Exception e) {
-				//System.setOut(TOFCalibration.oldStdout);
-				//e.printStackTrace();
-//			}
-			//System.setOut(TOFCalibration.oldStdout);
+			psfR.setBackgroundOrder(backgroundSF);
+			psfR.setNthreads(1);
+			//psfR.setShowProgress(false);
+			setOutput(false);
 			psfR.fitSlicesX();
+			setOutput(true);
+			if (showSlices) {
+				psfR.inspectFits();
+				showSlices = false;
+			}
 			convGraphRight.copy(fixGraph(psfR.getMeanSlices(),"convGraphRight"));
 		}
-		else if (fitMethod==0) {
+		else if (fitMethod==FIT_METHOD_MAX) {
 			convGraphLeft.copy(maxGraph(convHistL, "convGraphLeft"));
 			convGraphRight.copy(maxGraph(convHistR, "convGraphRight"));
 		}
@@ -366,6 +370,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
     public void customFit(int sector, int layer, int paddle){
 
         String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
+				"Min Events per slice:", "Background order for slicefitter(-1=no background, 0=p0 etc):","SPACE",
                 "Override TDC_conv_left:", "Override TDC_conv_right"};
 
         TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
@@ -376,18 +381,37 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
 
             double minRange = toDouble(panel.textFields[0].getText());
             double maxRange = toDouble(panel.textFields[1].getText());
-            double overrideValueL = toDouble(panel.textFields[2].getText());
-            double overrideValueR = toDouble(panel.textFields[3].getText());
+			if (panel.textFields[2].getText().compareTo("") !=0) {
+				fitMinEvents = Integer.parseInt(panel.textFields[2].getText());
+			}
+			if (panel.textFields[3].getText().compareTo("") !=0) {
+				backgroundSF = Integer.parseInt(panel.textFields[3].getText());
+			}            
+            double overrideValueL = toDouble(panel.textFields[4].getText());
+            double overrideValueR = toDouble(panel.textFields[5].getText());
 
-            // save the override values
-            Double[] consts = constants.getItem(sector, layer, paddle);
-            consts[OVERRIDE_LEFT] = overrideValueL;
-            consts[OVERRIDE_RIGHT] = overrideValueR;
+			int minP = paddle;
+			int maxP = paddle;
+			if (panel.applyToAll) {
+				minP = 1;
+				maxP = NUM_PADDLES[layer-1];
+			}
+			else {
+				// if fitting one panel then show inspectFits view
+				showSlices = true;
+			}
+			
+			for (int p=minP; p<=maxP; p++) {
+				// save the override values
+				Double[] consts = constants.getItem(sector, layer, paddle);
+				consts[OVERRIDE_LEFT] = overrideValueL;
+				consts[OVERRIDE_RIGHT] = overrideValueR;
 
-            fit(sector, layer, paddle, minRange, maxRange);
+				fit(sector, layer, p, minRange, maxRange);
 
-            // update the table
-            saveRow(sector,layer,paddle);
+				// update the table
+				saveRow(sector,layer,p);
+			}
             calib.fireTableDataChanged();
 
         }     
@@ -534,7 +558,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
     }
     
     @Override
-	public void rescaleGraphs(EmbeddedCanvas canvas, int layer) {
+	public void rescaleGraphs(EmbeddedCanvas canvas, int sector, int layer, int paddle) {
 		
     	canvas.getPad(2).setAxisRange(TDC_MIN[layer], TDC_MAX[layer], -1.0, 1.0);
     	canvas.getPad(3).setAxisRange(TDC_MIN[layer], TDC_MAX[layer], -1.0, 1.0);

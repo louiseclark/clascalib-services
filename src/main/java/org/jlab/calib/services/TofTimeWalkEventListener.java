@@ -65,9 +65,10 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	private final int NUM_OFFSET_HISTS = 20;
 	
 	private String fitOption = "RNQ";
-	double minRangeSF = -1.0;
-	double maxRangeSF = 1.0;
-	int backgroundSF = -1;
+	int backgroundSF = 2;
+	boolean showSlices = false;
+	private int FIT_METHOD_SF = 0;
+	private int FIT_METHOD_MAX = 1;
 	
 	public TofTimeWalkEventListener() {
 		
@@ -356,7 +357,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	
 	@Override
 	public void timerUpdate() {
-		if (fitMethod!=1) {
+		if (fitMethod!=FIT_METHOD_SF) {
 			// only analyze at end of file for slice fitter - takes too long
 			analyze();
 		}
@@ -446,28 +447,22 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		H2F twR = offsetHists.getItem(sector,layer,paddle,offsetIdxRight)[1];
 
 		GraphErrors twLGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trLeftGraph"); 
-		if (fitMethod==1 && sector==2) {
-			//System.out.println("TW fit left sector 2");
+		if (fitMethod==FIT_METHOD_SF && sector==2) {
 			ParallelSliceFitter psfL = new ParallelSliceFitter(twL);
-			//System.out.println("TW fit left new psf done");
 			psfL.setFitMode(fitMode);
 			psfL.setMinEvents(fitMinEvents);
-			//psfL.setBackgroundOrder(backgroundSF);
+			psfL.setBackgroundOrder(backgroundSF);
 			psfL.setNthreads(1);
 			//psfL.setShowProgress(false);
-//			try {
-				psfL.fitSlicesX();
-//			}
-//			catch (Exception e) {
-				//System.setOut(TOFCalibration.oldStdout);
-				//e.printStackTrace();
-//			}
-			//System.out.println("TW fit left fit slices done");
-			//System.setOut(TOFCalibration.oldStdout);
+			setOutput(false);
+			psfL.fitSlicesX();
+			setOutput(true);
+			if (showSlices) {
+				psfL.inspectFits();
+			}
 			twLGraph.copy(fixGraph(psfL.getMeanSlices(),"trLeftGraph"));
-			//System.out.println("TW fit left fixGraph done");
 		}
-		else if (fitMethod==0) {
+		else if (fitMethod==FIT_METHOD_MAX) {
 			twLGraph.copy(maxGraph(twL, "trLeftGraph"));
 		}
 		else {
@@ -475,29 +470,24 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		}
 		
 		GraphErrors twRGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trRightGraph"); 
-		if (fitMethod==1 && sector ==2) {
-			//System.out.println("TW fit right sector 2");
+		if (fitMethod==FIT_METHOD_SF && sector ==2) {
 			ParallelSliceFitter psfR = new ParallelSliceFitter(twR);
-			//System.out.println("TW fit right new psf done");
 			psfR.setFitMode(fitMode);
 			psfR.setMinEvents(fitMinEvents);
-			//psfR.setBackgroundOrder(backgroundSF);
+			psfR.setBackgroundOrder(backgroundSF);
 			psfR.setNthreads(1);
 			//psfR.setShowProgress(false);
-//			try {
-				psfR.fitSlicesX();
-//			}
-//			catch (Exception e) {
-				//System.setOut(TOFCalibration.oldStdout);
-				//e.printStackTrace();
-//			}
-			//System.out.println("TW fit right fitSlices done");
-			//System.setOut(TOFCalibration.oldStdout);
+			setOutput(false);
+			psfR.fitSlicesX();
+			setOutput(true);
+			if (showSlices) {
+				psfR.inspectFits();
+				showSlices = false;
+			}
 			twRGraph.copy(fixGraph(psfR.getMeanSlices(),"trRightGraph"));
-			//System.out.println("TW fit right fixgraph done");
 
 		}
-		else if (fitMethod==0) {
+		else if (fitMethod==FIT_METHOD_MAX) {
 			twRGraph.copy(maxGraph(twR, "trRightGraph"));
 		}
 		else {
@@ -639,8 +629,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 //		showSlices(sector,layer,paddle);
 
 		String[] fields = {"Min range for fit:", "Max range for fit:", "SPACE", 
-				"Min range for slicefitter:", "Max range for slicefitter:", 
-				"Min stats for slicefitter:", "Background order for slicefitter(-1=no background, 0=p0 etc):","SPACE",
+				"Min Events per slice:", "Background order for slicefitter(-1=no background, 0=p0 etc):","SPACE",
 				"Override Lambda Left:", "Override Order Left:", "SPACE",
 				"Override Lambda Right:", "Override Order Right:"};
 		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
@@ -652,27 +641,25 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			double minRange = toDouble(panel.textFields[0].getText());
 			double maxRange = toDouble(panel.textFields[1].getText());
 			if (panel.textFields[2].getText().compareTo("") !=0) {
-				minRangeSF = toDouble(panel.textFields[2].getText());
+				fitMinEvents = Integer.parseInt(panel.textFields[2].getText());
 			}
-			if (panel.textFields[3].getText().compareTo("") != 0) {
-				maxRangeSF = toDouble(panel.textFields[3].getText());
+			if (panel.textFields[3].getText().compareTo("") !=0) {
+				backgroundSF = Integer.parseInt(panel.textFields[3].getText());
 			}
-			if (panel.textFields[4].getText().compareTo("") !=0) {
-				fitMinEvents = Integer.parseInt(panel.textFields[4].getText());
-			}
-			if (panel.textFields[5].getText().compareTo("") !=0) {
-				backgroundSF = Integer.parseInt(panel.textFields[5].getText());
-			}
-			double overrideLL = toDouble(panel.textFields[6].getText());
-			double overrideOL = toDouble(panel.textFields[7].getText());
-			double overrideLR = toDouble(panel.textFields[8].getText());
-			double overrideOR = toDouble(panel.textFields[9].getText());
+			double overrideLL = toDouble(panel.textFields[4].getText());
+			double overrideOL = toDouble(panel.textFields[5].getText());
+			double overrideLR = toDouble(panel.textFields[6].getText());
+			double overrideOR = toDouble(panel.textFields[7].getText());
 
 			int minP = paddle;
 			int maxP = paddle;
 			if (panel.applyToAll) {
 				minP = 1;
 				maxP = NUM_PADDLES[layer-1];
+			}
+			else {
+				// if fitting one panel then show inspectFits view
+				showSlices = true;
 			}
 			
 			for (int p=minP; p<=maxP; p++) {
@@ -1036,7 +1023,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	}
 
     @Override
-	public void rescaleGraphs(EmbeddedCanvas canvas, int layer) {
+	public void rescaleGraphs(EmbeddedCanvas canvas, int sector, int layer, int paddle) {
 		
     	canvas.getPad(4).setAxisRange(ADC_MIN[layer], ADC_MAX[layer], -1.5, 1.5);
     	canvas.getPad(5).setAxisRange(ADC_MIN[layer], ADC_MAX[layer], -1.5, 1.5);

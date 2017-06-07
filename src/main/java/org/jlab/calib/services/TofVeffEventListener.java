@@ -55,6 +55,11 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	public final double ALLOWED_VEFF_DIFF = 0.1;
 	
 	private String fitOption = "RNQ";
+	int backgroundSF = -1;
+	boolean showSlices = false;
+	private int FIT_METHOD_SF = 0;
+	private int FIT_METHOD_MAX = 1;
+
 
 	public TofVeffEventListener() {
 
@@ -177,7 +182,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 									"veff",
 									numBins, min, max, 
 									//200, -15.0, 15.0);
-									200, 0.0, 30.0);
+									100, 0.0, 30.0);
 
 					hist.setName("veff");
 					hist.setTitle("Half Time Diff vs Position : " + LAYER_NAME[layer_index] 
@@ -245,7 +250,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	
 	@Override
 	public void timerUpdate() {
-		if (fitMethod!=1) {
+		if (fitMethod!=FIT_METHOD_SF) {
 			// only analyze at end of file for slice fitter - takes too long
 			analyze();
 		}
@@ -285,16 +290,23 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		// fit function to the graph of means
 		GraphErrors veffGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("veffGraph");
 		
-		if (fitMethod==1 && sector==2) {
-			ParallelSliceFitter psfL = new ParallelSliceFitter(veffHist);
-			psfL.setFitMode(fitMode);
-			psfL.setMinEvents(fitMinEvents);
-			psfL.setNthreads(3);
-			psfL.fitSlicesX();
+		if (fitMethod==FIT_METHOD_SF && sector==2) {
+			ParallelSliceFitter psf = new ParallelSliceFitter(veffHist);
+			psf.setFitMode(fitMode);
+			psf.setMinEvents(fitMinEvents);
+			psf.setBackgroundOrder(backgroundSF);
+			psf.setNthreads(1);
+			setOutput(false);
+			psf.fitSlicesX();
+			setOutput(true);
+			if (showSlices) {
+				psf.inspectFits();
+				showSlices = false;
+			}
 			fitSliceMaxError = 2.0;
-			veffGraph.copy(fixGraph(psfL.getMeanSlices(),"veffGraph"));
+			veffGraph.copy(fixGraph(psf.getMeanSlices(),"veffGraph"));
 		}
-		else if (fitMethod==0) {
+		else if (fitMethod==FIT_METHOD_MAX) {
 			maxGraphError = 0.3;
 			veffGraph.copy(maxGraph(veffHist, "veffGraph"));
 		}
@@ -321,6 +333,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	public void customFit(int sector, int layer, int paddle){
 
 		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
+				"Min Events per slice:", "Background order for slicefitter(-1=no background, 0=p0 etc):","SPACE",
 				"Override Effective Velocity:", "Override Effective Velocity uncertainty:"};
 
 		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
@@ -331,18 +344,38 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 
 			double minRange = toDouble(panel.textFields[0].getText());
 			double maxRange = toDouble(panel.textFields[1].getText());
-			double overrideValue = toDouble(panel.textFields[2].getText());
-			double overrideUnc = toDouble(panel.textFields[3].getText());
+			if (panel.textFields[2].getText().compareTo("") !=0) {
+				fitMinEvents = Integer.parseInt(panel.textFields[2].getText());
+			}
+			if (panel.textFields[3].getText().compareTo("") !=0) {
+				backgroundSF = Integer.parseInt(panel.textFields[3].getText());
+			}
+			
+			double overrideValue = toDouble(panel.textFields[4].getText());
+			double overrideUnc = toDouble(panel.textFields[5].getText());
+			
+			int minP = paddle;
+			int maxP = paddle;
+			if (panel.applyToAll) {
+				minP = 1;
+				maxP = NUM_PADDLES[layer-1];
+			}
+			else {
+				// if fitting one panel then show inspectFits view
+				showSlices = true;
+			}
 
-			// save the override values
-			Double[] consts = constants.getItem(sector, layer, paddle);
-			consts[VEFF_OVERRIDE] = overrideValue;
-			consts[VEFF_UNC_OVERRIDE] = overrideUnc;
+			for (int p=minP; p<=maxP; p++) {
+				// save the override values
+				Double[] consts = constants.getItem(sector, layer, paddle);
+				consts[VEFF_OVERRIDE] = overrideValue;
+				consts[VEFF_UNC_OVERRIDE] = overrideUnc;
 
-			fit(sector, layer, paddle, minRange, maxRange);
+				fit(sector, layer, p, minRange, maxRange);
 
-			// update the table
-			saveRow(sector,layer,paddle);
+				// update the table
+				saveRow(sector,layer,p);
+			}
 			calib.fireTableDataChanged();
 
 		}	 
@@ -485,5 +518,15 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		return dg;
 
 	}
+	
+//  @Override
+//	public void rescaleGraphs(EmbeddedCanvas canvas, int sector, int layer, int paddle) {
+//		
+//    	double min = paddleLength(sector,layer,paddle) * -0.1;
+//		double max = paddleLength(sector,layer,paddle) * 1.1;
+//
+//    	canvas.getPad(1).setAxisRange(min, max, 0.0, 30.0);
+//    	
+//	}
 
 }

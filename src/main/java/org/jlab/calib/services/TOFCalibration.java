@@ -579,7 +579,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
             DataGroup dataGroup = group.getItem(selectedSector,selectedLayer,selectedPaddle);
             this.canvas.clear();
             this.canvas.draw(dataGroup);
-            getSelectedEngine().rescaleGraphs(canvas, selectedLayer);
+            getSelectedEngine().rescaleGraphs(canvas, selectedSector, selectedLayer, selectedPaddle);
             canvas.getPad(0).setTitle(TOFCalibrationEngine.LAYER_NAME[selectedLayer-1]+" Sector "+selectedSector+" Paddle "+selectedPaddle);
             this.canvas.update();
         } else {
@@ -646,8 +646,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 	public void configure() {
 		
-		//configFrame.setSize(600, 800);
-		configFrame.setSize(1000, 600);
+		configFrame.setSize(600, 800);
+		//configFrame.setSize(1000, 600);
 		configFrame.setLocationRelativeTo(pane);
 		configFrame.setDefaultCloseOperation(configFrame.DO_NOTHING_ON_CLOSE);
 		
@@ -703,6 +703,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridy = 0;
 		trPanel.add(new JLabel("Maximum reduced chi squared for track:"),c);
 		rcsText.addActionListener(this);
+		rcsText.setText("75.0");
 		c.gridx = 1;
 		c.gridy = 0;
 		trPanel.add(rcsText,c);
@@ -714,6 +715,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridy = 1;
 		trPanel.add(new JLabel("Minimum vertex z:"),c);
 		minVText.addActionListener(this);
+		minVText.setText("-10.0");
 		c.gridx = 1;
 		c.gridy = 1;
 		trPanel.add(minVText,c);
@@ -722,6 +724,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridy = 2;
 		trPanel.add(new JLabel("Maximum vertex z:"),c);
 		maxVText.addActionListener(this);
+		maxVText.setText("10.0");
 		c.gridx = 1;
 		c.gridy = 2;
 		trPanel.add(maxVText,c);
@@ -730,6 +733,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridy = 3;
 		trPanel.add(new JLabel("Minimum momentum from tracking (GeV):"),c);
 		minPText.addActionListener(this);
+		minPText.setText("1.0");
 		c.gridx = 1;
 		c.gridy = 3;
 		trPanel.add(minPText,c);
@@ -788,7 +792,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		tdcPanel.add(new JLabel("TDC conversion graph:"),c);
 		c.gridx = 1;
 		c.gridy = 0;
-		//tdcFitList.addItem("Gaussian mean of slices");
+		tdcFitList.addItem("Gaussian mean of slices");
 		tdcFitList.addItem("Max position of slices");
 		//tdcFitList.addItem("Profile");
 		tdcFitList.addActionListener(this);
@@ -808,6 +812,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridy = 2;
 		tdcPanel.add(new JLabel("Minimum events per slice:"),c);
 		minTDCEventsText.addActionListener(this);
+		minTDCEventsText.setText("100");
 		c.gridx = 1;
 		c.gridy = 2;
 		tdcPanel.add(minTDCEventsText,c);
@@ -829,7 +834,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		veffPanel.add(new JLabel("Effective velocity graph:"),c);
 		c.gridx = 1;
 		c.gridy = 0;
-		//veffFitList.addItem("Gaussian mean of slices");
+		veffFitList.addItem("Gaussian mean of slices");
 		veffFitList.addItem("Max position of slices");
 		//veffFitList.addItem("Profile");
 		veffFitList.addActionListener(this);
@@ -849,6 +854,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridy = 2;
 		veffPanel.add(new JLabel("Minimum events per slice:"),c);
 		minVeffEventsText.addActionListener(this);
+		minVeffEventsText.setText("100");
 		c.gridx = 1;
 		c.gridy = 2;
 		veffPanel.add(minVeffEventsText,c);
@@ -870,7 +876,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		twPanel.add(new JLabel("Time walk graph:"),c);
 		c.gridx = 1;
 		c.gridy = 0;
-		//twFitList.addItem("Gaussian mean of slices");
+		twFitList.addItem("Gaussian mean of slices");
 		twFitList.addItem("Max position of slices");
 		//twFitList.addItem("Profile");
 		twFitList.addActionListener(this);
@@ -890,6 +896,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridy = 2;
 		twPanel.add(new JLabel("Minimum events per slice:"),c);
 		minTWEventsText.addActionListener(this);
+		minTWEventsText.setText("100");
 		c.gridx = 1;
 		c.gridy = 2;
 		twPanel.add(minTWEventsText,c);
