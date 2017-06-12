@@ -159,6 +159,9 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	private JTextField triggerText = new JTextField(10);
 	public static int triggerBit = 0;	
 	
+	JComboBox<String> attenFitList = new JComboBox<String>();
+	JComboBox<String> attenFitModeList = new JComboBox<String>();
+	private JTextField minAttenEventsText = new JTextField(5);
 	JComboBox<String> twFitList = new JComboBox<String>();
 	JComboBox<String> twFitModeList = new JComboBox<String>();
 	private JTextField minTWEventsText = new JTextField(5);
@@ -348,6 +351,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		if (e.getActionCommand().compareTo("Finish")==0) {
 			configFrame.setVisible(false);
 			
+			System.out.println("");
 			System.out.println(todayString());
 			System.out.println("Configuration settings - Selected steps");
 			System.out.println("---------------------------------------");
@@ -360,6 +364,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 				System.out.println(engines[i].stepName+" "+engines[i].engineOn);
 			}
 			
+			System.out.println("");
 			System.out.println("Configuration settings - Previous calibration values");
 			System.out.println("----------------------------------------------------");
 			// get the previous iteration calibration values
@@ -390,6 +395,12 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			if (triggerText.getText().compareTo("") != 0) {
 				triggerBit = Integer.parseInt(triggerText.getText());
 			}
+			
+			engines[ATTEN].fitMethod = attenFitList.getSelectedIndex();
+			engines[ATTEN].fitMode = (String) attenFitModeList.getSelectedItem();
+			if (minAttenEventsText.getText().compareTo("") != 0) {
+				engines[ATTEN].fitMinEvents = Integer.parseInt(minAttenEventsText.getText());
+			}			
 			
 			engines[TW].fitMethod = twFitList.getSelectedIndex();
 			engines[TW].fitMode = (String) twFitModeList.getSelectedItem();
@@ -422,6 +433,12 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			
 			
 			System.out.println("");
+			System.out.println("Configuration settings - Attenuation length");
+			System.out.println("-------------------------------------------");
+			System.out.println("Attenuation length graph: "+attenFitList.getSelectedItem());
+			System.out.println("Attenuation length slicefitter mode: "+engines[ATTEN].fitMode);
+			System.out.println("Attenuation length minimum events per slice: "+engines[ATTEN].fitMinEvents);
+			System.out.println("");
 			System.out.println("Configuration settings - TDC conversion");
 			System.out.println("---------------------------------------");
 			System.out.println("TDC graph: "+tdcFitList.getSelectedItem());
@@ -429,7 +446,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			System.out.println("TDC minimum events per slice: "+engines[TDC_CONV].fitMinEvents);
 			System.out.println("");
 			System.out.println("Configuration settings - Effective velocity");
-			System.out.println("----------------------------------");
+			System.out.println("-------------------------------------------");
 			System.out.println("Effective velocity graph: "+veffFitList.getSelectedItem());
 			System.out.println("Effective velocity slicefitter mode: "+engines[VEFF].fitMode);
 			System.out.println("Effective velocity minimum events per slice: "+engines[VEFF].fitMinEvents);
@@ -778,6 +795,47 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		trOuterPanel.add(butPage3, BorderLayout.SOUTH);
 		
 		configPane.add("Tracking / General", trOuterPanel);
+		
+		// Attenuation length options
+		JPanel attenOuterPanel = new JPanel(new BorderLayout());
+		JPanel attenPanel = new JPanel(new GridBagLayout());
+		attenOuterPanel.add(attenPanel, BorderLayout.NORTH);
+		c.weighty = 1;
+		c.anchor = c.NORTHWEST;
+		c.insets = new Insets(3,3,3,3);
+		// graph type
+		c.gridx = 0;
+		c.gridy = 0;
+		attenPanel.add(new JLabel("Attenuation length graph:"),c);
+		c.gridx = 1;
+		c.gridy = 0;
+		attenFitList.addItem("Gaussian mean of slices");
+		attenFitList.addItem("Max position of slices");
+		attenFitList.addActionListener(this);
+		attenPanel.add(attenFitList,c);
+		// fit mode
+		c.gridx = 0;
+		c.gridy = 1;
+		attenPanel.add(new JLabel("Slicefitter mode:"),c);
+		c.gridx = 1;
+		c.gridy = 1;
+		//attenFitModeList.addItem("L");
+		attenFitModeList.addItem("N");
+		attenPanel.add(attenFitModeList,c);
+		attenFitModeList.addActionListener(this);
+		// min events
+		c.gridx = 0;
+		c.gridy = 2;
+		attenPanel.add(new JLabel("Minimum events per slice:"),c);
+		minAttenEventsText.addActionListener(this);
+		minAttenEventsText.setText("100");
+		c.gridx = 1;
+		c.gridy = 2;
+		attenPanel.add(minAttenEventsText,c);
+		
+		JPanel butPage4 = new configButtonPanel(this, true, "Next");
+		attenOuterPanel.add(butPage4, BorderLayout.SOUTH);
+		configPane.add("Attenuation length", attenOuterPanel);	
 
 		// TDC options
 		JPanel tdcOuterPanel = new JPanel(new BorderLayout());
@@ -817,8 +875,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridy = 2;
 		tdcPanel.add(minTDCEventsText,c);
 		
-		JPanel butPage4 = new configButtonPanel(this, true, "Next");
-		tdcOuterPanel.add(butPage4, BorderLayout.SOUTH);
+		JPanel butPage5 = new configButtonPanel(this, true, "Next");
+		tdcOuterPanel.add(butPage5, BorderLayout.SOUTH);
 		configPane.add("TDC conversion", tdcOuterPanel);		
 		
 		// Veff options
@@ -859,8 +917,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridy = 2;
 		veffPanel.add(minVeffEventsText,c);
 		
-		JPanel butPage5 = new configButtonPanel(this, true, "Next");
-		veffOuterPanel.add(butPage5, BorderLayout.SOUTH);
+		JPanel butPage6 = new configButtonPanel(this, true, "Next");
+		veffOuterPanel.add(butPage6, BorderLayout.SOUTH);
 		configPane.add("Effective Velocity", veffOuterPanel);			
 		
 		// Time walk options
@@ -901,8 +959,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridy = 2;
 		twPanel.add(minTWEventsText,c);
 		
-		JPanel butPage6 = new configButtonPanel(this, true, "Finish");
-		twOuterPanel.add(butPage6, BorderLayout.SOUTH);
+		JPanel butPage7 = new configButtonPanel(this, true, "Finish");
+		twOuterPanel.add(butPage7, BorderLayout.SOUTH);
 		configPane.add("Time walk", twOuterPanel);
 		
 		configFrame.add(configPane);

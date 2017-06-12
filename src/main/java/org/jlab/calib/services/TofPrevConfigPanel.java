@@ -6,6 +6,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.io.File;
 
 import javax.swing.BorderFactory;
@@ -20,7 +22,7 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 
 public class TofPrevConfigPanel extends JPanel 
-implements ActionListener {
+implements ActionListener, FocusListener {
 
 	TOFCalibrationEngine engine;
 	JTextField fileDisp = new JTextField(20); 
@@ -85,6 +87,7 @@ implements ActionListener {
 		JLabel runLabel = new JLabel("Run number:");
 		runPanel.add(runLabel);
 		runPanel.add(runText);
+		runText.addFocusListener(this);
 		c.gridx = 1;
 		c.gridy = 2;
 		this.add(runPanel,c);
@@ -105,12 +108,6 @@ implements ActionListener {
 
 			}
 		}
-		
-		if (e.getActionCommand() == "OK") {
-			if (runText.getText().compareTo("") != 0) {
-				engine.prevCalRunNo = Integer.parseInt(runText.getText());
-			}
-		}
 
 		if (e.getActionCommand() == "DB") {
 			engine.calDBSource = engine.CAL_DB;
@@ -121,6 +118,15 @@ implements ActionListener {
 		else if (e.getActionCommand() == "DEFAULT") {
 			engine.calDBSource = engine.CAL_DEFAULT;
 		}
+	}
+
+	public void focusGained(FocusEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void focusLost(FocusEvent e) {
+		engine.prevCalRunNo = Integer.parseInt(runText.getText());
 	}
 
 }

@@ -36,6 +36,7 @@ import org.jlab.groot.data.GraphErrors;
 import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
 import org.jlab.groot.fitter.DataFitter;
+import org.jlab.groot.fitter.ParallelSliceFitter;
 import org.jlab.groot.graphics.EmbeddedCanvas;
 import org.jlab.groot.group.DataGroup;
 //import org.jlab.calib.temp.DataGroup;
@@ -55,6 +56,12 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 	public final int ATTEN_OVERRIDE = 0;
 	public final int ATTEN_UNC_OVERRIDE = 1;
 	public final int OFFSET_OVERRIDE = 2;
+	
+	private String fitOption = "RNQ";
+	int backgroundSF = -1;
+	boolean showSlices = false;
+	private int FIT_METHOD_SF = 0;
+	private int FIT_METHOD_MAX = 1;
 
 	public TofAttenEventListener() {
 
@@ -171,22 +178,22 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 
 		}
 	}
+	
+	@Override
+	public void timerUpdate() {
+		if (fitMethod!=FIT_METHOD_SF) {
+			// only analyze at end of file for slice fitter - takes too long
+			analyze();
+		}
+		save();
+		calib.fireTableDataChanged();
+	}	
 
 	@Override
 	public void fit(int sector, int layer, int paddle, double minRange,
 			double maxRange) {
 
 		H2F attenHist = dataGroups.getItem(sector,layer,paddle).getH2F("atten");
-
-		// fit function to the graph of means
-		GraphErrors meanGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("meanGraph");
-		if (attenHist.getProfileX().getDataSize(0) != 0) {
-			//meanGraph.copy(attenHist.getProfileX());
-			meanGraph.copy(maxGraph(attenHist, "meanGraph"));
-		}
-		else {
-			return;
-		}
 
 		double lowLimit;
 		double highLimit;
@@ -210,8 +217,32 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			highLimit = maxRange;
 		}
 
-		//		System.out.println("SLC "+sector+layer+paddle);
-		//		System.out.println("paddleLength "+paddleLength(sector,layer,paddle));
+		// fit function to the graph of means
+		GraphErrors meanGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("meanGraph");
+		
+		if (fitMethod==FIT_METHOD_SF && sector==2) {
+			ParallelSliceFitter psf = new ParallelSliceFitter(attenHist);
+			psf.setFitMode(fitMode);
+			psf.setMinEvents(fitMinEvents);
+			psf.setBackgroundOrder(backgroundSF);
+			psf.setNthreads(1);
+			setOutput(false);
+			psf.fitSlicesX();
+			setOutput(true);
+			if (showSlices) {
+				psf.inspectFits();
+				showSlices = false;
+			}
+			fitSliceMaxError = 2.0;
+			meanGraph.copy(fixGraph(psf.getMeanSlices(),"meanGraph"));
+		}
+		else if (fitMethod==FIT_METHOD_MAX) {
+			maxGraphError = 0.15;
+			meanGraph.copy(maxGraph(attenHist, "veffGraph"));
+		}
+		else {
+			meanGraph.copy(attenHist.getProfileX());
+		}		
 
 		F1D attenFunc = dataGroups.getItem(sector,layer,paddle).getF1D("attenFunc");
 		attenFunc.setRange(lowLimit, highLimit);
@@ -255,6 +286,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		outputGraph(sector, layer, paddle);
 
 		String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
+				"Min Events per slice:", "Background order for slicefitter(-1=no background, 0=p0 etc):","SPACE",
 				"Override Attenuation Length:", "Override Attenuation Length uncertainty:",
 		"Override offset:" };
 		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
@@ -265,22 +297,42 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 
 			double minRange = toDouble(panel.textFields[0].getText());
 			double maxRange = toDouble(panel.textFields[1].getText());
-			double overrideValue = toDouble(panel.textFields[2].getText());
-			double overrideUnc = toDouble(panel.textFields[3].getText());			
-			double overrideOffset = toDouble(panel.textFields[4].getText());		
+			if (panel.textFields[2].getText().compareTo("") !=0) {
+				fitMinEvents = Integer.parseInt(panel.textFields[2].getText());
+			}
+			if (panel.textFields[3].getText().compareTo("") !=0) {
+				backgroundSF = Integer.parseInt(panel.textFields[3].getText());
+			}
+			
+			double overrideValue = toDouble(panel.textFields[4].getText());
+			double overrideUnc = toDouble(panel.textFields[5].getText());			
+			double overrideOffset = toDouble(panel.textFields[6].getText());		
+			
+			int minP = paddle;
+			int maxP = paddle;
+			if (panel.applyToAll) {
+				minP = 1;
+				maxP = NUM_PADDLES[layer-1];
+			}
+			else {
+				// if fitting one panel then show inspectFits view
+				showSlices = true;
+			}
 
-			// save the override values
-			Double[] consts = constants.getItem(sector, layer, paddle);
-			consts[ATTEN_OVERRIDE] = overrideValue;
-			consts[ATTEN_UNC_OVERRIDE] = overrideUnc;
-			consts[OFFSET_OVERRIDE] = overrideOffset;
+			for (int p=minP; p<=maxP; p++) {			
 
-			fit(sector, layer, paddle, minRange, maxRange);
+				// save the override values
+				Double[] consts = constants.getItem(sector, layer, paddle);
+				consts[ATTEN_OVERRIDE] = overrideValue;
+				consts[ATTEN_UNC_OVERRIDE] = overrideUnc;
+				consts[OFFSET_OVERRIDE] = overrideOffset;
 
-			// update the table
-			saveRow(sector,layer,paddle);
+				fit(sector, layer, p, minRange, maxRange);
+
+				// update the table
+				saveRow(sector,layer,p);
+			}
 			calib.fireTableDataChanged();
-
 		}	 
 	}
 
