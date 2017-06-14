@@ -158,6 +158,9 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 	public final static int PID_PI = 2;
 	private JTextField triggerText = new JTextField(10);
 	public static int triggerBit = 0;	
+	JComboBox<String> counterSectionList = new JComboBox<String>();
+	private JTextField yMaxAbsText = new JTextField(5);
+
 	
 	JComboBox<String> attenFitList = new JComboBox<String>();
 	JComboBox<String> attenFitModeList = new JComboBox<String>();
@@ -407,7 +410,14 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			if (minTWEventsText.getText().compareTo("") != 0) {
 				engines[TW].fitMinEvents = Integer.parseInt(minTWEventsText.getText());
 			}
-
+			engines[TW].counterSection = counterSectionList.getSelectedIndex();
+			engines[RFPAD].counterSection = counterSectionList.getSelectedIndex();
+			if (yMaxAbsText.getText().compareTo("") != 0) {
+				engines[TW].yMaxAbs = Double.parseDouble(yMaxAbsText.getText());
+				engines[RFPAD].yMaxAbs = Double.parseDouble(yMaxAbsText.getText());
+			}
+			
+			
 			engines[VEFF].fitMethod = veffFitList.getSelectedIndex();
 			engines[VEFF].fitMode = (String) veffFitModeList.getSelectedItem();
 			if (minVeffEventsText.getText().compareTo("") != 0) {
@@ -430,6 +440,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 			System.out.println("Track charge: "+trackChargeList.getItemAt(trackCharge));
 			System.out.println("PID: "+pidList.getItemAt(trackPid));
 			System.out.println("Trigger: "+triggerBit);
+			System.out.println("Counter section: "+counterSectionList.getSelectedItem());
+			System.out.println("Position cut (+/- n cm from center): "+engines[TW].yMaxAbs);
 			
 			
 			System.out.println("");
@@ -663,7 +675,7 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 
 	public void configure() {
 		
-		configFrame.setSize(600, 800);
+		configFrame.setSize(800, 800);
 		//configFrame.setSize(1000, 600);
 		configFrame.setLocationRelativeTo(pane);
 		configFrame.setDefaultCloseOperation(configFrame.DO_NOTHING_ON_CLOSE);
@@ -790,6 +802,32 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
 		c.gridx = 2;
 		c.gridy = 6;
 		trPanel.add(new JLabel("Not currently used"),c);
+		// counter section
+		c.gridx = 0;
+		c.gridy = 7;
+		trPanel.add(new JLabel("Counter section:"),c);
+		c.gridx = 1;
+		c.gridy = 7;
+		counterSectionList.addItem("Full counter");
+		counterSectionList.addItem("Center section");
+		counterSectionList.addItem("Side sections");
+		trPanel.add(counterSectionList,c);
+		counterSectionList.addActionListener(this);
+		c.gridx = 2;
+		c.gridy = 7;
+		trPanel.add(new JLabel("Applied to Time walk and RF paddle"),c);
+		// position cut
+		c.gridx = 0;
+		c.gridy = 8;
+		trPanel.add(new JLabel("Position cut (+/- n cm from center):"),c);
+		yMaxAbsText.addActionListener(this);
+		yMaxAbsText.setText("20.0");
+		c.gridx = 1;
+		c.gridy = 8;
+		trPanel.add(yMaxAbsText,c);			
+		c.gridx = 2;
+		c.gridy = 8;
+		trPanel.add(new JLabel("Applied to Time walk and RF paddle"),c);
 		
 		JPanel butPage3 = new configButtonPanel(this, true, "Next");
 		trOuterPanel.add(butPage3, BorderLayout.SOUTH);

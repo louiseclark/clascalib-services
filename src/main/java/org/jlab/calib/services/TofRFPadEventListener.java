@@ -200,7 +200,7 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 			//			pad.show();
 
 			// fill the fine hists
-			if (pad.goodTrackFound()) {
+			if (pad.goodTrackFound() && hitInSection(pad)) {
 
 				//				System.out.println("Paddle included");
 				dataGroups.getItem(sector,layer,component).getH1F("fineHistRaw").fill(
@@ -210,13 +210,6 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 			}
 		}
 	}    
-
-	//	@Override
-	//	public void timerUpdate() {
-	//		// don't analyze until the end or it will mess up the fine hists
-	//		save();
-	//		calib.fireTableDataChanged();
-	//	}
 
 	@Override
 	public void fit(int sector, int layer, int paddle, double minRange, double maxRange) {

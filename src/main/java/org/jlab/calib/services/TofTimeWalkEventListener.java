@@ -60,7 +60,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	final double[] fitOrder = {0.5,0.5};  // default values for the constants
 
 	private String showPlotType = "TW_LEFT";
-
+	
 	private IndexedList<H2F[]> offsetHists = new IndexedList<H2F[]>(4);  // indexed by s,l,c, offset (in beam bucket multiples), H2F has {left, right}
 	private final int NUM_OFFSET_HISTS = 20;
 	
@@ -335,7 +335,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 			int component = paddle.getDescriptor().getComponent();
 
 			// fill timeResidual vs ADC
-			if (paddle.goodTrackFound()) {
+			if (paddle.goodTrackFound() && hitInSection(paddle)) {
 			
 				dataGroups.getItem(sector,layer,component).getH2F("trLeftHist").fill(paddle.ADCL, paddle.deltaTLeft(0.0));
 				dataGroups.getItem(sector,layer,component).getH2F("trRightHist").fill(paddle.ADCR, paddle.deltaTRight(0.0));

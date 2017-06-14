@@ -51,7 +51,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
     public final int OVERRIDE_LEFT = 0;
     public final int OVERRIDE_RIGHT = 0;
 
-    public final double EXPECTED_CONV = 0.0235;
+    public final double EXPECTED_CONV = TOFPaddle.NS_PER_CH;
     public final double ALLOWED_DIFF = 0.1;
     
     private String fitOption = "RNQ";

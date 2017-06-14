@@ -73,6 +73,11 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public int fitMinEvents = 0;
 	public double maxGraphError = 0.1;
 	public double fitSliceMaxError = 0.3;
+	public static int FULL_COUNTER = 0;
+	public static int CENTRE_SECTION = 1;
+	public static int SIDE_SECTIONS = 2;
+	public int counterSection = FULL_COUNTER;
+	public double yMaxAbs = 20.0;
 	//public double[] dummyPoint = {0.0}; // dummy point for graph to prevent canvas throwing error when drawing dataGroup
 
 	// Values from previous calibration
@@ -506,5 +511,19 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 					}
 					));
 		}
+	}
+
+	public boolean hitInSection(TOFPaddle paddle) {
+		// is the hit within the desired counter section?
+		boolean hitInSection = true;
+		if ( counterSection==FULL_COUNTER ||
+			(counterSection==CENTRE_SECTION && Math.abs(paddle.paddleY()) <= yMaxAbs) ||
+			(counterSection==SIDE_SECTIONS && Math.abs(paddle.paddleY()) >= yMaxAbs)) {
+			hitInSection = true;
+		}
+		else {
+			hitInSection = false;
+		}
+		return hitInSection;
 	}
 }

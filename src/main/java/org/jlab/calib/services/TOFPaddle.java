@@ -39,7 +39,7 @@ public class TOFPaddle {
 	public static final int PID_ELECTRON = 11;
 	public static final int PID_PION = 211;
 	private final double C = 29.98;
-	private final double BEAM_BUCKET = 2.004;
+	public static final double NS_PER_CH = 0.02345;
 
 	public TOFPaddle(int sector, int layer, int paddle) {
 		this.desc.setSectorLayerComponent(sector, layer, paddle);
@@ -251,7 +251,8 @@ public class TOFPaddle {
 //        System.out.println("offset is "+offset);
         dtL = dtL + offset;
 //        System.out.println("dtL3 is "+dtL);
-        dtL = (dtL+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET;
+        double bb = TOFCalibrationEngine.BEAM_BUCKET;
+        dtL = (dtL+(1000*bb) + (0.5*bb))%bb - 0.5*bb;
 //        System.out.println("dtL4 is "+dtL);
         
         //dtL = ((dtL +120.0)%BEAM_BUCKET);
@@ -275,7 +276,8 @@ public class TOFPaddle {
 		
 		dtR = dtR - (40.0 / (Math.pow(ADCR,0.5)));
 		dtR = dtR + offset;
-		dtR = (dtR+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET;
+        double bb = TOFCalibrationEngine.BEAM_BUCKET;
+		dtR = (dtR+(1000*bb) + (0.5*bb))%bb - 0.5*bb;
         //dtR = ((dtR +120.0)%BEAM_BUCKET);
         
 		return dtR;
@@ -327,10 +329,7 @@ public class TOFPaddle {
 	}
 
 	double tdcToTime(double value) {
-		//double c1 = 0.0235;
-		double c1 = 0.02345;
-		double c0 = 0;
-		return c0 + c1 * value;
+		return NS_PER_CH * value;
 	}
 
 	public double halfTimeDiff() {
