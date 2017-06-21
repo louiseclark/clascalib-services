@@ -500,7 +500,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		twLFunc.setParameter(0, fitLambda[LEFT]);
 		twLFunc.setParLimits(0, 0.0, 200.0);
 		twLFunc.setParameter(1, fitOrder[LEFT]);
-		twLFunc.setParLimits(1, 0.45, 0.55);
+		//twLFunc.setParLimits(1, 0.45, 0.55);
+		twLFunc.setParLimits(1, 0.499999, 0.500001);
 		//if (fitLeft) {
 			try {
 				//System.out.println("Starting fit L "+sector+layer+paddle);
@@ -519,7 +520,8 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		twRFunc.setParameter(0, fitLambda[RIGHT]);
 		twRFunc.setParLimits(0, 0.0, 200.0);
 		twRFunc.setParameter(1, fitOrder[RIGHT]);
-		twRFunc.setParLimits(1, 0.45, 0.55);
+		//twRFunc.setParLimits(1, 0.45, 0.55);
+		twRFunc.setParLimits(1, 0.499999, 0.500001);
 		
 		//if (fitRight) {
 			try {

@@ -77,7 +77,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public static int CENTRE_SECTION = 1;
 	public static int SIDE_SECTIONS = 2;
 	public int counterSection = FULL_COUNTER;
-	public double yMaxAbs = 20.0;
+	public double sectionWidth = 20.0;
 	//public double[] dummyPoint = {0.0}; // dummy point for graph to prevent canvas throwing error when drawing dataGroup
 
 	// Values from previous calibration
@@ -515,15 +515,42 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 
 	public boolean hitInSection(TOFPaddle paddle) {
 		// is the hit within the desired counter section?
+		
+//		System.out.println("hitInSection");
+//		System.out.println("SLC "+paddle.getDescriptor().getSector()+" "+paddle.getDescriptor().getLayer()+" "+paddle.getDescriptor().getComponent());
+//		System.out.println("paddleY "+paddle.paddleY());
+//		System.out.println("sectionWidth "+sectionWidth);
+//		System.out.println("counterSection "+counterSection);
+//		System.out.println("paddleLength "+paddle.paddleLength());
+//		System.out.println("old >= "+(paddle.paddleLength()/2.0 - 10.0 - sectionWidth));
+//		System.out.println("old <= "+(paddle.paddleLength()/2.0 - 10.0));
+//		System.out.println("left >= "+(-paddle.paddleLength()/2.0 + 10.0));
+//		System.out.println("left <= "+(-paddle.paddleLength()/2.0 + 10.0 + sectionWidth));
+//		System.out.println("right >= "+(paddle.paddleLength()/2.0 - 10.0 - sectionWidth));
+//		System.out.println("right <= "+(paddle.paddleLength()/2.0 - 10.0));
+		
+		
+		
 		boolean hitInSection = true;
-		if ( counterSection==FULL_COUNTER ||
-			(counterSection==CENTRE_SECTION && Math.abs(paddle.paddleY()) <= yMaxAbs) ||
-			(counterSection==SIDE_SECTIONS && Math.abs(paddle.paddleY()) >= yMaxAbs)) {
+		// exclude ends of paddles in all cases
+		if (paddle.paddleY() <= -paddle.paddleLength()/2.0 + 10.0 ||
+			paddle.paddleY() >= paddle.paddleLength()/2.0 - 10.0) {
+			hitInSection = false;
+		}
+		else if ( counterSection==FULL_COUNTER ||
+			(counterSection==CENTRE_SECTION && Math.abs(paddle.paddleY()) <= sectionWidth/2.0) ||
+			(counterSection==SIDE_SECTIONS && (
+			 	// Left
+				paddle.paddleY() <= -paddle.paddleLength()/2.0 + 10.0 + sectionWidth || 
+			 	// Right
+			 	paddle.paddleY() >= paddle.paddleLength()/2.0 - 10.0 - sectionWidth))) {
 			hitInSection = true;
 		}
 		else {
 			hitInSection = false;
 		}
+		
+//		System.out.println("hitInSection return "+hitInSection);
 		return hitInSection;
 	}
 }

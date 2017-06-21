@@ -71,53 +71,53 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 		calib.addConstraint(4, EXPECTED_VEFF*(1-ALLOWED_VEFF_DIFF),
 				EXPECTED_VEFF*(1+ALLOWED_VEFF_DIFF));
 
-		if (CTOFCalibrationEngine.calDBSource==CTOFCalibrationEngine.CAL_FILE) {
-			// read in the veff values from the text file
-			//String inputFile = "/home/louise/workspace/clascalib-services/CTOF_CALIB_VEFF_20161214_1M_events.txt";
-			String inputFile = "test.txt";
-
-			String line = null;
-			try { 
-
-				// Open the file
-				FileReader fileReader = 
-						new FileReader(inputFile);
-
-				// Always wrap FileReader in BufferedReader
-				BufferedReader bufferedReader = 
-						new BufferedReader(fileReader);            
-
-				line = bufferedReader.readLine();
-				line = bufferedReader.readLine(); // skip header
-
-				while (line != null) {
-
-					int sector = Integer.parseInt(line.substring(0, 3).trim());
-					int layer = Integer.parseInt(line.substring(3, 7).trim());
-					int paddle = Integer.parseInt(line.substring(7, 11).trim());
-					double veff = Double.parseDouble(line.substring(11,26).trim());
-
-					veffValues.add(veff, sector, layer, paddle);
-
-					line = bufferedReader.readLine();
-				}    
-
-				bufferedReader.close();            
-			}
-			catch(FileNotFoundException ex) {
-				ex.printStackTrace();
-				System.out.println(
-						"Unable to open file '" + 
-								inputFile + "'");                
-			}
-			catch(IOException ex) {
-				System.out.println(
-						"Error reading file '" 
-								+ inputFile + "'");                   
-				// Or we could just do this: 
-				// ex.printStackTrace();
-			}
-		}
+//		if (CTOFCalibrationEngine.calDBSource==CTOFCalibrationEngine.CAL_FILE) {
+//			// read in the veff values from the text file
+//			//String inputFile = "/home/louise/workspace/clascalib-services/CTOF_CALIB_VEFF_20161214_1M_events.txt";
+//			String inputFile = "test.txt";
+//
+//			String line = null;
+//			try { 
+//
+//				// Open the file
+//				FileReader fileReader = 
+//						new FileReader(inputFile);
+//
+//				// Always wrap FileReader in BufferedReader
+//				BufferedReader bufferedReader = 
+//						new BufferedReader(fileReader);            
+//
+//				line = bufferedReader.readLine();
+//				line = bufferedReader.readLine(); // skip header
+//
+//				while (line != null) {
+//
+//					int sector = Integer.parseInt(line.substring(0, 3).trim());
+//					int layer = Integer.parseInt(line.substring(3, 7).trim());
+//					int paddle = Integer.parseInt(line.substring(7, 11).trim());
+//					double veff = Double.parseDouble(line.substring(11,26).trim());
+//
+//					veffValues.add(veff, sector, layer, paddle);
+//
+//					line = bufferedReader.readLine();
+//				}    
+//
+//				bufferedReader.close();            
+//			}
+//			catch(FileNotFoundException ex) {
+//				ex.printStackTrace();
+//				System.out.println(
+//						"Unable to open file '" + 
+//								inputFile + "'");                
+//			}
+//			catch(IOException ex) {
+//				System.out.println(
+//						"Error reading file '" 
+//								+ inputFile + "'");                   
+//				// Or we could just do this: 
+//				// ex.printStackTrace();
+//			}
+//		}
 	}
 
 	@Override

@@ -71,54 +71,54 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 
 		calib.addConstraint(3, -MAX_LEFTRIGHT, MAX_LEFTRIGHT);
 
-		if (CTOFCalibrationEngine.calDBSource==CTOFCalibrationEngine.CAL_FILE) {
-
-			// read in the left right values from the text file
-			//String inputFile = "/home/louise/workspace/clascalib-services/CTOF_CALIB_LEFTRIGHT_15_files.txt";
-			String inputFile = "test.txt";
-
-			String line = null;
-			try { 
-
-				// Open the file
-				FileReader fileReader = 
-						new FileReader(inputFile);
-
-				// Always wrap FileReader in BufferedReader
-				BufferedReader bufferedReader = 
-						new BufferedReader(fileReader);            
-
-				line = bufferedReader.readLine();
-
-				while (line != null) {
-
-					int sector = Integer.parseInt(line.substring(0, 3).trim());
-					int layer = Integer.parseInt(line.substring(3, 7).trim());
-					int paddle = Integer.parseInt(line.substring(7, 11).trim());
-					double lr = Double.parseDouble(line.substring(11,27).trim());
-					//double lr = Double.parseDouble(line.substring(11).trim());
-
-					leftRightValues.add(lr, sector, layer, paddle);
-
-					line = bufferedReader.readLine();
-				}    
-
-				bufferedReader.close();            
-			}
-			catch(FileNotFoundException ex) {
-				ex.printStackTrace();
-				System.out.println(
-						"Unable to open file '" + 
-								inputFile + "'");                
-			}
-			catch(IOException ex) {
-				System.out.println(
-						"Error reading file '" 
-								+ inputFile + "'");                   
-				// Or we could just do this: 
-				// ex.printStackTrace();
-			}			
-		}
+//		if (CTOFCalibrationEngine.calDBSource==CTOFCalibrationEngine.CAL_FILE) {
+//
+//			// read in the left right values from the text file
+//			//String inputFile = "/home/louise/workspace/clascalib-services/CTOF_CALIB_LEFTRIGHT_15_files.txt";
+//			String inputFile = "test.txt";
+//
+//			String line = null;
+//			try { 
+//
+//				// Open the file
+//				FileReader fileReader = 
+//						new FileReader(inputFile);
+//
+//				// Always wrap FileReader in BufferedReader
+//				BufferedReader bufferedReader = 
+//						new BufferedReader(fileReader);            
+//
+//				line = bufferedReader.readLine();
+//
+//				while (line != null) {
+//
+//					int sector = Integer.parseInt(line.substring(0, 3).trim());
+//					int layer = Integer.parseInt(line.substring(3, 7).trim());
+//					int paddle = Integer.parseInt(line.substring(7, 11).trim());
+//					double lr = Double.parseDouble(line.substring(11,27).trim());
+//					//double lr = Double.parseDouble(line.substring(11).trim());
+//
+//					leftRightValues.add(lr, sector, layer, paddle);
+//
+//					line = bufferedReader.readLine();
+//				}    
+//
+//				bufferedReader.close();            
+//			}
+//			catch(FileNotFoundException ex) {
+//				ex.printStackTrace();
+//				System.out.println(
+//						"Unable to open file '" + 
+//								inputFile + "'");                
+//			}
+//			catch(IOException ex) {
+//				System.out.println(
+//						"Error reading file '" 
+//								+ inputFile + "'");                   
+//				// Or we could just do this: 
+//				// ex.printStackTrace();
+//			}			
+//		}
 	}
 
 	public void resetEventListener() {

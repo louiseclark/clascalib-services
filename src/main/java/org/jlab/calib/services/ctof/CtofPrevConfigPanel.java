@@ -1,4 +1,4 @@
-package org.jlab.calib.services;
+package org.jlab.calib.services.ctof;
 
 import java.awt.Container;
 import java.awt.FlowLayout;
@@ -23,10 +23,10 @@ import javax.swing.JTextField;
 
 import org.jlab.detector.calib.tasks.CalibrationEngine;
 
-public class TofPrevConfigPanel extends JPanel 
+public class CtofPrevConfigPanel extends JPanel 
 implements ActionListener, FocusListener {
 
-	TOFCalibrationEngine engine;
+	CTOFCalibrationEngine engine;
 	JTextField fileDisp = new JTextField(20); 
 	JTextField runText = new JTextField(5);
 	JFileChooser fc = new JFileChooser();
@@ -35,7 +35,7 @@ implements ActionListener, FocusListener {
 	JRadioButton fileRad = new JRadioButton("FILE");
 	JRadioButton dbRad = new JRadioButton("DB");
 	
-	public TofPrevConfigPanel(TOFCalibrationEngine engineIn) {
+	public CtofPrevConfigPanel(CTOFCalibrationEngine engineIn) {
 
 		engine = engineIn;
 		File workDir = new File(System.getProperty("user.dir"));
