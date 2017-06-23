@@ -810,7 +810,8 @@ public class TOFCalibration implements IDataEventListener, ActionListener,
         c.gridy = 7;
         counterSectionList.addItem("Full counter");
         counterSectionList.addItem("Center section");
-        counterSectionList.addItem("End sections");
+        counterSectionList.addItem("Left end");
+        counterSectionList.addItem("Right end");
         trPanel.add(counterSectionList,c);
         counterSectionList.addActionListener(this);
         c.gridx = 2;

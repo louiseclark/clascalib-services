@@ -238,7 +238,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		}
 		else if (fitMethod==FIT_METHOD_MAX) {
 			maxGraphError = 0.15;
-			meanGraph.copy(maxGraph(attenHist, "veffGraph"));
+			meanGraph.copy(maxGraph(attenHist, "meanGraph"));
 		}
 		else {
 			meanGraph.copy(attenHist.getProfileX());

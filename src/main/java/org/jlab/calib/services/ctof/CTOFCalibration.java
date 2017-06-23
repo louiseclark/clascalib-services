@@ -92,18 +92,24 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
             new CtofHVEventListener(),
             new CtofAttenEventListener(),
             new CtofLeftRightEventListener(),
-            new CtofVeffEventListener()};
+            new CtofVeffEventListener(),
+            new CtofRFPadEventListener(),
+            new CtofP2PEventListener()};
     
     // engine indices
     public final int HV = 0;
     public final int ATTEN = 1;
     public final int LEFT_RIGHT = 2;
     public final int VEFF = 3;
+    public final int RFPAD = 4;
+    public final int P2P = 5;
     
-    String[] dirs = {"/calibration/ftof/gain_balance",
-                     "/calibration/ftof/attenuation",
-                     "/calibration/ftof/timing_offset/left_right",
-                     "/calibration/ftof/effective_velocity"};
+    String[] dirs = {"/calibration/ctof/gain_balance",
+                     "/calibration/ctof/attenuation",
+                     "/calibration/ctof/timing_offset/left_right",
+                     "/calibration/ctof/effective_velocity",
+                     "/calibration/ctof/timing_offset/rfpad",
+                     "/calibration/ctof/timing_offset/P2P"};
     
     String selectedDir = "None";
     int selectedSector = 1;
@@ -126,7 +132,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 //            160, -40.0, 40.0);
     
     // configuration settings
-    JCheckBox[] stepChecks = {new JCheckBox(),new JCheckBox(),new JCheckBox(),new JCheckBox()};    
+    JCheckBox[] stepChecks = {new JCheckBox(),new JCheckBox(),new JCheckBox(),new JCheckBox(),new JCheckBox(), new JCheckBox()};    
     private JTextField rcsText = new JTextField(5);
     public static double maxRcs = 0.0;
     private JTextField minVText = new JTextField(5);
@@ -249,6 +255,10 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
             engine = engines[LEFT_RIGHT];
         } else if (selectedDir == dirs[VEFF]) {
             engine = engines[VEFF];
+        } else if (selectedDir == dirs[RFPAD]) {
+            engine = engines[RFPAD];
+        } else if (selectedDir == dirs[P2P]) {
+            engine = engines[P2P];
         }
 
         return engine;
@@ -416,7 +426,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
         List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
         
         for (int i=0; i< engines.length; i++) {
-        
+        	        
             if (engines[i].engineOn) {
         
                 if (event.getType()==DataEventType.EVENT_START) {
@@ -480,13 +490,6 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
         for(int paddle = 1; paddle <= npaddles; paddle++){
 
             double rotation = Math.toRadians((paddle-1)*(360.0/48)+90.0);
-
-
-
-
-
-
-
 
             DetectorShape2D shape = new DetectorShape2D();
             shape.getDescriptor().setType(DetectorType.CTOF);
@@ -573,6 +576,8 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
         int i = ccview.getTabbedPane().getSelectedIndex();
         String tabTitle = ccview.getTabbedPane().getTitleAt(i);
         
+        //System.out.println("tabTitle "+tabTitle+" selectedDir "+selectedDir);
+        
         if (tabTitle != selectedDir) {
             selectedDir = tabTitle;
             this.updateDetectorView(false);
@@ -626,6 +631,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
         for (int i=0; i< engines.length; i++) {
             c.gridx = 0; c.gridy = i;
             c.anchor = c.WEST;
+            
             stepChecks[i].setName(engines[i].stepName);
             stepChecks[i].setText(engines[i].stepName);
             stepChecks[i].setSelected(true);
@@ -642,7 +648,9 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
         Box confPanel = new Box(BoxLayout.Y_AXIS);
         CtofPrevConfigPanel[] engPanels = {new CtofPrevConfigPanel(new CTOFCalibrationEngine()), 
                                           new CtofPrevConfigPanel(new CTOFCalibrationEngine()), 
-                                          new CtofPrevConfigPanel(new CTOFCalibrationEngine())};
+                                          new CtofPrevConfigPanel(new CTOFCalibrationEngine()),
+                                          new CtofPrevConfigPanel(new CTOFCalibrationEngine()),
+        								  new CtofPrevConfigPanel(new CTOFCalibrationEngine())};
 
         for (int i=2; i< engines.length; i++) {  // skip HV and attenuation
             engPanels[i-2] = new CtofPrevConfigPanel(engines[i]);
@@ -822,7 +830,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
         c.gridy = 2;
         veffPanel.add(minVeffEventsText,c);
         
-        JPanel butPage6 = new configButtonPanel(this, true, "Next");
+        JPanel butPage6 = new configButtonPanel(this, true, "Finish");
         veffOuterPanel.add(butPage6, BorderLayout.SOUTH);
         configPane.add("Effective Velocity", veffOuterPanel);            
         
