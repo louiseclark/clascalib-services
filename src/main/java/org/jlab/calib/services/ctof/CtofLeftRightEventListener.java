@@ -96,11 +96,14 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 
                     String[] lineValues;
                     lineValues = line.split(" ");
+                    System.out.println(line);
 
                     int sector = Integer.parseInt(lineValues[0]);
                     int layer = Integer.parseInt(lineValues[1]);
                     int paddle = Integer.parseInt(lineValues[2]);
                     double lr = Double.parseDouble(lineValues[3]);
+                    
+                    System.out.println(sector+" "+layer+" "+paddle+" "+lr);
 
                     leftRightValues.addEntry(sector, layer, paddle);
                     leftRightValues.setDoubleValue(lr,

@@ -342,7 +342,8 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 			if (getH1FEntries(slices.get(i)) > fitMinEvents) {
 				int maxBin = slices.get(i).getMaximumBin();
 				sliceMax[i] = slices.get(i).getxAxis().getBinCenter(maxBin);
-				maxErrs[i] = maxGraphError;
+				maxErrs[i] = slices.get(i).getRMS();
+				//maxErrs[i] = maxGraphError;
 
 				xVals[i] = hist.getXAxis().getBinCenter(i);
 				xErrs[i] = hist.getXAxis().getBinWidth(i)/2.0;

@@ -319,7 +319,8 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
             if (getH1FEntries(slices.get(i)) > fitMinEvents) {
                 int maxBin = slices.get(i).getMaximumBin();
                 sliceMax[i] = slices.get(i).getxAxis().getBinCenter(maxBin);
-                maxErrs[i] = maxGraphError;
+                //maxErrs[i] = maxGraphError;
+                maxErrs[i] = slices.get(i).getRMS();
 
                 xVals[i] = hist.getXAxis().getBinCenter(i);
                 xErrs[i] = hist.getXAxis().getBinWidth(i)/2.0;
@@ -428,7 +429,7 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
 
             padNum = padNum + 1;
 
-            if ((paddleNum) % 24 == 0) {
+            if ((paddleNum) == 24) {
                 // new canvas
                 canvasNum = canvasNum + 1;
                 padNum = 0;

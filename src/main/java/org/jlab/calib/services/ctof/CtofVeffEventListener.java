@@ -164,22 +164,22 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 
             // create all the histograms
             int numBins = (int) (paddleLength(1,1,paddle)*0.6);  // 1 bin per 2cm + 10% either side
-            //                    double min = paddleLength(sector,layer,paddle) * -0.6;
-            //                    double max = paddleLength(sector,layer,paddle) * 0.6;
-            double min = paddleLength(1,1,paddle) * -0.1;
-            double max = paddleLength(1,1,paddle) * 1.1;
+	        double min = paddleLength(1,1,paddle) * -0.6;
+            double max = paddleLength(1,1,paddle) * 0.6;
+//            double min = paddleLength(1,1,paddle) * -0.1;
+//            double max = paddleLength(1,1,paddle) * 1.1;
 
             H2F hist = 
                     new H2F("veff",
                             "veff",
                             numBins, min, max, 
                             //200, -15.0, 15.0);
-                            100, 0.0, 30.0);
+                            100, -15.0, 15.0);
 
             hist.setName("veff");
             hist.setTitle("Half Time Diff vs Position : Paddle "+paddle);
-            hist.setTitleX("Hit position from tracking (cm) (+ offset)");
-            hist.setTitleY("Half Time Diff (ns) (+ offset)");
+            hist.setTitleX("Hit position from tracking (cm)");
+            hist.setTitleY("Half Time Diff (ns)");
 
             // create all the functions and graphs
             //F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
@@ -225,13 +225,11 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
             int sector = paddle.getDescriptor().getSector();
             int layer = paddle.getDescriptor().getLayer();
             int component = paddle.getDescriptor().getComponent();
-
+           
             if (paddle.goodTrackFound()) {
-                //                dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
-                //                    paddle.paddleY(), paddle.recHalfTimeDiff());
                 dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
-                        paddle.zPosCTOF() + (paddleLength(sector,layer,component)/2), 
-                        paddle.halfTimeDiff() + 15.0);
+                        paddle.zPosCTOF(), 
+                        paddle.halfTimeDiff());
                 
             }
         }
@@ -263,8 +261,8 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
             lowLimit = minRange;
         }
         else {
-            //lowLimit = paddleLength(sector,layer,paddle) * -0.4;
-            lowLimit = paddleLength(sector,layer,paddle) * 0.15;
+            lowLimit = paddleLength(sector,layer,paddle) * -0.4;
+            //lowLimit = paddleLength(sector,layer,paddle) * 0.15;
         }
 
         if (maxRange != UNDEFINED_OVERRIDE) {
@@ -272,14 +270,14 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
             highLimit = maxRange;
         }
         else {
-            //highLimit = paddleLength(sector,layer,paddle) * 0.4;
-            highLimit = paddleLength(sector,layer,paddle) * 0.85;
+            highLimit = paddleLength(sector,layer,paddle) * 0.4;
+            //highLimit = paddleLength(sector,layer,paddle) * 0.85;
         }
 
         // fit function to the graph of means
         GraphErrors veffGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("veffGraph");
         
-        if (fitMethod==FIT_METHOD_SF && sector==2) {
+        if (fitMethod==FIT_METHOD_SF) {
             ParallelSliceFitter psf = new ParallelSliceFitter(veffHist);
             psf.setFitMode(fitMode);
             psf.setMinEvents(fitMinEvents);

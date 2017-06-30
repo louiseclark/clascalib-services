@@ -441,6 +441,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
                     System.setOut(oldStdout);
                     System.out.println("EVENT_STOP for "+engines[i].stepName+" "+todayString());
                     engines[i].analyze();
+                    ccview.getTabbedPane().setEnabled(true);
                     System.setOut(oldStdout);
                 } 
     

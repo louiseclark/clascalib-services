@@ -160,6 +160,13 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 			int component = paddle.getDescriptor().getComponent();
 
 			// dgtz data only
+			
+//			System.out.println("position "+paddle.position());
+//			System.out.println("halfTimeDiff "+paddle.halfTimeDiff());
+//			System.out.println("veff "+paddle.veff()+" leftRightAdjustment "+paddle.leftRightAdjustment());
+//			System.out.println("timeLeftAfterTW "+paddle.timeLeftAfterTW()+" timeRightAfterTW "+paddle.timeRightAfterTW());
+//			
+//			paddle.show();
 			dataGroups.getItem(sector,layer,component).getH2F("atten").fill(
 					paddle.position(), paddle.logRatio());
 
@@ -214,7 +221,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 		// fit function to the graph of means
 		GraphErrors meanGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("meanGraph");
 
-		if (fitMethod==FIT_METHOD_SF && sector==2) {
+		if (fitMethod==FIT_METHOD_SF) {
 			ParallelSliceFitter psf = new ParallelSliceFitter(attenHist);
 			psf.setFitMode(fitMode);
 			psf.setMinEvents(fitMinEvents);
