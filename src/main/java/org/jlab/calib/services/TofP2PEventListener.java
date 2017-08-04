@@ -30,21 +30,8 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 	// indices for constants
 	public final int OFFSET_OVERRIDE = 0;
 
-	// Electron Reference paddle
-	public final int REF_SECTOR = 2;
-	public final int REF_LAYER = 1;
-	public final int REF_PADDLE = 13; 
-
-	// Pion reference paddle
-	public final int PREF_SECTOR = 2;
-	public final int PREF_LAYER = 1;
-	public final int PREF_PADDLE = 20; 	
-	
-	ArrayList<Double> Ci0j0k0l0 = new ArrayList<Double>();
-	IndexedList<ArrayList<Double>> Ci0j0kl = new IndexedList<ArrayList<Double>>(3);
-			
 	final double MAX_OFFSET = 10.0;
-	
+
 	private String showPlotType = "VERTEX_DT";
 
 	public TofP2PEventListener() {
@@ -65,10 +52,10 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 		calib.addConstraint(3, -MAX_OFFSET, MAX_OFFSET);
 
 	}
-	
+
 	@Override
 	public void populatePrevCalib() {
-		
+
 		System.out.println("Populating "+stepName+" previous calibration values");
 		if (calDBSource==CAL_FILE) {
 
@@ -99,7 +86,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 					p2pValues.addEntry(sector, layer, paddle);
 					p2pValues.setDoubleValue(p2p,
 							"paddle2paddle", sector, layer, paddle);
-					
+
 					line = bufferedReader.readLine();
 				}
 
@@ -145,7 +132,7 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 	public void resetEventListener() {
 
 		// perform init processing
-		
+
 		// create the histograms for the first iteration
 		createHists();
 	}
@@ -157,42 +144,22 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 				int layer_index = layer - 1;
 				for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 
-					DataGroup dg = new DataGroup(2,2);
+					DataGroup dg = new DataGroup(1,1);
 
 					// create all the histograms and functions
-					H1F refHistAll = 
-							new H1F("refHistAll","Offset to reference paddle Sector "+sector+" Paddle "+paddle, 
+					H1F vertexDiffHist = 
+							new H1F("vertexDiffHist","Vertex time difference Sector "+sector+" Paddle "+paddle, 
 									99,-49.5*BEAM_BUCKET,49.5*BEAM_BUCKET);
-					refHistAll.setTitleX("#Delta t (TOF) (ns)");
-					dg.addDataSet(refHistAll, 0);
+					vertexDiffHist.setTitleX("#Delta t (vertex) (ns)");
+					dg.addDataSet(vertexDiffHist, 0);
 
-					H1F refHist = 
-							new H1F("refHist","Offset to reference paddle Sector "+sector+" Paddle "+paddle, 
-									99,-49.5*BEAM_BUCKET,49.5*BEAM_BUCKET);
-					refHist.setTitleX("#Delta t (vertex) (ns)");
-					dg.addDataSet(refHist, 1);
-
-					H1F statHist = 
-							new H1F("statHist","Number of coincidences", 540,0.5,540.5);
-					statHist.setTitleX("Number of coincidences - Paddle number");
-					dg.addDataSet(statHist, 2);
-
-//					H1F Deltai0j0kl = 
-//							new H1F("Deltai0j0kl","Delta i0,j0, "+sector+" Paddle "+paddle, 
-//									99,-49.5*BEAM_BUCKET,49.5*BEAM_BUCKET);
-//					Deltai0j0kl.setTitleX("#Delta i0, j0, "+sector+" "+paddle+" (ns)");
-//					dg.addDataSet(Deltai0j0kl, 3);
-					
 					dataGroups.add(dg,sector,layer,paddle);    
 
 					// initialize the constants array
 					Double[] consts = {UNDEFINED_OVERRIDE};
 					// override values
 					constants.add(consts, sector, layer, paddle);
-					
-					// create array to store Ci0j0kl
-					ArrayList<Double> entry = new ArrayList<Double>();
-					Ci0j0kl.add(entry, sector,layer,paddle);
+
 				}
 			}
 		}
@@ -209,91 +176,31 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 	@Override
 	public void processPaddleList(List<TOFPaddle> paddleList) {
 
-		int numTracks = 0;
+		for (TOFPaddle currentPad : paddleList) {
 
-		for (TOFPaddle pad : paddleList) {
-			
-			// only include p >1.0 so that the beta=1 assumption is reasonable
-            if (pad.P < 1.0) continue;
+			if (currentPad.goodTrackFound()) {
+				int sector = currentPad.getDescriptor().getSector();
+				int layer = currentPad.getDescriptor().getLayer();
+				int component = currentPad.getDescriptor().getComponent();
 
-			int sector = pad.getDescriptor().getSector();
-			int layer = pad.getDescriptor().getLayer();
-			int component = pad.getDescriptor().getComponent();
+				for (TOFPaddle otherPad : paddleList) {
 
-			for (TOFPaddle jpad : paddleList) {
-				
-                // only include p >1.0 so that the beta=1 assumption is reasonable
-                if (jpad.P < 1.0) continue;
-                
-                int jSector = jpad.getDescriptor().getSector();
-                int jLayer = jpad.getDescriptor().getLayer();
-                int jComponent = jpad.getDescriptor().getComponent();
+					if (otherPad.goodTrackFound() && otherPad.paddleNumber() != currentPad.paddleNumber()) {
 
-				// fill hist of number of coincidences with other paddles
-				if (pad.trackFound() && jpad.trackFound()
-						&& pad.paddleNumber() != jpad.paddleNumber()
-						&& pad.TRACK_ID != jpad.TRACK_ID) {
-					dataGroups.getItem(sector,layer,component).getH1F("statHist").fill(jpad.paddleNumber());
-				}
+						dataGroups.getItem(sector,layer,component).getH1F("vertexDiffHist").fill(
+								currentPad.startTimeP2PCorr() - otherPad.startTimeP2PCorr());
 
-				// Look for electron in reference paddle
-				if (sector==REF_SECTOR && layer==REF_LAYER && component==REF_PADDLE) { 
-
-					dataGroups.getItem(jpad.getDescriptor().getSector(),
-							jpad.getDescriptor().getLayer(),
-							jpad.getDescriptor().getComponent()).getH1F("refHistAll").fill(pad.tofTimeRFCorr() - jpad.tofTimeRFCorr());
-					
-					if (jpad.trackFound() && pad.trackFound() && pad.TRACK_ID != jpad.TRACK_ID) {
-
-//						System.out.println("pad");
-//						pad.show();
-//						System.out.println("jpad");
-//						jpad.show();
-						dataGroups.getItem(jpad.getDescriptor().getSector(),
-								jpad.getDescriptor().getLayer(),
-								jpad.getDescriptor().getComponent()).getH1F("refHist").fill(pad.startTimeRFCorr() - jpad.startTimeRFCorr());
-						
-						// Store the Ci0j0k0l0
-//						if (jSector==PREF_SECTOR && jLayer==PREF_LAYER && jComponent==PREF_PADDLE) {
-//							System.out.println("Storing Ci0j0k0l0");
-//							Ci0j0k0l0.add(pad.startTime() - jpad.startTime());
-//						}
-//						// Store the Ci0j0kl
-//						System.out.println("Storing Ci0j0"+jSector+jLayer+jComponent); 
-//						Ci0j0kl.getItem(jSector,jLayer,jComponent).add(pad.startTime()-jpad.startTime());
 					}
-
 				}
 			}
 		}
 	}    
-
 
 	@Override
 	public void timerUpdate() {
 		// don't analyze until the end or it will mess up the fine hists
 		save();
 		calib.fireTableDataChanged();
-	}
-		
-	@Override
-	public void fit(int sector, int layer, int paddle, double minRange, double maxRange) {
-		
-		// Fill the Deltai0j0kl histogram		
-//		System.out.println("SLC "+sector+layer+paddle);
-//		System.out.println("Ci0j0k0l0 size "+Ci0j0k0l0.size());
-//		System.out.println("Ci0j0kl size "+Ci0j0kl.getItem(sector,layer,paddle).size());
-//		
-//		for (double c1: Ci0j0k0l0) {
-//			for (double c2: Ci0j0kl.getItem(sector,layer,paddle)) {
-//				dataGroups.getItem(sector,layer,paddle).getH1F("Deltai0j0kl").fill(c1-c2);
-//			}
-//		}
-		
-	}
-
-	private Double formatDouble(double val) {
-		return Double.parseDouble(new DecimalFormat("0.000").format(val));
 	}
 
 	@Override
@@ -308,37 +215,45 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 
 			double override = toDouble(panel.textFields[0].getText());
 
-			// save the override values
-			Double[] consts = constants.getItem(sector, layer, paddle);
-			consts[OFFSET_OVERRIDE] = override;
+			int minP = paddle;
+			int maxP = paddle;
+			if (panel.applyToAll) {
+				minP = 1;
+				maxP = NUM_PADDLES[layer-1];
+			}
 
-			// update the table
-			saveRow(sector,layer,paddle);
-			calib.fireTableDataChanged();
+			for (int p=minP; p<=maxP; p++) {
+				// save the override values
+				Double[] consts = constants.getItem(sector, layer, p);
+				consts[OFFSET_OVERRIDE] = override;
+
+				// update the table
+				saveRow(sector,layer,p);
+			}
+			calib.fireTableDataChanged();			
 
 		}     
 	}
 
 	public Double getOffset(int sector, int layer, int paddle) {
 
-		double offset = 0.0;
+		double plotOffset = 0.0;
+		double oldOffset = p2pValues.getDoubleValue("paddle2paddle", sector, layer, paddle);
+		double newOffset = 0.0;
 		double overrideVal = constants.getItem(sector, layer, paddle)[OFFSET_OVERRIDE];
 
 		if (overrideVal != UNDEFINED_OVERRIDE) {
-			offset = overrideVal;
+			newOffset = overrideVal;
 		}
 		else {
-			H1F tofHist = dataGroups.getItem(sector,layer,paddle).getH1F("refHistAll");			
-			int maxBin = tofHist.getMaximumBin();
-			double tofOffset = 0.0;
-			if (tofHist.getEntries() != 0) {
-				tofOffset = tofHist.getXaxis().getBinCenter(maxBin);
+			H1F dtHist = dataGroups.getItem(sector,layer,paddle).getH1F("vertexDiffHist");			
+			int maxBin = dtHist.getMaximumBin();
+			if (dtHist.getEntries() != 0) {
+				plotOffset = dtHist.getXaxis().getBinCenter(maxBin);
 			}
-			
-			offset = tofOffset;
-
+			newOffset = oldOffset - plotOffset;
 		}
-		return offset;
+		return newOffset;
 	}    
 
 	@Override
@@ -348,36 +263,15 @@ public class TofP2PEventListener extends TOFCalibrationEngine {
 				"paddle2paddle", sector, layer, paddle);
 
 	}
-	
-	@Override
-	public void showPlots(int sector, int layer) {
-
-		showPlotType = "TOF_DT";
-		stepName = "Delta t (TOF)";
-		super.showPlots(sector, layer);
-		showPlotType = "VERTEX_DT";
-		stepName = "Delta t (vertex)";
-		super.showPlots(sector, layer);
-
-	}
 
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
 
-		if (showPlotType == "TOF_DT") {
-			H1F hist = dataGroups.getItem(sector,layer,paddle).getH1F("refHistAll");
-			hist.setTitle("Paddle "+paddle);
-			hist.setTitleX("");
-			hist.setTitleY("");
-			canvas.draw(hist); 
-		}
-		else {
-			H1F hist = dataGroups.getItem(sector,layer,paddle).getH1F("refHist");
-			hist.setTitle("Paddle "+paddle);
-			hist.setTitleX("");
-			hist.setTitleY("");
-			canvas.draw(hist); 
-		}
+		H1F hist = dataGroups.getItem(sector,layer,paddle).getH1F("vertexDiffHist");
+		hist.setTitle("Paddle "+paddle);
+		hist.setTitleX("");
+		hist.setTitleY("");
+		canvas.draw(hist); 
 	}
 
 	@Override

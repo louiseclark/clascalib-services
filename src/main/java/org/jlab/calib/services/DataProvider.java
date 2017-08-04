@@ -47,16 +47,6 @@ import org.jlab.utils.groups.IndexedTable;
 public class DataProvider {
 
 	private static	boolean test = false;
-//	public static CodaEventDecoder codaDecoder;
-//	public static DetectorEventDecoder eventDecoder;
-//	public static List<DetectorDataDgtz> detectorData;
-
-//	public static void init() {
-//
-//		codaDecoder = new CodaEventDecoder();
-//		eventDecoder = new DetectorEventDecoder();
-//		detectorData = new ArrayList<DetectorDataDgtz>();
-//	}
 
 	public static List<TOFPaddle> getPaddleList(DataEvent event) {
 
@@ -67,7 +57,7 @@ public class DataProvider {
 		}
 		//		EvioDataEvent e = (EvioDataEvent) event;
 		//		e.show();
-
+		
 		paddleList = getPaddleListHipo(event);
 		//paddleList = getPaddleListDgtzNew(event);
 
@@ -130,7 +120,7 @@ public class DataProvider {
 //				
 //			}
 //		}
-
+		
 		// iterate through hits bank getting corresponding adc and tdc
 		if (event.hasBank("FTOF::hits")) {
 			DataBank  hitsBank = event.getBank("FTOF::hits");
@@ -154,7 +144,7 @@ public class DataProvider {
 				paddle.setPos(tx,ty,tz); 
 				paddle.ADC_TIMEL = adcBank.getFloat("time", hitsBank.getShort("adc_idx1", hitIndex));
 				paddle.ADC_TIMER = adcBank.getFloat("time", hitsBank.getShort("adc_idx2", hitIndex));
-				paddle.TOF_TIME = hitsBank.getFloat("time", hitIndex);
+				paddle.RECON_TIME = hitsBank.getFloat("time", hitIndex);
 				
 				//System.out.println("Paddle created "+paddle.getDescriptor().getSector()+paddle.getDescriptor().getLayer()+paddle.getDescriptor().getComponent());
 

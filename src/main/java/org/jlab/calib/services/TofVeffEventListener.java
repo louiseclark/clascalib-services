@@ -367,7 +367,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 
 			for (int p=minP; p<=maxP; p++) {
 				// save the override values
-				Double[] consts = constants.getItem(sector, layer, paddle);
+				Double[] consts = constants.getItem(sector, layer, p);
 				consts[VEFF_OVERRIDE] = overrideValue;
 				consts[VEFF_UNC_OVERRIDE] = overrideUnc;
 

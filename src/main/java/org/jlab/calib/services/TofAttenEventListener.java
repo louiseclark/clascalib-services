@@ -322,7 +322,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 			for (int p=minP; p<=maxP; p++) {			
 
 				// save the override values
-				Double[] consts = constants.getItem(sector, layer, paddle);
+				Double[] consts = constants.getItem(sector, layer, p);
 				consts[ATTEN_OVERRIDE] = overrideValue;
 				consts[ATTEN_UNC_OVERRIDE] = overrideUnc;
 				consts[OFFSET_OVERRIDE] = overrideOffset;

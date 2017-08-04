@@ -61,7 +61,7 @@ public class TOFCustomFitPanel extends JPanel implements ActionListener {
 		// Radio for single paddle or all in sector/layer
 		JRadioButton singleRad = new JRadioButton("Single paddle");
 		JRadioButton allRad = new JRadioButton("All paddles in sector "+sector
-				+" layer "+TOFCalibrationEngine.LAYER_NAME[layer-1]);
+				+" layer "+layer);
 		singleRad.setSelected(true);
 		ButtonGroup radGroup = new ButtonGroup();
 		radGroup.add(singleRad);

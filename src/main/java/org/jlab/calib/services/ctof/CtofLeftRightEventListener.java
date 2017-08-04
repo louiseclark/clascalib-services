@@ -52,19 +52,19 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
     // indices for override values
     public final int LEFTRIGHT_OVERRIDE = 0;
 
-    final double LEFT_RIGHT_RATIO = 0.15;
+    final double LEFT_RIGHT_RATIO = 0.1;
     final double MAX_LEFTRIGHT = 10.0;
 
     public CtofLeftRightEventListener() {
 
-        stepName = "Left Right";
-        fileNamePrefix = "CTOF_CALIB_LEFTRIGHT_";
+        stepName = "Up Down";
+        fileNamePrefix = "CTOF_CALIB_UPDOWN_";
         // get file name here so that each timer update overwrites it
         filename = nextFileName();
 
         calib = new CalibrationConstants(3,
-                "left_right/F");
-        calib.setName("/calibration/ctof/timing_offset/left_right");
+                "upstream_downstream/F");
+        calib.setName("/calibration/ctof/timing_offset/upstream_downstream");
         calib.setPrecision(3);
 
         calib.addConstraint(3, -MAX_LEFTRIGHT, MAX_LEFTRIGHT);
@@ -107,7 +107,7 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 
                     leftRightValues.addEntry(sector, layer, paddle);
                     leftRightValues.setDoubleValue(lr,
-                            "left_right", sector, layer, paddle);
+                            "upstream_downstream", sector, layer, paddle);
                     
                     line = bufferedReader.readLine();
                 }
@@ -133,7 +133,7 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
             for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
                 leftRightValues.addEntry(1, 1, paddle);
                 leftRightValues.setDoubleValue(0.0,
-                        "left_right", 1, 1, paddle);
+                        "upstream_downstream", 1, 1, paddle);
                         
             }
         }
@@ -165,10 +165,10 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
         for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 
             // create all the histograms
-            H1F hist = new H1F("left_right","Left Right: Paddle "+paddle, 
+            H1F hist = new H1F("left_right","Up Down: Paddle "+paddle, 
                     2001, -50.05, 50.05);
 
-            hist.setTitle("Left Right  : Paddle "+paddle);
+            hist.setTitle("Up Down  : Paddle "+paddle);
 
             // create all the functions
             F1D edgeToEdgeFunc = new F1D("edgeToEdgeFunc","[height]",
@@ -178,7 +178,7 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
 
             DataGroup dg = new DataGroup(1,1);
             dg.addDataSet(hist, 0);
-            //dg.addDataSet(edgeToEdgeFunc, 0);
+            dg.addDataSet(edgeToEdgeFunc, 0);
             dataGroups.add(dg, 1,1,paddle);
 
             setPlotTitle(1,1,paddle);
@@ -217,88 +217,75 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
     public void fit(int sector, int layer, int paddle,
             double minRange, double maxRange) {
 
-        H1F leftRightHist = dataGroups.getItem(sector,layer,paddle).getH1F("left_right");
-
+    	H1F leftRightHist = dataGroups.getItem(sector,layer,paddle).getH1F("left_right");
         int nBin = leftRightHist.getXaxis().getNBins();
-        int maxBin = leftRightHist.getMaximumBin();
 
-        // calculate the 'average' of all bins
-        double averageAllBins=0;
-        for(int i=1;i<=nBin;i++)
-            averageAllBins+=leftRightHist.getBinContent(i);
-        averageAllBins/=nBin;
-
-        // find the first points left and right of max bin with bin content < average
-        int lowRangeFirstCut=0,highRangeFirstCut=0;
-        for(int i=maxBin;i>=1;i--){
-            if(leftRightHist.getBinContent(i)<averageAllBins){
-                lowRangeFirstCut=i;
+        // calculate the average of all bins
+//        double averageAllBins=0;
+//        for(int i=1;i<=nBin;i++)
+//            averageAllBins+=leftRightHist.getBinContent(i);
+//        averageAllBins/=nBin;
+//
+//        // find the first points left and right of max bin with bin content < average
+//        int lowRangeFirstCut=0,highRangeFirstCut=0;
+//        int maxBin = leftRightHist.getMaximumBin();
+//        for(int i=maxBin;i>=1;i--){
+//            if(leftRightHist.getBinContent(i)<averageAllBins){
+//                lowRangeFirstCut=i;
+//                break;
+//            }
+//        }
+//        for(int i=maxBin;i<=nBin;i++){
+//            if(leftRightHist.getBinContent(i)<averageAllBins){
+//                highRangeFirstCut=i;
+//                break;
+//            }
+//        }
+//
+//        // now calculate the 'average' in this range
+//        double averageCentralRange=0;
+//        for(int i=lowRangeFirstCut;i<=highRangeFirstCut;i++)
+//            averageCentralRange+=leftRightHist.getBinContent(i);
+//        averageCentralRange/=(highRangeFirstCut-lowRangeFirstCut+1);
+        
+        // calculate the mean bin content for non-zero bins
+        int nonZeroBins = 0;
+        double meanBinContent=0;
+        for(int i=1;i<=nBin;i++) {
+        	meanBinContent+=leftRightHist.getBinContent(i);
+        	if (leftRightHist.getBinContent(i) > 0) nonZeroBins++;
+        }
+        meanBinContent/=nonZeroBins;
+        
+        // find the edges with bin content < 0.1 * mean bin content for non-zero bins
+        double threshold=meanBinContent*LEFT_RIGHT_RATIO;
+        int leftEdgeBin=0, rightEdgeBin=nBin;
+        for(int i=0; i<nBin; i++){
+            if(leftRightHist.getBinContent(i)>threshold){
+                leftEdgeBin=i;
                 break;
             }
         }
-        for(int i=maxBin;i<=nBin;i++){
-            if(leftRightHist.getBinContent(i)<averageAllBins){
-                highRangeFirstCut=i;
-                break;
-            }
-        }
-
-        // now calculate the 'average' in this range
-        double averageCentralRange=0;
-        for(int i=lowRangeFirstCut;i<=highRangeFirstCut;i++)
-            averageCentralRange+=leftRightHist.getBinContent(i);
-        averageCentralRange/=(highRangeFirstCut-lowRangeFirstCut+1);
-
-        // find the first points left and right of maxBin with bin content < 0.3 * average in the range
-        double threshold=averageCentralRange*LEFT_RIGHT_RATIO;
-        //if(averageCentralRange<20) return;
-        int lowRangeSecondCut=0, highRangeSecondCut=0;
-        for(int i=maxBin;i>=1;i--){
-            if(leftRightHist.getBinContent(i)<threshold){
-                lowRangeSecondCut=i;
-                break;
-            }
-        }
-        for(int i=maxBin;i<=nBin;i++){
-            if(leftRightHist.getBinContent(i)<threshold){
-                highRangeSecondCut=i;
-                break;
-            }
-        }
-
-
-        // find error
-        // find the points left and right of maxBin with bin content < 0.3 * (average + sqrt of average)
-        double errorThreshold = (averageCentralRange + Math.sqrt(averageCentralRange))*LEFT_RIGHT_RATIO;
-        int lowRangeError=0, highRangeError=0;
-        for(int i=maxBin;i>=1;i--){
-            if(leftRightHist.getBinContent(i)<errorThreshold){
-                lowRangeError=i;
-                break;
-            }
-        }
-        for(int i=maxBin;i<=nBin;i++){
-            if(leftRightHist.getBinContent(i)<errorThreshold){
-                highRangeError=i;
+        for(int i=nBin; i>0; i--){
+            if(leftRightHist.getBinContent(i)>threshold){
+                rightEdgeBin=i;
                 break;
             }
         }
 
         // create the function showing the width of the spread
-        //F1D edgeToEdgeFunc = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc");
-        //        edgeToEdgeFunc.setRange(leftRightHist.getAxis().getBinCenter(lowRangeSecondCut), 
-        //                            leftRightHist.getAxis().getBinCenter(highRangeSecondCut));
-        //
-        //        edgeToEdgeFunc.setParameter(0, averageCentralRange*LEFT_RIGHT_RATIO); // height to draw line at
+        F1D edgeToEdgeFunc = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc");
+        edgeToEdgeFunc.setRange(leftRightHist.getAxis().getBinCenter(leftEdgeBin), 
+        		leftRightHist.getAxis().getBinCenter(rightEdgeBin));
 
-        // create the function with range = error values
-        // not currently used for calibration
-        F1D errorFunc = new F1D("p1","[height]",
-                leftRightHist.getAxis().getBinCenter(lowRangeError) -
-                leftRightHist.getAxis().getBinCenter(lowRangeSecondCut),
-                leftRightHist.getAxis().getBinCenter(highRangeError) -
-                leftRightHist.getAxis().getBinCenter(highRangeSecondCut));
-        errorFunc.setParameter(0, averageCentralRange*LEFT_RIGHT_RATIO); // height to draw line at
+        edgeToEdgeFunc.setParameter(0, meanBinContent*LEFT_RIGHT_RATIO); // height to draw line at
+        
+        // test code - show range over which average is calculated
+//        F1D edgeToEdgeFunc = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc");
+//        edgeToEdgeFunc.setRange(leftRightHist.getAxis().getBinCenter(lowRangeFirstCut), 
+//        		leftRightHist.getAxis().getBinCenter(highRangeFirstCut));
+//
+//        edgeToEdgeFunc.setParameter(0, averageCentralRange); // height to draw line at
 
     }
 
@@ -339,11 +326,11 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
         }
         else {
 
-            //double min = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMin(); 
-            //double max = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMax();
-            //leftRight = (min+max)/2.0;
+            double min = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMin(); 
+            double max = dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc").getMax();
+            leftRight = (min+max)/2.0;
 
-            leftRight = dataGroups.getItem(sector,layer,paddle).getH1F("left_right").getMean();
+            //leftRight = dataGroups.getItem(sector,layer,paddle).getH1F("left_right").getMean();
 
         }
 
@@ -353,7 +340,7 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
     @Override
     public void saveRow(int sector, int layer, int paddle) {
         calib.setDoubleValue(getCentroid(sector,layer,paddle),
-                "left_right", sector, layer, paddle);
+                "upstream_downstream", sector, layer, paddle);
     }
 
     @Override
@@ -367,7 +354,7 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
     @Override
     public void setPlotTitle(int sector, int layer, int paddle) {
         // reset hist title as may have been set to null by show all 
-        dataGroups.getItem(sector,layer,paddle).getH1F("left_right").setTitleX("(timeLeft-timeRight) (ns)");
+        dataGroups.getItem(sector,layer,paddle).getH1F("left_right").setTitleX("(Time Up - Time Down) (ns)");
     }
 
     @Override
@@ -376,7 +363,7 @@ public class CtofLeftRightEventListener extends CTOFCalibrationEngine {
         H1F hist = dataGroups.getItem(sector,layer,paddle).getH1F("left_right");
         hist.setTitleX("");
         canvas.draw(hist);
-        //canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc"), "same");
+        canvas.draw(dataGroups.getItem(sector,layer,paddle).getF1D("edgeToEdgeFunc"), "same");
 
     }
 

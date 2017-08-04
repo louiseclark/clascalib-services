@@ -93,7 +93,7 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
         // controlled by calibration step class
         TOFPaddle.tof = "CTOF";
         leftRightValues = new CalibrationConstants(3,
-                "left_right/F");
+                "upstream_downstream/F");
         veffValues = new CalibrationConstants(3,
                 "veff_left/F");
         p2pValues =    new CalibrationConstants(3,

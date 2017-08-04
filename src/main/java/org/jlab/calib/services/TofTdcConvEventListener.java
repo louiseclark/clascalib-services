@@ -61,10 +61,23 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
 	private int FIT_METHOD_SF = 0;
 	private int FIT_METHOD_MAX = 1;
 	
-	private final double[]        FIT_MIN = {0.0, 25500.0, 24800.0, 25500.0};
-	private final double[]        FIT_MAX = {0.0, 26800.0, 26200.0, 26800.0};
-	private final double[]        TDC_MIN = {0.0, 25000.0,  24000.0, 25000.0};
-	private final double[]        TDC_MAX = {0.0, 28000.0, 27000.0, 28000.0};	
+	// Real data
+	private final double[]        REAL_FIT_MIN = {0.0, 25500.0, 24800.0, 25500.0};
+	private final double[]        REAL_FIT_MAX = {0.0, 26800.0, 26200.0, 26800.0};
+	private final double[]        REAL_TDC_MIN = {0.0, 25000.0,  24000.0, 25000.0};
+	private final double[]        REAL_TDC_MAX = {0.0, 28000.0, 27000.0, 28000.0};	
+	// GEMC
+	private final double[]        GEMC_FIT_MIN = {0.0, 6400.0, 6400.0, 6500.0};
+	private final double[]        GEMC_FIT_MAX = {0.0, 6800.0, 6800.0, 7250.0};
+	private final double[]        GEMC_TDC_MIN = {0.0, 6300.0,  6300.0, 6300.0};
+	private final double[]        GEMC_TDC_MAX = {0.0, 7500.0, 7500.0, 7500.0};
+	// This run
+	double[]        FIT_MIN = {0.0, 0.0, 0.0, 0.0};
+	double[]        FIT_MAX = {0.0, 0.0, 0.0, 0.0};
+	double[]        TDC_MIN = {0.0, 0.0,  0.0, 0.0};
+	double[]        TDC_MAX = {0.0, 0.0, 0.0, 0.0};
+
+	boolean initDone = false;
 
     public TofTdcConvEventListener() {
 
@@ -168,6 +181,32 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
 
     @Override
     public void resetEventListener() {
+    	// need to do this later after we know if GEMC or REAL
+    }
+    
+    public void init() {
+    	
+    	if (TOFCalibration.dataTypeKnown) {
+    		initDone = true;
+    	}
+    	else {
+    		return;
+    	}
+    	
+    	// Set the TDC ranges depending on data type
+    	
+    	if (TOFCalibration.DATA_TYPE == TOFCalibration.GEMC_DATA) {
+    		FIT_MIN = GEMC_FIT_MIN;
+    		FIT_MAX = GEMC_FIT_MAX;
+    		TDC_MIN = GEMC_TDC_MIN;
+    		TDC_MAX = GEMC_TDC_MAX;
+    	}
+    	else {
+    		FIT_MIN = REAL_FIT_MIN;
+    		FIT_MAX = REAL_FIT_MAX;
+    		TDC_MIN = REAL_TDC_MIN;
+    		TDC_MAX = REAL_TDC_MAX;    		
+    	}
 
         // perform init processing
         for (int sector = 1; sector <= 6; sector++) {
@@ -243,6 +282,9 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
 
     @Override
     public void processPaddleList(List<TOFPaddle> paddleList) {
+    	
+    	if (!initDone) init();
+    	if (!initDone) return;
 
         for (TOFPaddle paddle : paddleList) {
 
@@ -403,7 +445,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
 			
 			for (int p=minP; p<=maxP; p++) {
 				// save the override values
-				Double[] consts = constants.getItem(sector, layer, paddle);
+				Double[] consts = constants.getItem(sector, layer, p);
 				consts[OVERRIDE_LEFT] = overrideValueL;
 				consts[OVERRIDE_RIGHT] = overrideValueR;
 

@@ -91,6 +91,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
     CTOFCalibrationEngine[] engines = {
             new CtofHVEventListener(),
             new CtofAttenEventListener(),
+            new CtofTdcConvEventListener(),
             new CtofLeftRightEventListener(),
             new CtofVeffEventListener(),
             new CtofRFPadEventListener(),
@@ -99,14 +100,16 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
     // engine indices
     public final int HV = 0;
     public final int ATTEN = 1;
-    public final int LEFT_RIGHT = 2;
-    public final int VEFF = 3;
-    public final int RFPAD = 4;
-    public final int P2P = 5;
+    public final int TDC_CONV = 2;
+    public final int LEFT_RIGHT = 3;
+    public final int VEFF = 4;
+    public final int RFPAD = 5;
+    public final int P2P = 6;
     
     String[] dirs = {"/calibration/ctof/gain_balance",
                      "/calibration/ctof/attenuation",
-                     "/calibration/ctof/timing_offset/left_right",
+                     "/calibration/ctof/tdc_conv",                     
+                     "/calibration/ctof/timing_offset/upstream_downstream",
                      "/calibration/ctof/effective_velocity",
                      "/calibration/ctof/timing_offset/rfpad",
                      "/calibration/ctof/timing_offset/P2P"};
@@ -132,7 +135,10 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 //            160, -40.0, 40.0);
     
     // configuration settings
-    JCheckBox[] stepChecks = {new JCheckBox(),new JCheckBox(),new JCheckBox(),new JCheckBox(),new JCheckBox(), new JCheckBox()};    
+    JCheckBox[] stepChecks = {new JCheckBox(),new JCheckBox(),new JCheckBox(),
+    						  new JCheckBox(),new JCheckBox(),new JCheckBox(), new JCheckBox()};    
+    private JTextField ctofCenterText = new JTextField(5);
+    public static double ctofCenter = 0.0;
     private JTextField rcsText = new JTextField(5);
     public static double maxRcs = 0.0;
     private JTextField minVText = new JTextField(5);
@@ -162,6 +168,11 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
     private JTextField minVeffEventsText = new JTextField(5);
     
     public final static PrintStream oldStdout = System.out;
+    
+	public static int DATA_TYPE = 0;
+	public static final int REAL_DATA = 0;
+	public static final int GEMC_DATA = 1;
+	public static boolean dataTypeKnown = false;    
     
     public CTOFCalibration() {
         
@@ -251,6 +262,8 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
             engine = engines[HV];
         } else if (selectedDir == dirs[ATTEN]) {
             engine = engines[ATTEN];
+        } else if (selectedDir == dirs[TDC_CONV]) {
+            engine = engines[TDC_CONV];            
         } else if (selectedDir == dirs[LEFT_RIGHT]) {
             engine = engines[LEFT_RIGHT];
         } else if (selectedDir == dirs[VEFF]) {
@@ -361,6 +374,9 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
             }
             
             // set the config values
+            if (ctofCenterText.getText().compareTo("") != 0) {
+                ctofCenter = Double.parseDouble(ctofCenterText.getText());
+            }
             if (rcsText.getText().compareTo("") != 0) {
                 maxRcs = Double.parseDouble(rcsText.getText());
             }
@@ -394,6 +410,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
             System.out.println("");
             System.out.println("Configuration settings - Tracking/General");
             System.out.println("-----------------------------------------");
+            System.out.println("CTOF Center z (cm): "+ctofCenter);
             System.out.println("Maximum reduced chi squared for tracks: "+maxRcs);
             System.out.println("Minimum vertex z: "+minV);
             System.out.println("Maximum vertex z: "+maxV);
@@ -422,8 +439,20 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
 
     public void dataEventAction(DataEvent event) {
 
-        //DataProvider dp = new DataProvider();
-        List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
+		// Set the data type
+		if (!dataTypeKnown) {
+			if (event.hasBank("CTOF::adc")) { // not just a run config bank
+				if (event.hasBank("MC::Particle")) {
+					DATA_TYPE = GEMC_DATA;
+				}
+				else {
+					DATA_TYPE = REAL_DATA;
+				}
+				dataTypeKnown = true;
+			}
+		}
+    	
+		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
         
         for (int i=0; i< engines.length; i++) {
         	        
@@ -435,7 +464,12 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
                     
                 }
                 else if (event.getType()==DataEventType.EVENT_ACCUMULATE) {
-                    engines[i].processPaddleList(paddleList);
+                	if (i==P2P) {
+                		engines[i].processEvent(event);
+                	}
+                	else {
+                		engines[i].processPaddleList(paddleList);
+                	}
                 }
                 else if (event.getType()==DataEventType.EVENT_STOP) {
                     System.setOut(oldStdout);
@@ -653,9 +687,9 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
                                           new CtofPrevConfigPanel(new CTOFCalibrationEngine()),
         								  new CtofPrevConfigPanel(new CTOFCalibrationEngine())};
 
-        for (int i=2; i< engines.length; i++) {  // skip HV and attenuation
-            engPanels[i-2] = new CtofPrevConfigPanel(engines[i]);
-            confPanel.add(engPanels[i-2]);
+        for (int i=3; i< engines.length; i++) {  // skip HV and attenuation
+            engPanels[i-3] = new CtofPrevConfigPanel(engines[i]);
+            confPanel.add(engPanels[i-3]);
         }
         
         JPanel butPage2 = new configButtonPanel(this, true, "Next");
@@ -671,80 +705,89 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
         c.weighty = 1;
         c.anchor = c.NORTHWEST;
         c.insets = new Insets(3,3,3,3);
-        // Chi squared
+        // CTOF z position
         c.gridx = 0;
         c.gridy = 0;
+        trPanel.add(new JLabel("CTOF Center z (cm):"),c);
+        ctofCenterText.addActionListener(this);
+        ctofCenterText.setText("-19.3");
+        c.gridx = 1;
+        c.gridy = 0;
+        trPanel.add(ctofCenterText,c);
+        // Chi squared
+        c.gridx = 0;
+        c.gridy = 1;
         trPanel.add(new JLabel("Maximum reduced chi squared for track:"),c);
         rcsText.addActionListener(this);
         rcsText.setText("75.0");
         c.gridx = 1;
-        c.gridy = 0;
+        c.gridy = 1;
         trPanel.add(rcsText,c);
         c.gridx = 2;
-        c.gridy = 0;
+        c.gridy = 1;
         trPanel.add(new JLabel("Enter 0 for no cut"),c);
         // vertex min
         c.gridx = 0;
-        c.gridy = 1;
+        c.gridy = 2;
         trPanel.add(new JLabel("Minimum vertex z:"),c);
         minVText.addActionListener(this);
         minVText.setText("-10.0");
         c.gridx = 1;
-        c.gridy = 1;
+        c.gridy = 2;
         trPanel.add(minVText,c);
         // vertex max
         c.gridx = 0;
-        c.gridy = 2;
+        c.gridy = 3;
         trPanel.add(new JLabel("Maximum vertex z:"),c);
         maxVText.addActionListener(this);
         maxVText.setText("10.0");
         c.gridx = 1;
-        c.gridy = 2;
+        c.gridy = 3;
         trPanel.add(maxVText,c);
         // p min
         c.gridx = 0;
-        c.gridy = 3;
+        c.gridy = 4;
         trPanel.add(new JLabel("Minimum momentum from tracking (GeV):"),c);
         minPText.addActionListener(this);
         minPText.setText("1.0");
         c.gridx = 1;
-        c.gridy = 3;
+        c.gridy = 4;
         trPanel.add(minPText,c);
         // track charge
         c.gridx = 0;
-        c.gridy = 4;
+        c.gridy = 5;
         trPanel.add(new JLabel("Track charge:"),c);
         trackChargeList.addItem("Both");
         trackChargeList.addItem("Negative");
         trackChargeList.addItem("Positive");
         trackChargeList.addActionListener(this);
         c.gridx = 1;
-        c.gridy = 4;
+        c.gridy = 5;
         trPanel.add(trackChargeList,c);
         // PID
         c.gridx = 0;
-        c.gridy = 5;
+        c.gridy = 6;
         trPanel.add(new JLabel("PID:"),c);
         pidList.addItem("Both");
         pidList.addItem("Electrons");
         pidList.addItem("Pions");
         pidList.addActionListener(this);
         c.gridx = 1;
-        c.gridy = 5;
+        c.gridy = 6;
         trPanel.add(pidList,c);
         c.gridx = 2;
-        c.gridy = 5;
+        c.gridy = 6;
         trPanel.add(new JLabel("Not currently used"),c);
         // trigger
         c.gridx = 0;
-        c.gridy = 6;
+        c.gridy = 7;
         trPanel.add(new JLabel("Trigger:"),c);
         triggerText.addActionListener(this);
         c.gridx = 1;
-        c.gridy = 6;
+        c.gridy = 7;
         trPanel.add(triggerText,c);        
         c.gridx = 2;
-        c.gridy = 6;
+        c.gridy = 7;
         trPanel.add(new JLabel("Not currently used"),c);
         
         JPanel butPage3 = new configButtonPanel(this, true, "Next");

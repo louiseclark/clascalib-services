@@ -164,7 +164,7 @@ public class DataProvider {
 				paddle.setPos(tx,ty,tz); 
 				paddle.ADC_TIMEL = adcBank.getFloat("time", adcIdx1);
 				paddle.ADC_TIMER = adcBank.getFloat("time", adcIdx2);
-				paddle.TOF_TIME = hitsBank.getFloat("time", hitIndex);
+				paddle.RECON_TIME = hitsBank.getFloat("time", hitIndex);
 				
 				//paddle.show();
 				

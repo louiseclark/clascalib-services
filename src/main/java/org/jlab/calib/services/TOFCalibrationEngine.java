@@ -534,12 +534,14 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		
 		
 		boolean hitInSection = true;
-		// exclude ends of paddles in all cases
-		if (paddle.paddleY() <= -paddle.paddleLength()/2.0 + 10.0 ||
+		if (counterSection==FULL_COUNTER) {
+			hitInSection = true;
+		}
+		else if (paddle.paddleY() <= -paddle.paddleLength()/2.0 + 10.0 ||
 			paddle.paddleY() >= paddle.paddleLength()/2.0 - 10.0) {
 			hitInSection = false;
 		}
-		else if ( counterSection==FULL_COUNTER ||
+		else if ( 
 			(counterSection==CENTRE_SECTION && Math.abs(paddle.paddleY()) <= sectionWidth/2.0) ||
 			(counterSection==LEFT_SECTION && 
 				paddle.paddleY() <= -paddle.paddleLength()/2.0 + 10.0 + sectionWidth) || 
