@@ -57,9 +57,6 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 	private String fitOption = "RNQ";
 	int backgroundSF = -1;
 	boolean showSlices = false;
-	private int FIT_METHOD_SF = 0;
-	private int FIT_METHOD_MAX = 1;
-
 
 	public TofVeffEventListener() {
 
@@ -290,7 +287,7 @@ public class TofVeffEventListener extends TOFCalibrationEngine {
 		// fit function to the graph of means
 		GraphErrors veffGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("veffGraph");
 		
-		if (fitMethod==FIT_METHOD_SF && sector==2) {
+		if (fitMethod==FIT_METHOD_SF) {
 			ParallelSliceFitter psf = new ParallelSliceFitter(veffHist);
 			psf.setFitMode(fitMode);
 			psf.setMinEvents(fitMinEvents);

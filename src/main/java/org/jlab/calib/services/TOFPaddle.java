@@ -241,28 +241,50 @@ public class TOFPaddle {
 		return refTime() - rfpad();
 	}
 
+	private double nominalTWCorrL() {
+		
+		if (TOFCalibration.twMethod == TOFCalibration.TW_POS_DEP) {
+			return this.posDepNominalTWCorrL();
+		}
+		else {
+			return this.posIndepNominalTWCorrL();
+		}
+		
+	}
+	
+	private double nominalTWCorrR() {
+		
+		if (TOFCalibration.twMethod == TOFCalibration.TW_POS_DEP) {
+			return this.posDepNominalTWCorrR();
+		}
+		else {
+			return this.posIndepNominalTWCorrR();
+		}
+		
+	}
+	
 	// original version
-//	private double nominalTWCorr(double adc) {
-//		return 40.0 / (Math.pow(adc,0.5));
-//	}
-//	
-//	private double nominalTWCorrL() {
-//		return nominalTWCorr(ADCL);
-//	}
-//
-//	private double nominalTWCorrR() {
-//		return nominalTWCorr(ADCR);
-//	}	
+	private double posIndepNominalTWCorr(double adc) {
+		return 40.0 / (Math.pow(adc,0.5));
+	}
+	
+	private double posIndepNominalTWCorrL() {
+		return posIndepNominalTWCorr(ADCL);
+	}
+
+	private double posIndepNominalTWCorrR() {
+		return posIndepNominalTWCorr(ADCR);
+	}	
 
 	// position dependent version
-	private double nominalTWCorrL() {
+	private double posDepNominalTWCorrL() {
 		double padNum = getDescriptor().getComponent();
 		double tw0 = 40.0;
 		double coorTerm = (paddleLength()*0.5 + paddleY());
 		double paddleTerm = (1 - (0.795 - 0.0034*padNum)) / paddleLength();
 		double newTw0 = tw0 - tw0*coorTerm*paddleTerm;
 		
-//		System.out.println("TWCorrL");
+//		System.out.println("pos Dep TWCorrL");
 //		System.out.println("Panel "+this.getDescriptor().getLayer());
 //		System.out.println("padNum "+padNum);
 //		System.out.println("paddleLength "+paddleLength());
@@ -274,7 +296,7 @@ public class TOFPaddle {
 		return newTw0 / (Math.pow(ADCL,0.5));
 	}
 
-	private double nominalTWCorrR() {
+	private double posDepNominalTWCorrR() {
 		double padNum = getDescriptor().getComponent();
 		double tw0 = 40.0;
 		double coorTerm = (paddleLength()*0.5 - paddleY());

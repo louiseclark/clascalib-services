@@ -52,17 +52,17 @@ public class CtofHVAdjustPanel 	extends JPanel
 		// create the table
 		CalibrationConstantsView ccview = new CalibrationConstantsView();
 		calib = new CalibrationConstants(3,
-				"current_HV_left/F:current_HV_right/F:new_HV_left/F:new_HV_right/F");
+				"current_HV_up/F:current_HV_down/F:new_HV_up/F:new_HV_down/F");
 		calib.setName("/calibration/ctof/hv");
 		calib.setPrecision(3);
 		ccview.addConstants(calib);
 		
 		for (int paddle = 1; paddle <= hv.NUM_PADDLES[0]; paddle++) {
 			calib.addEntry(1, 1, paddle);
-			calib.setDoubleValue(0.0,"current_HV_left", 1, 1, paddle);
-			calib.setDoubleValue(0.0,"current_HV_right", 1, 1, paddle);
-			calib.setDoubleValue(0.0,"new_HV_left", 1, 1, paddle);
-			calib.setDoubleValue(0.0,"new_HV_right", 1, 1, paddle);
+			calib.setDoubleValue(0.0,"current_HV_up", 1, 1, paddle);
+			calib.setDoubleValue(0.0,"current_HV_down", 1, 1, paddle);
+			calib.setDoubleValue(0.0,"new_HV_up", 1, 1, paddle);
+			calib.setDoubleValue(0.0,"new_HV_down", 1, 1, paddle);
 		}
 		
 		// Create field for file selection
@@ -111,6 +111,23 @@ public class CtofHVAdjustPanel 	extends JPanel
 			FileWriter outputFw = new FileWriter(outputFile.getAbsoluteFile());
 			BufferedWriter outputBw = new BufferedWriter(outputFw);
 			
+			// Write the header
+			outputBw.write("--- Start BURT header");
+			outputBw.newLine();
+			outputBw.write("CTOF Calibration HV recalculation");
+			outputBw.newLine();
+			Date today = new Date();
+			DateFormat dateFormat = new SimpleDateFormat("MMM dd yyyy HH:mm:ss");
+			String todayString = dateFormat.format(today);
+			outputBw.write("Date and time: "+todayString);
+			outputBw.newLine();
+			outputBw.write("Login ID: "+System.getProperty("user.name"));
+			outputBw.newLine();
+			outputBw.write("Input HV file: "+fc.getSelectedFile().getAbsolutePath());
+			outputBw.newLine();
+			outputBw.write("--- End BURT header");
+			outputBw.newLine();
+			
 			line = bufferedReader.readLine();
 			while (line != null) {
 				
@@ -153,12 +170,12 @@ public class CtofHVAdjustPanel 	extends JPanel
                 
                 // update table
             	if (pmt.equals("L")) {
-            		calib.setDoubleValue(origVoltage,"current_HV_left", sector, layer, paddle);
-            		calib.setDoubleValue(newHV,"new_HV_left", sector, layer, paddle);
+            		calib.setDoubleValue(origVoltage,"current_HV_up", sector, layer, paddle);
+            		calib.setDoubleValue(newHV,"new_HV_up", sector, layer, paddle);
             	}
             	else {
-            		calib.setDoubleValue(origVoltage,"current_HV_right", sector, layer, paddle);
-            		calib.setDoubleValue(newHV,"new_HV_right", sector, layer, paddle);
+            		calib.setDoubleValue(origVoltage,"current_HV_down", sector, layer, paddle);
+            		calib.setDoubleValue(newHV,"new_HV_down", sector, layer, paddle);
             	}
 
                 line = bufferedReader.readLine();
@@ -212,7 +229,7 @@ public class CtofHVAdjustPanel 	extends JPanel
 			}
 		}
 
-		return filePrefix + "." + newFileNum + ".txt";
+		return filePrefix + "." + newFileNum + ".snp";
 	}	
 	
 }

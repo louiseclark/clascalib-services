@@ -1,7 +1,14 @@
 package org.jlab.calib.services;
 
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import javax.swing.JFrame;
@@ -45,14 +52,16 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	public final int[]		EXPECTED_MIP_CHANNEL = {800, 2000, 800};
 	public final int		ALLOWED_MIP_DIFF = 50;
 	public final double[]	ALPHA = {13.4, 4.7, 8.6};
-    public final double[]	MAX_VOLTAGE = {2500.0, 2000.0, 2500.0};
-    public final double		MAX_DELTA_V = 250.0;
-    public final int		MIN_STATS = 100;
+	public final double[]	MAX_VOLTAGE = {2500.0, 2000.0, 2500.0};
+	public final double		MAX_DELTA_V = 250.0;
+	public final int		MIN_STATS = 100;
 
-    public String hvSetPrefix = "FTOFHVSET";
+	public String hvSetPrefix = "FTOFHVSET";
 
-    public H1F hvStatHist;
-    private String showPlotType = "GEOMEAN";
+	public H1F hvStatHist;
+	private String showPlotType = "GEOMEAN";
+	
+	private String statusFileName = "";
 
 	public TofHVEventListener() {
 
@@ -60,24 +69,25 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		fileNamePrefix = "FTOF_CALIB_HV_";
 		// get file name here so that each timer update overwrites it
 		filename = nextFileName();
-		
+		statusFileName = nextStatusFileName();
+
 		calib = new CalibrationConstants(3,
 				"mipa_left/F:mipa_right/F:mipa_left_err/F:mipa_right_err/F:logratio/F:logratio_err/F");
 		calib.setName("/calibration/ftof/gain_balance");
 		calib.setPrecision(3); // record calibration constants to 3 dp
-		
+
 		for (int i=0; i<3; i++) {
-			
+
 			int layer = i+1;
 			calib.addConstraint(3, EXPECTED_MIP_CHANNEL[i]-ALLOWED_MIP_DIFF, 
-								   EXPECTED_MIP_CHANNEL[i]+ALLOWED_MIP_DIFF, 1, layer);
+					EXPECTED_MIP_CHANNEL[i]+ALLOWED_MIP_DIFF, 1, layer);
 			// calib.addConstraint(calibration column, min value, max value,
 			// col to check if constraint should apply, value of col if constraint should be applied);
 			// (omit last two if applying to all rows)
 			calib.addConstraint(4, EXPECTED_MIP_CHANNEL[i]-ALLOWED_MIP_DIFF, 
-					   EXPECTED_MIP_CHANNEL[i]+ALLOWED_MIP_DIFF, 1, layer);
+					EXPECTED_MIP_CHANNEL[i]+ALLOWED_MIP_DIFF, 1, layer);
 		}
-		
+
 		// initialize the counter status
 		for (int sector=1; sector<=6; sector++) {
 			for (int layer=1; layer<=3; layer++) {
@@ -96,7 +106,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	public void populatePrevCalib() {
 		prevCalRead = true;
 	}
-	
+
 	@Override
 	public void resetEventListener() {
 
@@ -151,28 +161,28 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 
 	@Override
 	public void processEvent(DataEvent event) {
-		
+
 		//DataProvider dp = new DataProvider();
 		List<TOFPaddle> paddleList = DataProvider.getPaddleList(event);
 		processPaddleList(paddleList);
 
 	}
-	
+
 	@Override
 	public void processPaddleList(List<TOFPaddle> paddleList) {
-		
+
 		//System.out.println("HV Process paddle list");
 
 		for (TOFPaddle paddle : paddleList) {
-			
+
 			int sector = paddle.getDescriptor().getSector();
 			int layer = paddle.getDescriptor().getLayer();
 			int component = paddle.getDescriptor().getComponent();
-			
+
 			//System.out.println("HV paddle "+sector+layer+component+" geoMean "+paddle.geometricMean());
 
 			if (paddle.isValidGeoMean() && paddle.geometricMean() > EXPECTED_MIP_CHANNEL[layer-1] * 0.25) {
-					///&& paddle.trackFound()) {
+				///&& paddle.trackFound()) {
 				dataGroups.getItem(sector,layer,component).getH1F("geomean").fill(paddle.geometricMean());
 				hvStatHist.fill(((layer-1)*10)+sector);
 			}
@@ -180,37 +190,45 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			if (paddle.isValidLogRatio()) {
 				dataGroups.getItem(sector,layer,component).getH1F("logratio").fill(paddle.logRatio());
 			}
-			
+
 		}
 	}	
 
+    @Override
+    public void analyze() {
+    
+        saveCounterStatus();
+        super.analyze();
+    
+    }	
+	
 	@Override
 	public void fit(int sector, int layer, int paddle,
 			double minRange, double maxRange){
 		fitGeoMean(sector, layer, paddle, minRange, maxRange);
 		fitLogRatio(sector, layer, paddle, minRange, maxRange);
 	}
-	
+
 	public void fitGeoMean(int sector, int layer, int paddle,
 			double minRange, double maxRange){
 
 		int layer_index = layer-1;
 
 		TOFH1F h = (TOFH1F) dataGroups.getItem(sector,layer,paddle).getH1F("geomean");
-		
+
 		// First rebin depending on number of entries
-//		int nEntries = h.getEntries(); 
-//		if ((nEntries != 0) && (h.getAxis().getNBins() == GM_HIST_BINS[layer_index])) {
-//			//   not empty      &&   hasn't already been rebinned
-//			int nRebin=(int) (GM_REBIN_THRESHOLD/nEntries);            
-//			if (nRebin>5) {
-//				nRebin=5;               
-//			}
-//
-//			if(nRebin>0) {
-//				h.rebin(nRebin);
-//			}		
-//		}		
+		//		int nEntries = h.getEntries(); 
+		//		if ((nEntries != 0) && (h.getAxis().getNBins() == GM_HIST_BINS[layer_index])) {
+		//			//   not empty      &&   hasn't already been rebinned
+		//			int nRebin=(int) (GM_REBIN_THRESHOLD/nEntries);            
+		//			if (nRebin>5) {
+		//				nRebin=5;               
+		//			}
+		//
+		//			if(nRebin>0) {
+		//				h.rebin(nRebin);
+		//			}		
+		//		}		
 		// Work out the range for the fit
 		double maxChannel = h.getAxis().getBinCenter(h.getAxis().getNBins()-1);
 		double startChannelForFit = 0.0;
@@ -249,9 +267,9 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 
 		// adjust the range now that the max has been found
 		// unless it's been set to custom value
-//		if (minRange == 0.0) {
-//			startChannelForFit = maxPos*0.5;
-//		}
+		//		if (minRange == 0.0) {
+		//			startChannelForFit = maxPos*0.5;
+		//		}
 		if (maxRange == UNDEFINED_OVERRIDE) {
 			endChannelForFit = maxPos+GM_HIST_MAX[layer_index]*0.4;
 			if (endChannelForFit > 0.9*GM_HIST_MAX[layer_index]) {
@@ -285,7 +303,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		H1F h = dataGroups.getItem(sector,layer,paddle).getH1F("logratio");
 
 		// calculate the mean value using portion of the histogram where counts are > 0.2 * max counts
-		
+
 		double sum =0.0;
 		double sumWeight =0.0;
 		double sumSquare =0.0;
@@ -294,7 +312,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		int nBins = h.getAxis().getNBins();
 		int lowThresholdBin = 0;
 		int highThresholdBin = nBins-1;
-		
+
 		// find the bin left of max bin where counts drop to 0.2 * max
 		for (int i=maxBin; i>0; i--) {
 
@@ -335,12 +353,12 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			logRatioMean=0.0;
 			logRatioError=0.0;
 		}
-		
+
 		// store the function showing the width over which mean is calculated
-//		F1D lrFunc = dataGroups.getItem(sector,layer,paddle).getF1D("lrFunc");
-//		lrFunc.setRange(h.getAxis().getBinCenter(lowThresholdBin), h.getAxis().getBinCenter(highThresholdBin));
-//
-//		lrFunc.setParameter(0, LR_THRESHOLD_FRACTION*maxCounts); // height to draw line at
+		//		F1D lrFunc = dataGroups.getItem(sector,layer,paddle).getF1D("lrFunc");
+		//		lrFunc.setRange(h.getAxis().getBinCenter(lowThresholdBin), h.getAxis().getBinCenter(highThresholdBin));
+		//
+		//		lrFunc.setParameter(0, LR_THRESHOLD_FRACTION*maxCounts); // height to draw line at
 
 		// put the constants in the list
 		Double[] consts = constants.getItem(sector, layer, paddle);
@@ -353,8 +371,8 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 	public void customFit(int sector, int layer, int paddle){
 
 		String[] fields = {"Min range for geometric mean fit:", "Max range for geometric mean fit:", "SPACE",
-						   "Override MIP channel:", "Override MIP channel uncertainty:","SPACE",
-						   "Override Log ratio:", "Override Log ratio uncertainty:"};
+				"Override MIP channel:", "Override MIP channel uncertainty:","SPACE",
+				"Override Log ratio:", "Override Log ratio uncertainty:"};
 		TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
 		int result = JOptionPane.showConfirmDialog(null, panel, 
@@ -367,14 +385,14 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			double overrideGMUnc = toDouble(panel.textFields[3].getText());			
 			double overrideLR = toDouble(panel.textFields[4].getText());
 			double overrideLRUnc = toDouble(panel.textFields[5].getText());			
-			
+
 			int minP = paddle;
 			int maxP = paddle;
 			if (panel.applyToAll) {
 				minP = 1;
 				maxP = NUM_PADDLES[layer-1];
 			}
-			
+
 			for (int p=minP; p<=maxP; p++) {
 				// save the override values
 				Double[] consts = constants.getItem(sector, layer, p);
@@ -382,18 +400,18 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 				consts[GEOMEAN_UNC_OVERRIDE] = overrideGMUnc;
 				consts[LOGRATIO_OVERRIDE] = overrideLR;
 				consts[LOGRATIO_UNC_OVERRIDE] = overrideLRUnc;
-	
+
 				fitGeoMean(sector, layer, p, minRange, maxRange);
-	
+
 				// update the table
 				saveRow(sector,layer,p);
 			}
 			calib.fireTableDataChanged();
-			
+
 		}	 
 	}
 
-	
+
 	public double getMipChannel(int sector, int layer, int paddle) {
 
 		double mipChannel = 0.0;
@@ -410,12 +428,12 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		}
 		return mipChannel;
 	}
-	
+
 	public double getMipChannelUnc(int sector, int layer, int paddle) {
 
 		double mipChannelUnc = 0.0;
 		double overrideVal = constants.getItem(sector, layer, paddle)[GEOMEAN_UNC_OVERRIDE];
-		
+
 		if (overrideVal != UNDEFINED_OVERRIDE) {
 			mipChannelUnc = overrideVal;
 		}
@@ -434,61 +452,61 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		return mipChannelUnc;
 
 	}	
-	
+
 	public double getLogRatio(int sector, int layer, int paddle) {
-	
+
 		double logRatio = 0.0;
 		// has the value been overridden?
 		double overrideVal = constants.getItem(sector, layer, paddle)[LOGRATIO_OVERRIDE];
-		
+
 		if (overrideVal != UNDEFINED_OVERRIDE) {
 			logRatio = overrideVal;
 		}
 		else  {	
 			logRatio = dataGroups.getItem(sector,layer,paddle).getH1F("logratio").getMean();
-			
-//			logRatio = constants.getItem(sector, layer, paddle)[LR_CENTROID];
+
+			//			logRatio = constants.getItem(sector, layer, paddle)[LR_CENTROID];
 		}		
 		return logRatio;
-		
+
 	}
-	
+
 	public double getLogRatioUnc(int sector, int layer, int paddle) {
-		
+
 		double logRatioUnc= 0.0;
 		// has the value been overridden?
 		double overrideVal = constants.getItem(sector, layer, paddle)[LOGRATIO_UNC_OVERRIDE];
-		
+
 		if (overrideVal != UNDEFINED_OVERRIDE) {
 			logRatioUnc = overrideVal;
 		}
 		else {
 			logRatioUnc = constants.getItem(sector, layer, paddle)[LR_ERROR];
 			//logRatioUnc = dataGroups.getItem(sector,layer,paddle).getH1F("logratio").getRMS();
-			
+
 		}		
 		return logRatioUnc;
 	}	
-	
+
 	public double newHV(int sector, int layer, int paddle, double origVoltage, String pmt) {
-		
+
 		// Don't bother recalculating if MIP peak is already acceptable
 		if (isGoodPaddle(sector,layer,paddle)) {
 			System.out.println("SLC "+sector+layer+paddle+": MIP peak already acceptable, no change to voltage");
 			return origVoltage;
 		}
-		
+
 		int layer_index = layer-1;
 		//DetectorDescriptor desc = new DetectorDescriptor();
 		//desc.setSectorLayerComponent(sector, layer, paddle);
-		
+
 		double gainIn = getMipChannel(sector, layer, paddle);		
 		double centroid = getLogRatio(sector, layer, paddle);
-		
+
 		double gainLR = 0.0;
 		if (pmt == "L") {
 			gainLR = gainIn / (Math.sqrt(Math.exp(centroid)));
-			
+
 			// put the constants in the treemap
 			//Double[] consts = getConst(sector, layer, paddle);
 			//consts[CURRENT_VOLTAGE_LEFT] = origVoltage;
@@ -502,10 +520,10 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			//consts[CURRENT_VOLTAGE_RIGHT] = origVoltage;
 			//constants.put(desc.getHashCode(), consts);
 		}
-		
+
 		double deltaGain = EXPECTED_MIP_CHANNEL[layer_index] - gainLR;
 		double deltaV = (origVoltage * deltaGain) / (gainLR * ALPHA[layer_index]);
-		
+
 		// Safety check - don't exceed maximum voltage change
 		if (deltaV > MAX_DELTA_V) {
 			System.out.println("SLC "+sector+layer+paddle+": Max deltaV exceeded");
@@ -515,15 +533,15 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			System.out.println("SLC "+sector+layer+paddle+": Max deltaV exceeded");
 			deltaV = -MAX_DELTA_V;
 		}
-		
+
 		// Don't change voltage if stats are low
 		if (dataGroups.getItem(sector,layer,paddle).getH1F("geomean").getEntries() < MIN_STATS) {
 			System.out.println("SLC "+sector+layer+paddle+": Low stats, deltaV set to zero");
 			deltaV = 0.0;
 		};
-		
+
 		double newVoltage = origVoltage + deltaV;
-		
+
 		// Safety check - don't exceed maximum voltage
 		if (newVoltage > MAX_VOLTAGE[layer_index]) {
 			System.out.println("SLC "+sector+layer+paddle+": Max V exceeded");
@@ -547,11 +565,11 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 			System.out.println("deltaV = "+deltaV);
 			System.out.println("return = "+newVoltage);
 		}
-		
+
 		return newVoltage;
-		
+
 	}	
-	
+
 	@Override
 	public void saveRow(int sector, int layer, int paddle) {
 		calib.setDoubleValue(getMipChannel(sector,layer,paddle),
@@ -566,87 +584,87 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 				"logratio", sector, layer, paddle);
 		calib.setDoubleValue(getLogRatioUnc(sector,layer,paddle),
 				"logratio_err", sector, layer, paddle);
-		
+
 	}
-	
+
 	@Override
 	public DataGroup getSummary(int sector, int layer) {
-		
-//		// draw the stats
-//		TCanvas c1 = new TCanvas("HV Stats",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(hvStatHist);
-//		
-//		// draw the stats
-//		c1 = new TCanvas("Total Stats",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.totalStatHist);
-//		
-//		// draw the stats
-//		c1 = new TCanvas("Tracking Stats (non zero)",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.trackingStatHist);
-//
-//		// draw the stats
-//		c1 = new TCanvas("Tracking Stats (zero)",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.trackingZeroStatHist);
-//		
-//		c1 = new TCanvas("FTOF 1A ADCL all events",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.adcLeftHist1A);
-//
-//		c1 = new TCanvas("FTOF 1A ADCR all events",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.adcRightHist1A);
-//
-//		c1 = new TCanvas("FTOF 1A ADCL events with tracking",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.trackingAdcLeftHist1A);
-//
-//		c1 = new TCanvas("FTOF 1A ADCR events with tracking",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.trackingAdcRightHist1A);
-//
-//		c1 = new TCanvas("FTOF 1B ADCL all events",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.adcLeftHist1B);
-//
-//		c1 = new TCanvas("FTOF 1B ADCR all events",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.adcRightHist1B);
-//
-//		c1 = new TCanvas("FTOF 1B ADCL events with tracking",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.trackingAdcLeftHist1B);
-//
-//		c1 = new TCanvas("FTOF 1B ADCR events with tracking",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.trackingAdcRightHist1B);
-//
-//		c1 = new TCanvas("Total events per paddle",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.paddleHist);
-//
-//		c1 = new TCanvas("Events with tracking per paddle",1200,800);
-//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
-//		c1.cd(0);
-//		c1.draw(TOFCalibration.trackingPaddleHist);
-		
-		
+
+		//		// draw the stats
+		//		TCanvas c1 = new TCanvas("HV Stats",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(hvStatHist);
+		//		
+		//		// draw the stats
+		//		c1 = new TCanvas("Total Stats",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.totalStatHist);
+		//		
+		//		// draw the stats
+		//		c1 = new TCanvas("Tracking Stats (non zero)",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.trackingStatHist);
+		//
+		//		// draw the stats
+		//		c1 = new TCanvas("Tracking Stats (zero)",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.trackingZeroStatHist);
+		//		
+		//		c1 = new TCanvas("FTOF 1A ADCL all events",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.adcLeftHist1A);
+		//
+		//		c1 = new TCanvas("FTOF 1A ADCR all events",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.adcRightHist1A);
+		//
+		//		c1 = new TCanvas("FTOF 1A ADCL events with tracking",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.trackingAdcLeftHist1A);
+		//
+		//		c1 = new TCanvas("FTOF 1A ADCR events with tracking",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.trackingAdcRightHist1A);
+		//
+		//		c1 = new TCanvas("FTOF 1B ADCL all events",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.adcLeftHist1B);
+		//
+		//		c1 = new TCanvas("FTOF 1B ADCR all events",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.adcRightHist1B);
+		//
+		//		c1 = new TCanvas("FTOF 1B ADCL events with tracking",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.trackingAdcLeftHist1B);
+		//
+		//		c1 = new TCanvas("FTOF 1B ADCR events with tracking",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.trackingAdcRightHist1B);
+		//
+		//		c1 = new TCanvas("Total events per paddle",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.paddleHist);
+		//
+		//		c1 = new TCanvas("Events with tracking per paddle",1200,800);
+		//		c1.setDefaultCloseOperation(c1.HIDE_ON_CLOSE);
+		//		c1.cd(0);
+		//		c1.draw(TOFCalibration.trackingPaddleHist);
+
+
 		int layer_index = layer-1;
 		double[] paddleNumbers = new double[NUM_PADDLES[layer_index]];
 		double[] paddleUncs = new double[NUM_PADDLES[layer_index]];
@@ -667,7 +685,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 
 		GraphErrors gmSumm = new GraphErrors("gmSumm", paddleNumbers,
 				MIPChannels, paddleUncs, MIPChannelUncs);
-		
+
 		gmSumm.setTitleX("Paddle Number");
 		gmSumm.setTitleY("MIP Channel");
 		gmSumm.setMarkerSize(MARKER_SIZE);
@@ -684,17 +702,17 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		DataGroup dg = new DataGroup(2,1);
 		dg.addDataSet(gmSumm, GEOMEAN);
 		dg.addDataSet(lrSumm, LOGRATIO);
-		
+
 		return dg;
-		
+
 	}
-	
+
 	@Override
 	public boolean isGoodPaddle(int sector, int layer, int paddle) {
 
 		return (getMipChannel(sector,layer,paddle) >= EXPECTED_MIP_CHANNEL[layer-1]-ALLOWED_MIP_DIFF
-			&&
-			getMipChannel(sector,layer,paddle) <= EXPECTED_MIP_CHANNEL[layer-1]+ALLOWED_MIP_DIFF);
+				&&
+				getMipChannel(sector,layer,paddle) <= EXPECTED_MIP_CHANNEL[layer-1]+ALLOWED_MIP_DIFF);
 
 	}
 
@@ -705,33 +723,33 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		dataGroups.getItem(sector,layer,paddle).getH1F("logratio").setTitleX("ln(ADC R / ADC L)");
 
 	}
-	
+
 	@Override
 	public void drawPlots(int sector, int layer, int paddle, EmbeddedCanvas canvas) {
-		
+
 		if (showPlotType == "GEOMEAN") {
 
 			H1F fitHist = dataGroups.getItem(sector,layer,paddle).getH1F("geomean");
 			fitHist.setTitleX("");
 			canvas.draw(fitHist);
-			
+
 			F1D fitFunc = dataGroups.getItem(sector,layer,paddle).getF1D("gmFunc");
 			canvas.draw(fitFunc, "same");
-			
+
 		}
 		else {
 			H1F fitHist = dataGroups.getItem(sector,layer,paddle).getH1F("logratio");
 			fitHist.setTitleX("");
 			canvas.draw(fitHist);
-			
+
 			//F1D fitFunc = dataGroups.getItem(sector,layer,paddle).getF1D("lrFunc");
 			//canvas.draw(fitFunc, "same");
-			
+
 		}
-			
+
 
 	}
-	
+
 	@Override
 	public void showPlots(int sector, int layer) {
 
@@ -741,7 +759,93 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		showPlotType = "LOGRATIO";
 		stepName = "HV - Log ratio";
 		super.showPlots(sector, layer);
-		
+
 	}
+
+	public String nextStatusFileName() {
+
+		// Get the next file name
+		Date today = new Date();
+		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+		String todayString = dateFormat.format(today);
+		String filePrefix = "FTOF_CALIB_STATUS_" + todayString;
+		int newFileNum = 0;
+
+		File dir = new File(".");
+		File[] filesList = dir.listFiles();
+
+		for (File file : filesList) {
+			if (file.isFile()) {
+				String fileName = file.getName();
+				if (fileName.matches(filePrefix + "[.]\\d+[.]txt")) {
+					String fileNumString = fileName.substring(
+							fileName.indexOf('.') + 1,
+							fileName.lastIndexOf('.'));
+					int fileNum = Integer.parseInt(fileNumString);
+					if (fileNum >= newFileNum)
+						newFileNum = fileNum + 1;
+
+				}
+			}
+		}
+
+		return filePrefix + "." + newFileNum + ".txt";
+	}
+
+	
+	public void saveCounterStatus() {
+
+		try { 
+
+			// Open the output file
+			File outputFile = new File(statusFileName); 
+			FileWriter outputFw = new FileWriter(outputFile.getAbsoluteFile());
+			BufferedWriter outputBw = new BufferedWriter(outputFw);
+
+			for (int sector = 1; sector <= 6; sector++) {
+				for (int layer = 1; layer <= 3; layer++) {
+					int layer_index = layer - 1;
+					for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
+
+						int adcLStat = adcLeftStatus.getItem(sector,layer,paddle);
+						int adcRStat = adcRightStatus.getItem(sector,layer,paddle);
+						int tdcLStat = tdcLeftStatus.getItem(sector,layer,paddle);
+						int tdcRStat = tdcRightStatus.getItem(sector,layer,paddle);                    
+						int counterStatusLeft = 0;
+						int counterStatusRight = 0;
+
+						if (adcLStat==1 && tdcLStat==1) {
+							counterStatusLeft = 3;
+						}
+						else if (adcLStat==1) {
+							counterStatusLeft = 1;
+						}
+						else if (tdcLStat==1) {
+							counterStatusLeft = 2;
+						}
+
+						if (adcRStat==1 && tdcRStat==1) {
+							counterStatusRight = 3;
+						}
+						else if (adcRStat==1) {
+							counterStatusRight = 1;
+						}
+						else if (tdcRStat==1) {
+							counterStatusRight = 2;
+						}
+
+						String line = sector+" "+layer+" "+paddle+" "+
+								counterStatusLeft+" "+counterStatusRight+" ";
+						outputBw.write(line);
+						outputBw.newLine();
+					}
+				}
+			}
+			outputBw.close();
+		}
+		catch(IOException ex) {
+			ex.printStackTrace();
+		}            
+	}	
 
 }

@@ -60,8 +60,6 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 	private String fitOption = "RNQ";
 	int backgroundSF = -1;
 	boolean showSlices = false;
-	private int FIT_METHOD_SF = 0;
-	private int FIT_METHOD_MAX = 1;
 
 	public TofAttenEventListener() {
 
@@ -220,7 +218,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 		// fit function to the graph of means
 		GraphErrors meanGraph = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("meanGraph");
 		
-		if (fitMethod==FIT_METHOD_SF && sector==2) {
+		if (fitMethod==FIT_METHOD_SF) {
 			ParallelSliceFitter psf = new ParallelSliceFitter(attenHist);
 			psf.setFitMode(fitMode);
 			psf.setMinEvents(fitMinEvents);

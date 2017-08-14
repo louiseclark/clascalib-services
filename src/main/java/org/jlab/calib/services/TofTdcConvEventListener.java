@@ -58,8 +58,6 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
 	private String showPlotType = "CONV_LEFT";
 	int backgroundSF = 2;
 	boolean showSlices = false;
-	private int FIT_METHOD_SF = 0;
-	private int FIT_METHOD_MAX = 1;
 	
 	// Real data
 	private final double[]        REAL_FIT_MIN = {0.0, 25500.0, 24800.0, 25500.0};
@@ -324,7 +322,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
         GraphErrors convGraphRight = (GraphErrors) dataGroups.getItem(sector,layer,paddle).getData("convGraphRight");
 
         // fit function to the graph of means
-        if (fitMethod==FIT_METHOD_SF && sector==2) {
+        if (fitMethod==FIT_METHOD_SF) {
 			ParallelSliceFitter psfL = new ParallelSliceFitter(convHistL);
 			psfL.setFitMode(fitMode);
 			psfL.setMinEvents(fitMinEvents);

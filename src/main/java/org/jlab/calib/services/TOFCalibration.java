@@ -147,12 +147,12 @@ ChangeListener {
 	private JTextField minPText = new JTextField(5);
 	public static double minP = 0.0;
 	JComboBox<String> trackChargeList = new JComboBox<String>();
-	public static int trackCharge = 2;
+	public static int trackCharge = 0;
 	public final static int TRACK_BOTH = 0;
 	public final static int TRACK_NEG = 1;
 	public final static int TRACK_POS = 2;
 	JComboBox<String> pidList = new JComboBox<String>();
-	public static int trackPid = 2;
+	public static int trackPid = 0;
 	public final static int PID_BOTH = 0;
 	public final static int PID_E = 1;
 	public final static int PID_PI = 2;
@@ -161,19 +161,17 @@ ChangeListener {
 	JComboBox<String> counterSectionList = new JComboBox<String>();
 	private JTextField sectionWidthText = new JTextField(5);
 
+	// Time walk method
+	JComboBox<String> twMethodList = new JComboBox<String>();
+	public static int twMethod = 0;
+	public final static int TW_POS_INDEP = 0;
+	public final static int TW_POS_DEP = 1;
 
-	JComboBox<String> attenFitList = new JComboBox<String>();
-	JComboBox<String> attenFitModeList = new JComboBox<String>();
-	private JTextField minAttenEventsText = new JTextField(5);
-	JComboBox<String> twFitList = new JComboBox<String>();
-	JComboBox<String> twFitModeList = new JComboBox<String>();
-	private JTextField minTWEventsText = new JTextField(5);
-	JComboBox<String> veffFitList = new JComboBox<String>();
-	JComboBox<String> veffFitModeList = new JComboBox<String>();
-	private JTextField minVeffEventsText = new JTextField(5);
-	JComboBox<String> tdcFitList = new JComboBox<String>();
-	JComboBox<String> tdcFitModeList = new JComboBox<String>();
-	private JTextField minTDCEventsText = new JTextField(5);    
+
+
+	JComboBox<String> fitList = new JComboBox<String>();
+	JComboBox<String> fitModeList = new JComboBox<String>();
+	private JTextField minEventsText = new JTextField(5);
 
 	public final static PrintStream oldStdout = System.out;
 
@@ -400,20 +398,22 @@ ChangeListener {
 			}
 			trackCharge = trackChargeList.getSelectedIndex();
 			trackPid = pidList.getSelectedIndex();
+			twMethod = twMethodList.getSelectedIndex();
+
 			if (triggerText.getText().compareTo("") != 0) {
 				triggerBit = Integer.parseInt(triggerText.getText());
 			}
 
-			engines[ATTEN].fitMethod = attenFitList.getSelectedIndex();
-			engines[ATTEN].fitMode = (String) attenFitModeList.getSelectedItem();
-			if (minAttenEventsText.getText().compareTo("") != 0) {
-				engines[ATTEN].fitMinEvents = Integer.parseInt(minAttenEventsText.getText());
+			engines[ATTEN].fitMethod = fitList.getSelectedIndex();
+			engines[ATTEN].fitMode = (String) fitModeList.getSelectedItem();
+			if (minEventsText.getText().compareTo("") != 0) {
+				engines[ATTEN].fitMinEvents = Integer.parseInt(minEventsText.getText());
 			}            
 
-			engines[TW].fitMethod = twFitList.getSelectedIndex();
-			engines[TW].fitMode = (String) twFitModeList.getSelectedItem();
-			if (minTWEventsText.getText().compareTo("") != 0) {
-				engines[TW].fitMinEvents = Integer.parseInt(minTWEventsText.getText());
+			engines[TW].fitMethod = fitList.getSelectedIndex();
+			engines[TW].fitMode = (String) fitModeList.getSelectedItem();
+			if (minEventsText.getText().compareTo("") != 0) {
+				engines[TW].fitMinEvents = Integer.parseInt(minEventsText.getText());
 			}
 			engines[TW].counterSection = counterSectionList.getSelectedIndex();
 			engines[RFPAD].counterSection = counterSectionList.getSelectedIndex();
@@ -423,16 +423,16 @@ ChangeListener {
 			}
 
 
-			engines[VEFF].fitMethod = veffFitList.getSelectedIndex();
-			engines[VEFF].fitMode = (String) veffFitModeList.getSelectedItem();
-			if (minVeffEventsText.getText().compareTo("") != 0) {
-				engines[VEFF].fitMinEvents = Integer.parseInt(minVeffEventsText.getText());
+			engines[VEFF].fitMethod = fitList.getSelectedIndex();
+			engines[VEFF].fitMode = (String) fitModeList.getSelectedItem();
+			if (minEventsText.getText().compareTo("") != 0) {
+				engines[VEFF].fitMinEvents = Integer.parseInt(minEventsText.getText());
 			}
 
-			engines[TDC_CONV].fitMethod = tdcFitList.getSelectedIndex();
-			engines[TDC_CONV].fitMode = (String) tdcFitModeList.getSelectedItem();
-			if (minTDCEventsText.getText().compareTo("") != 0) {
-				engines[TDC_CONV].fitMinEvents = Integer.parseInt(minTDCEventsText.getText());
+			engines[TDC_CONV].fitMethod = fitList.getSelectedIndex();
+			engines[TDC_CONV].fitMode = (String) fitModeList.getSelectedItem();
+			if (minEventsText.getText().compareTo("") != 0) {
+				engines[TDC_CONV].fitMinEvents = Integer.parseInt(minEventsText.getText());
 			}
 
 			System.out.println("");
@@ -446,36 +446,13 @@ ChangeListener {
 			System.out.println("PID: "+pidList.getItemAt(trackPid));
 			System.out.println("Trigger: "+triggerBit);
 			System.out.println("Counter section: "+counterSectionList.getSelectedItem());
+			System.out.println("Position dependent TW correction?: "+twMethodList.getItemAt(twMethod));
 			System.out.println("Width of section (cm): "+engines[TW].sectionWidth);
-
-
-			System.out.println("");
-			System.out.println("Configuration settings - Attenuation length");
-			System.out.println("-------------------------------------------");
-			System.out.println("Attenuation length graph: "+attenFitList.getSelectedItem());
-			System.out.println("Attenuation length slicefitter mode: "+engines[ATTEN].fitMode);
-			System.out.println("Attenuation length minimum events per slice: "+engines[ATTEN].fitMinEvents);
-			System.out.println("");
-			System.out.println("Configuration settings - TDC conversion");
-			System.out.println("---------------------------------------");
-			System.out.println("TDC graph: "+tdcFitList.getSelectedItem());
-			System.out.println("TDC slicefitter mode: "+engines[TDC_CONV].fitMode);
-			System.out.println("TDC minimum events per slice: "+engines[TDC_CONV].fitMinEvents);
-			System.out.println("");
-			System.out.println("Configuration settings - Effective velocity");
-			System.out.println("-------------------------------------------");
-			System.out.println("Effective velocity graph: "+veffFitList.getSelectedItem());
-			System.out.println("Effective velocity slicefitter mode: "+engines[VEFF].fitMode);
-			System.out.println("Effective velocity minimum events per slice: "+engines[VEFF].fitMinEvents);
-			System.out.println("");
-			System.out.println("Configuration settings - Time walk");
-			System.out.println("----------------------------------");
-			System.out.println("Time walk graph: "+twFitList.getSelectedItem());
-			System.out.println("Time walk slicefitter mode: "+engines[TW].fitMode);
-			System.out.println("Time walk minimum events per slice: "+engines[TW].fitMinEvents);
+			System.out.println("2D histogram graph method: "+fitList.getSelectedItem());
+			System.out.println("Slicefitter mode: "+fitModeList.getSelectedItem());
+			System.out.println("Minimum events per slice: "+minEventsText.getText());
 			System.out.println("");
 		}
-
 	}
 
 	public void dataEventAction(DataEvent event) {
@@ -693,7 +670,7 @@ ChangeListener {
 
 	public void configure() {
 
-		configFrame.setSize(800, 800);
+		configFrame.setSize(900, 800);
 		//configFrame.setSize(1000, 600);
 		configFrame.setLocationRelativeTo(pane);
 		configFrame.setDefaultCloseOperation(configFrame.DO_NOTHING_ON_CLOSE);
@@ -848,177 +825,55 @@ ChangeListener {
 		c.gridy = 8;
 		trPanel.add(new JLabel("Applied to Time walk and RF paddle"),c);
 
-		JPanel butPage3 = new configButtonPanel(this, true, "Next");
+		// graph type
+		c.gridx = 0;
+		c.gridy = 9;
+		trPanel.add(new JLabel("2D histogram graph method:"),c);
+		c.gridx = 1;
+		c.gridy = 9;
+		fitList.addItem("Max position of slices");
+		fitList.addItem("Gaussian mean of slices");
+		fitList.addActionListener(this);
+		trPanel.add(fitList,c);
+		// fit mode
+		c.gridx = 0;
+		c.gridy = 10;
+		trPanel.add(new JLabel("Slicefitter mode:"),c);
+		c.gridx = 1;
+		c.gridy = 10;
+		//fitModeList.addItem("L");
+		fitModeList.addItem("N");
+		trPanel.add(fitModeList,c);
+		fitModeList.addActionListener(this);
+		// min events
+		c.gridx = 0;
+		c.gridy = 11;
+		trPanel.add(new JLabel("Minimum events per slice:"),c);
+		minEventsText.addActionListener(this);
+		minEventsText.setText("10");
+		c.gridx = 1;
+		c.gridy = 11;
+		trPanel.add(minEventsText,c);
+
+		// Position dependent time walk
+		c.gridx = 0;
+		c.gridy = 12;
+		trPanel.add(new JLabel("Position dependent TW correction?:"),c);
+		twMethodList.addItem("No");
+		twMethodList.addItem("Yes");
+		twMethodList.addActionListener(this);
+		c.gridx = 1;
+		c.gridy = 12;
+		trPanel.add(twMethodList,c);
+		c.gridx = 2;
+		c.gridy = 12;
+		//trPanel.add(new JLabel("Applied to subtracted nominal correction"),c);
+		trPanel.add(new JLabel("<html>Applied to subtracted nominal correction<br/> in time walk plot</html>"),c);
+
+		JPanel butPage3 = new configButtonPanel(this, true, "Finish");
 		trOuterPanel.add(butPage3, BorderLayout.SOUTH);
 
 		configPane.add("Tracking / General", trOuterPanel);
-
-		// Attenuation length options
-		JPanel attenOuterPanel = new JPanel(new BorderLayout());
-		JPanel attenPanel = new JPanel(new GridBagLayout());
-		attenOuterPanel.add(attenPanel, BorderLayout.NORTH);
-		c.weighty = 1;
-		c.anchor = c.NORTHWEST;
-		c.insets = new Insets(3,3,3,3);
-		// graph type
-		c.gridx = 0;
-		c.gridy = 0;
-		attenPanel.add(new JLabel("Attenuation length graph:"),c);
-		c.gridx = 1;
-		c.gridy = 0;
-		attenFitList.addItem("Gaussian mean of slices");
-		attenFitList.addItem("Max position of slices");
-		attenFitList.addActionListener(this);
-		attenPanel.add(attenFitList,c);
-		// fit mode
-		c.gridx = 0;
-		c.gridy = 1;
-		attenPanel.add(new JLabel("Slicefitter mode:"),c);
-		c.gridx = 1;
-		c.gridy = 1;
-		//attenFitModeList.addItem("L");
-		attenFitModeList.addItem("N");
-		attenPanel.add(attenFitModeList,c);
-		attenFitModeList.addActionListener(this);
-		// min events
-		c.gridx = 0;
-		c.gridy = 2;
-		attenPanel.add(new JLabel("Minimum events per slice:"),c);
-		minAttenEventsText.addActionListener(this);
-		minAttenEventsText.setText("100");
-		c.gridx = 1;
-		c.gridy = 2;
-		attenPanel.add(minAttenEventsText,c);
-
-		JPanel butPage4 = new configButtonPanel(this, true, "Next");
-		attenOuterPanel.add(butPage4, BorderLayout.SOUTH);
-		configPane.add("Attenuation length", attenOuterPanel);    
-
-		// TDC options
-		JPanel tdcOuterPanel = new JPanel(new BorderLayout());
-		JPanel tdcPanel = new JPanel(new GridBagLayout());
-		tdcOuterPanel.add(tdcPanel, BorderLayout.NORTH);
-		c.weighty = 1;
-		c.anchor = c.NORTHWEST;
-		c.insets = new Insets(3,3,3,3);
-		// graph type
-		c.gridx = 0;
-		c.gridy = 0;
-		tdcPanel.add(new JLabel("TDC conversion graph:"),c);
-		c.gridx = 1;
-		c.gridy = 0;
-		tdcFitList.addItem("Gaussian mean of slices");
-		tdcFitList.addItem("Max position of slices");
-		//tdcFitList.addItem("Profile");
-		tdcFitList.addActionListener(this);
-		tdcPanel.add(tdcFitList,c);
-		// fit mode
-		c.gridx = 0;
-		c.gridy = 1;
-		tdcPanel.add(new JLabel("Slicefitter mode:"),c);
-		c.gridx = 1;
-		c.gridy = 1;
-		//tdcFitModeList.addItem("L");
-		tdcFitModeList.addItem("N");
-		tdcPanel.add(tdcFitModeList,c);
-		tdcFitModeList.addActionListener(this);
-		// min events
-		c.gridx = 0;
-		c.gridy = 2;
-		tdcPanel.add(new JLabel("Minimum events per slice:"),c);
-		minTDCEventsText.addActionListener(this);
-		minTDCEventsText.setText("100");
-		c.gridx = 1;
-		c.gridy = 2;
-		tdcPanel.add(minTDCEventsText,c);
-
-		JPanel butPage5 = new configButtonPanel(this, true, "Next");
-		tdcOuterPanel.add(butPage5, BorderLayout.SOUTH);
-		configPane.add("TDC conversion", tdcOuterPanel);        
-
-		// Veff options
-		JPanel veffOuterPanel = new JPanel(new BorderLayout());
-		JPanel veffPanel = new JPanel(new GridBagLayout());
-		veffOuterPanel.add(veffPanel, BorderLayout.NORTH);
-		c.weighty = 1;
-		c.anchor = c.NORTHWEST;
-		c.insets = new Insets(3,3,3,3);
-		// graph type
-		c.gridx = 0;
-		c.gridy = 0;
-		veffPanel.add(new JLabel("Effective velocity graph:"),c);
-		c.gridx = 1;
-		c.gridy = 0;
-		veffFitList.addItem("Gaussian mean of slices");
-		veffFitList.addItem("Max position of slices");
-		//veffFitList.addItem("Profile");
-		veffFitList.addActionListener(this);
-		veffPanel.add(veffFitList,c);
-		// fit mode
-		c.gridx = 0;
-		c.gridy = 1;
-		veffPanel.add(new JLabel("Slicefitter mode:"),c);
-		c.gridx = 1;
-		c.gridy = 1;
-		//veffFitModeList.addItem("L");
-		veffFitModeList.addItem("N");
-		veffPanel.add(veffFitModeList,c);
-		veffFitModeList.addActionListener(this);
-		// min events
-		c.gridx = 0;
-		c.gridy = 2;
-		veffPanel.add(new JLabel("Minimum events per slice:"),c);
-		minVeffEventsText.addActionListener(this);
-		minVeffEventsText.setText("100");
-		c.gridx = 1;
-		c.gridy = 2;
-		veffPanel.add(minVeffEventsText,c);
-
-		JPanel butPage6 = new configButtonPanel(this, true, "Next");
-		veffOuterPanel.add(butPage6, BorderLayout.SOUTH);
-		configPane.add("Effective Velocity", veffOuterPanel);            
-
-		// Time walk options
-		JPanel twOuterPanel = new JPanel(new BorderLayout());
-		JPanel twPanel = new JPanel(new GridBagLayout());
-		twOuterPanel.add(twPanel, BorderLayout.NORTH);
-		c.weighty = 1;
-		c.anchor = c.NORTHWEST;
-		c.insets = new Insets(3,3,3,3);
-		// graph type
-		c.gridx = 0;
-		c.gridy = 0;
-		twPanel.add(new JLabel("Time walk graph:"),c);
-		c.gridx = 1;
-		c.gridy = 0;
-		twFitList.addItem("Gaussian mean of slices");
-		twFitList.addItem("Max position of slices");
-		//twFitList.addItem("Profile");
-		twFitList.addActionListener(this);
-		twPanel.add(twFitList,c);
-		// fit mode
-		c.gridx = 0;
-		c.gridy = 1;
-		twPanel.add(new JLabel("Slicefitter mode:"),c);
-		c.gridx = 1;
-		c.gridy = 1;
-		//twFitModeList.addItem("L");
-		twFitModeList.addItem("N");
-		twPanel.add(twFitModeList,c);
-		twFitModeList.addActionListener(this);
-		// min events
-		c.gridx = 0;
-		c.gridy = 2;
-		twPanel.add(new JLabel("Minimum events per slice:"),c);
-		minTWEventsText.addActionListener(this);
-		minTWEventsText.setText("100");
-		c.gridx = 1;
-		c.gridy = 2;
-		twPanel.add(minTWEventsText,c);
-
-		JPanel butPage7 = new configButtonPanel(this, true, "Finish");
-		twOuterPanel.add(butPage7, BorderLayout.SOUTH);
-		configPane.add("Time walk", twOuterPanel);
 
 		configFrame.add(configPane);
 		configFrame.setVisible(true);

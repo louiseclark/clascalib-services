@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+//import org.jlab.calib.services.TOFCalibrationEngine;
 import org.jlab.calib.services.TOFPaddle;
 import org.jlab.calib.temp.BaseHit;
 import org.jlab.calib.temp.DetectorLocation;
@@ -166,6 +167,20 @@ public class DataProvider {
 				paddle.ADC_TIMER = adcBank.getFloat("time", adcIdx2);
 				paddle.RECON_TIME = hitsBank.getFloat("time", hitIndex);
 				
+				// set status to ok if at least one reading
+                if (paddle.ADCL!=0) {
+                    CTOFCalibrationEngine.adcLeftStatus.add(0, 1,1,component);
+                }
+                if (paddle.ADCR!=0) {
+                    CTOFCalibrationEngine.adcRightStatus.add(0, 1,1,component);
+                }
+                if (paddle.TDCL!=0) {
+                    CTOFCalibrationEngine.tdcLeftStatus.add(0, 1,1,component);
+                }
+                if (paddle.TDCR!=0) {
+                    CTOFCalibrationEngine.tdcRightStatus.add(0, 1,1,component);
+                }				
+				
 				//paddle.show();
 				
 //				System.out.println("Louise 171");
@@ -210,6 +225,10 @@ public class DataProvider {
 						double c3z  = trkBank.getFloat("c_z",trkId);
 						double path = trkBank.getFloat("pathlength",trkId) + Math.sqrt((tx-c3x)*(tx-c3x)+(ty-c3y)*(ty-c3y)+(tz-c3z)*(tz-c3z));
 						paddle.PATH_LENGTH = path;
+						//System.out.println("Path length calc "+path);
+						//System.out.println("Path length bank "+hitsBank.getFloat("pathLength", hitIndex));
+						//double diff = path - hitsBank.getFloat("pathLength", hitIndex);
+						//System.out.println("Path length diff "+diff);
 						paddle.RF_TIME = trf;
 						
 //						System.out.println("Louise 215");
@@ -338,6 +357,20 @@ public class DataProvider {
 							break;
 						}
 					}
+					
+					// set status to ok if at least one reading
+	                if (adcL !=0) {
+	                    CTOFCalibrationEngine.adcLeftStatus.add(0, 1,1,component);
+	                }
+	                if (adcR !=0) {
+	                    CTOFCalibrationEngine.adcRightStatus.add(0, 1,1,component);
+	                }
+	                if (tdcL !=0) {
+	                    CTOFCalibrationEngine.tdcLeftStatus.add(0, 1,1,component);
+	                }
+	                if (tdcR !=0) {
+	                    CTOFCalibrationEngine.tdcRightStatus.add(0, 1,1,component);
+	                }					
 
 					if (test) {
 						System.out.println("Values found "+component);

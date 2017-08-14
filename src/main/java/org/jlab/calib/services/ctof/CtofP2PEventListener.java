@@ -180,6 +180,9 @@ public class CtofP2PEventListener extends CTOFCalibrationEngine {
 					if (ftofPaddle.goodTrackFound()) {
 						dataGroups.getItem(sector,layer,component).getH1F("vertexDiffHist").fill(
 								ctofPaddle.startTimeP2PCorr() - ftofPaddle.reconStartTime());
+						ctofPaddle.show();
+//						dataGroups.getItem(sector,layer,component).getH1F("vertexDiffHist").fill(
+//						ctofPaddle.startTimeP2PCorr() - 124.25);
 					}
 				}
 			}

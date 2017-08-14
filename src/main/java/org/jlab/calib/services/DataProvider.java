@@ -83,6 +83,12 @@ public class DataProvider {
 			if (event.hasBank("FTOF::hits")) {
 				event.getBank("FTOF::hits").show();
 			}
+			if (event.hasBank("FTOF::clusters")) {
+				event.getBank("FTOF::clusters").show();
+			}
+			if (event.hasBank("FTOF::matchedclusters")) {
+				event.getBank("FTOF::matchedclusters").show();
+			}			
 			if (event.hasBank("HitBasedTrkg::HBTracks")) {
 				event.getBank("HitBasedTrkg::HBTracks").show();
 			}
@@ -145,6 +151,23 @@ public class DataProvider {
 				paddle.ADC_TIMEL = adcBank.getFloat("time", hitsBank.getShort("adc_idx1", hitIndex));
 				paddle.ADC_TIMER = adcBank.getFloat("time", hitsBank.getShort("adc_idx2", hitIndex));
 				paddle.RECON_TIME = hitsBank.getFloat("time", hitIndex);
+				
+				// set status to ok if at least one reading
+				int sector = paddle.getDescriptor().getSector();
+				int layer = paddle.getDescriptor().getLayer();
+				int component = paddle.getDescriptor().getComponent();
+                if (paddle.ADCL!=0) {
+                    TOFCalibrationEngine.adcLeftStatus.add(0, sector,layer,component);
+                }
+                if (paddle.ADCR!=0) {
+                    TOFCalibrationEngine.adcRightStatus.add(0, sector,layer,component);
+                }
+                if (paddle.TDCL!=0) {
+                    TOFCalibrationEngine.tdcLeftStatus.add(0, sector,layer,component);
+                }
+                if (paddle.TDCR!=0) {
+                    TOFCalibrationEngine.tdcRightStatus.add(0, sector,layer,component);
+                }
 				
 				//System.out.println("Paddle created "+paddle.getDescriptor().getSector()+paddle.getDescriptor().getLayer()+paddle.getDescriptor().getComponent());
 
@@ -336,6 +359,20 @@ public class DataProvider {
 							break;
 						}
 					}
+					
+					// set status to ok if at least one reading
+	                if (adcL !=0) {
+	                    TOFCalibrationEngine.adcLeftStatus.add(0, sector,layer,component);
+	                }
+	                if (adcR !=0) {
+	                    TOFCalibrationEngine.adcRightStatus.add(0, sector,layer,component);
+	                }
+	                if (tdcL !=0) {
+	                    TOFCalibrationEngine.tdcLeftStatus.add(0, sector,layer,component);
+	                }
+	                if (tdcR !=0) {
+	                    TOFCalibrationEngine.tdcRightStatus.add(0, sector,layer,component);
+	                }
 
 					if (test) {
 						System.out.println("Values found "+sector+layer+component);

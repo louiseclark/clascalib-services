@@ -67,8 +67,11 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public int prevCalRunNo;
 	public boolean prevCalRead = false;
 	public boolean engineOn = true;
-	
-	public int fitMethod = 0; //  0=SLICES 1=MAX 2=PROFILE	
+
+	public int fitMethod = 0; //  0=MAX 1=SLICES	
+	public int FIT_METHOD_MAX = 0;
+	public int FIT_METHOD_SF = 1;
+
 	public String fitMode = "L";
 	public int fitMinEvents = 0;
 	public double maxGraphError = 0.1;
@@ -108,16 +111,16 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		timeWalkValues = new CalibrationConstants(3,
 				"tw0_left/F:tw1_left/F:tw0_right/F:tw1_right/F");
 		p2pValues =	new CalibrationConstants(3,
-						"paddle2paddle/F");
+				"paddle2paddle/F");
 		rfpadValues =	new CalibrationConstants(3,
 				"rfpad/F");
 
 	}
-	
+
 	public void populatePrevCalib() {
 		// overridden in calibration step classes
 	}
-	
+
 	@Override
 	public void dataEventAction(DataEvent event) {
 
@@ -271,7 +274,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		}
 
 	}
-	
+
 	public String nextFileName() {
 
 		// Get the next file name
@@ -315,30 +318,30 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	public IndexedList<DataGroup> getDataGroup() {
 		return dataGroups;
 	}
-	
+
 	public int getH1FEntries(H1F hist) {
 		int n = 0;
-		
+
 		for (int i=0; i<hist.getxAxis().getNBins(); i++) {
 			n = (int) (n+hist.getBinContent(i));
 		}
 		return n;
 	}
-	
+
 	public GraphErrors maxGraph(H2F hist, String graphName) {
-		
+
 		ArrayList<H1F> slices = hist.getSlicesX();
 		int nBins = hist.getXAxis().getNBins();
 		double[] sliceMax = new double[nBins];
 		double[] maxErrs = new double[nBins];
 		double[] xVals = new double[nBins];
 		double[] xErrs = new double[nBins];
-		
+
 		for (int i=0; i<nBins; i++) {
-			
-//			System.out.println("getH1FEntries "+getH1FEntries(slices.get(i)));
-//			System.out.println("H1F getEntries "+slices.get(i).getEntries());
-			
+
+			//			System.out.println("getH1FEntries "+getH1FEntries(slices.get(i)));
+			//			System.out.println("H1F getEntries "+slices.get(i).getEntries());
+
 			if (getH1FEntries(slices.get(i)) > fitMinEvents) {
 				int maxBin = slices.get(i).getMaximumBin();
 				sliceMax[i] = slices.get(i).getxAxis().getBinCenter(maxBin);
@@ -349,14 +352,14 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 				xErrs[i] = hist.getXAxis().getBinWidth(i)/2.0;
 			}
 		}
-		
+
 		GraphErrors maxGraph = new GraphErrors(graphName, xVals, sliceMax, xErrs, maxErrs);
 		maxGraph.setName(graphName);
-		
+
 		return maxGraph;
-		
+
 	}
-	
+
 	public GraphErrors fixGraph(GraphErrors graphIn, String graphName) {
 
 		int n = graphIn.getDataSize(0);
@@ -366,13 +369,13 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 				m++;
 			}
 		}		
-		
+
 		double[] x = new double[m];
 		double[] xerr = new double[m];
 		double[] y = new double[m];
 		double[] yerr = new double[m];
 		int j = 0;
-		
+
 		for (int i=0; i<n; i++) {
 			if (graphIn.getDataEY(i) < fitSliceMaxError) {
 				x[j] = graphIn.getDataX(i);
@@ -382,12 +385,12 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 				j++;
 			}
 		}
-		
+
 		GraphErrors fixGraph = new GraphErrors(graphName, x, y, xerr, yerr);
 		fixGraph.setName(graphName);
-		
+
 		return fixGraph;
-		
+
 	}		
 
 	public boolean isGoodPaddle(int sector, int layer, int paddle) {
@@ -419,14 +422,14 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 	}
 
 	public int paddleNumber(int sector, int layer, int component) {
-		
+
 		int p = 0;
 		int[] paddleOffset = {0, 0, 23, 85};
-		
+
 		p = component + (sector-1)*90 + paddleOffset[layer]; 
 		return p;
 	}
-	
+
 	public static double toDouble(String stringVal) {
 
 		double doubleVal;
@@ -497,7 +500,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		frame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
 
 	}
-	
+
 	public void rescaleGraphs(EmbeddedCanvas canvas, int sector, int layer, int paddle) {
 		// overridden in each step
 	}
@@ -517,43 +520,43 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 
 	public boolean hitInSection(TOFPaddle paddle) {
 		// is the hit within the desired counter section?
-		
-//		System.out.println("hitInSection");
-//		System.out.println("SLC "+paddle.getDescriptor().getSector()+" "+paddle.getDescriptor().getLayer()+" "+paddle.getDescriptor().getComponent());
-//		System.out.println("paddleY "+paddle.paddleY());
-//		System.out.println("sectionWidth "+sectionWidth);
-//		System.out.println("counterSection "+counterSection);
-//		System.out.println("paddleLength "+paddle.paddleLength());
-//		System.out.println("old >= "+(paddle.paddleLength()/2.0 - 10.0 - sectionWidth));
-//		System.out.println("old <= "+(paddle.paddleLength()/2.0 - 10.0));
-//		System.out.println("left >= "+(-paddle.paddleLength()/2.0 + 10.0));
-//		System.out.println("left <= "+(-paddle.paddleLength()/2.0 + 10.0 + sectionWidth));
-//		System.out.println("right >= "+(paddle.paddleLength()/2.0 - 10.0 - sectionWidth));
-//		System.out.println("right <= "+(paddle.paddleLength()/2.0 - 10.0));
-		
-		
-		
+
+		//		System.out.println("hitInSection");
+		//		System.out.println("SLC "+paddle.getDescriptor().getSector()+" "+paddle.getDescriptor().getLayer()+" "+paddle.getDescriptor().getComponent());
+		//		System.out.println("paddleY "+paddle.paddleY());
+		//		System.out.println("sectionWidth "+sectionWidth);
+		//		System.out.println("counterSection "+counterSection);
+		//		System.out.println("paddleLength "+paddle.paddleLength());
+		//		System.out.println("old >= "+(paddle.paddleLength()/2.0 - 10.0 - sectionWidth));
+		//		System.out.println("old <= "+(paddle.paddleLength()/2.0 - 10.0));
+		//		System.out.println("left >= "+(-paddle.paddleLength()/2.0 + 10.0));
+		//		System.out.println("left <= "+(-paddle.paddleLength()/2.0 + 10.0 + sectionWidth));
+		//		System.out.println("right >= "+(paddle.paddleLength()/2.0 - 10.0 - sectionWidth));
+		//		System.out.println("right <= "+(paddle.paddleLength()/2.0 - 10.0));
+
+
+
 		boolean hitInSection = true;
 		if (counterSection==FULL_COUNTER) {
 			hitInSection = true;
 		}
 		else if (paddle.paddleY() <= -paddle.paddleLength()/2.0 + 10.0 ||
-			paddle.paddleY() >= paddle.paddleLength()/2.0 - 10.0) {
+				paddle.paddleY() >= paddle.paddleLength()/2.0 - 10.0) {
 			hitInSection = false;
 		}
 		else if ( 
-			(counterSection==CENTRE_SECTION && Math.abs(paddle.paddleY()) <= sectionWidth/2.0) ||
-			(counterSection==LEFT_SECTION && 
+				(counterSection==CENTRE_SECTION && Math.abs(paddle.paddleY()) <= sectionWidth/2.0) ||
+				(counterSection==LEFT_SECTION && 
 				paddle.paddleY() <= -paddle.paddleLength()/2.0 + 10.0 + sectionWidth) || 
-			(counterSection==RIGHT_SECTION && 
-			 	paddle.paddleY() >= paddle.paddleLength()/2.0 - 10.0 - sectionWidth)) {
+				(counterSection==RIGHT_SECTION && 
+				paddle.paddleY() >= paddle.paddleLength()/2.0 - 10.0 - sectionWidth)) {
 			hitInSection = true;
 		}
 		else {
 			hitInSection = false;
 		}
-		
-//		System.out.println("hitInSection return "+hitInSection);
+
+		//		System.out.println("hitInSection return "+hitInSection);
 		return hitInSection;
 	}
 }

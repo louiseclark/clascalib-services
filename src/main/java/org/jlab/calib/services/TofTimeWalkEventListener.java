@@ -70,8 +70,6 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	private String fitOption = "RNQ";
 	int backgroundSF = 2;
 	boolean showSlices = false;
-	private int FIT_METHOD_SF = 0;
-	private int FIT_METHOD_MAX = 1;
 	
 	public TofTimeWalkEventListener() {
 		
@@ -450,7 +448,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		H2F twR = offsetHists.getItem(sector,layer,paddle,offsetIdxRight)[1];
 
 		GraphErrors twLGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trLeftGraph"); 
-		if (fitMethod==FIT_METHOD_SF && sector==2) {
+		if (fitMethod==FIT_METHOD_SF) {
 			ParallelSliceFitter psfL = new ParallelSliceFitter(twL);
 			psfL.setFitMode(fitMode);
 			psfL.setMinEvents(fitMinEvents);
@@ -473,7 +471,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		}
 		
 		GraphErrors twRGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trRightGraph"); 
-		if (fitMethod==FIT_METHOD_SF && sector ==2) {
+		if (fitMethod==FIT_METHOD_SF) {
 			ParallelSliceFitter psfR = new ParallelSliceFitter(twR);
 			psfR.setFitMode(fitMode);
 			psfR.setMinEvents(fitMinEvents);
