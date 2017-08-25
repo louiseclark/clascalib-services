@@ -69,7 +69,10 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
     public boolean prevCalRead = false;
     public boolean engineOn = true;
     
-    public int fitMethod = 0; //  0=SLICES 1=MAX 2=PROFILE    
+	public int fitMethod = 0; //  0=MAX 1=SLICES	
+	public int FIT_METHOD_MAX = 0;
+	public int FIT_METHOD_SF = 1;
+
     public String fitMode = "L";
     public int fitMinEvents = 0;
     public double maxGraphError = 0.1;

@@ -794,6 +794,7 @@ public class CTOFCalibration implements IDataEventListener, ActionListener,
         c.gridx = 1;
         c.gridy = 9;
         //fitModeList.addItem("L");
+        fitModeList.addItem("");
         fitModeList.addItem("N");
         trPanel.add(fitModeList,c);
         fitModeList.addActionListener(this);

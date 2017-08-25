@@ -37,7 +37,7 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 
 	private String showPlotType = "VERTEX_RF";
 
-	private String fitOption = "RNQ";
+	private String fitOption = "RQ";
 
 	public CtofRFPadEventListener() {
 
@@ -190,7 +190,7 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 
 			// fill the fine hists
 			if (pad.goodTrackFound()) {
-
+				//pad.show();
 				dataGroups.getItem(sector,layer,component).getH1F("fineHistRaw").fill(
 						(pad.refTime()+(1000*BEAM_BUCKET) + (0.5*BEAM_BUCKET))%BEAM_BUCKET - 0.5*BEAM_BUCKET);
 			}
@@ -256,7 +256,7 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 
 		fineFunc.setRange(lowLimit, highLimit);
 		fineFunc.setParameter(0, fineHist.getBinContent(maxBin));
-		fineFunc.setParLimits(0, 0, fineHist.getBinContent(maxBin)+1.5);
+		fineFunc.setParLimits(0, fineHist.getBinContent(maxBin)*0.7, fineHist.getBinContent(maxBin)*1.2);
 		fineFunc.setParameter(1, maxPos);
 		fineFunc.setParameter(2, 0.5);
 

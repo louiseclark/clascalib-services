@@ -280,7 +280,8 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		F1D gmFunc = dataGroups.getItem(sector,layer,paddle).getF1D("gmFunc");
 		gmFunc.setRange(startChannelForFit, endChannelForFit);
 
-		gmFunc.setParameter(0, maxCounts*0.5);
+		gmFunc.setParameter(0, maxCounts*0.8);
+		gmFunc.setParLimits(0, maxCounts*0.5, maxCounts*1.2);
 		gmFunc.setParameter(1, maxPos);
 		gmFunc.setParameter(2, 200.0);
 		gmFunc.setParLimits(2, 0.0,400.0);
@@ -288,7 +289,7 @@ public class TofHVEventListener extends TOFCalibrationEngine {
 		gmFunc.setParameter(4, -0.001);
 
 		try {	
-			DataFitter.fit(gmFunc, h, "RNQ");
+			DataFitter.fit(gmFunc, h, "RQ");
 
 		} catch (Exception e) {
 			System.out.println("Fit error with sector "+sector+" layer "+layer+" paddle "+paddle);

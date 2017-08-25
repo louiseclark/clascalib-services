@@ -842,6 +842,7 @@ ChangeListener {
 		c.gridx = 1;
 		c.gridy = 10;
 		//fitModeList.addItem("L");
+		fitModeList.addItem("");
 		fitModeList.addItem("N");
 		trPanel.add(fitModeList,c);
 		fitModeList.addActionListener(this);

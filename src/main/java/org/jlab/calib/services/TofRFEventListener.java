@@ -164,7 +164,7 @@ public class TofRFEventListener extends TOFCalibrationEngine {
 		fineFunc.setParameter(2, 0.5);
 
 		try {
-			DataFitter.fit(fineFunc, fineHist, "RNQ");
+			DataFitter.fit(fineFunc, fineHist, "RQ");
 			fineHist.setTitle(fineHist.getTitle() + " Fine offset = " + formatDouble(fineFunc.getParameter(1)));
 		}
 		catch(Exception ex) {

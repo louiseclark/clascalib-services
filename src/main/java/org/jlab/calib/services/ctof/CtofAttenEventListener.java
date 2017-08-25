@@ -59,11 +59,9 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 	public final int ATTEN_UNC_OVERRIDE = 1;
 	public final int OFFSET_OVERRIDE = 2;
 
-	private String fitOption = "RNQ";
+	private String fitOption = "RQ";
 	int backgroundSF = -1;
 	boolean showSlices = false;
-	private int FIT_METHOD_SF = 0;
-	private int FIT_METHOD_MAX = 1;
 
 	public CtofAttenEventListener() {
 
@@ -253,7 +251,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 		attenFunc.setParLimits(1, 2.0/500.0, 2.0/10.0);
 		if (sector==1 && layer==1 &&paddle==8) {
 			//System.out.println("SLC "+sector+layer+paddle);
-			DataFitter.fit(attenFunc, meanGraph, "RNQ");
+			DataFitter.fit(attenFunc, meanGraph, fitOption);
 			//			System.out.println("Param 0 is "+attenFunc.getParameter(0));
 			//			System.out.println("Param 0 error is "+attenFunc.parameter(0).error());
 			//			System.out.println("Param 1 is "+attenFunc.getParameter(1));
@@ -265,7 +263,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 
 		}
 		else {
-			DataFitter.fit(attenFunc, meanGraph, "RNQ");
+			DataFitter.fit(attenFunc, meanGraph, fitOption);
 		}
 
 

@@ -57,7 +57,7 @@ public class TofAttenEventListener extends TOFCalibrationEngine {
 	public final int ATTEN_UNC_OVERRIDE = 1;
 	public final int OFFSET_OVERRIDE = 2;
 	
-	private String fitOption = "RNQ";
+	private String fitOption = "RQ";
 	int backgroundSF = -1;
 	boolean showSlices = false;
 

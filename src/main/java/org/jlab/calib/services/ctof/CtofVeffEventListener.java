@@ -52,16 +52,14 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 
     public final int VEFF_OVERRIDE = 0;
     public final int VEFF_UNC_OVERRIDE = 1;
+    public final int VEFF_LR_OVERRIDE = 2;
 
     public final double EXPECTED_VEFF = 16.0;
     public final double ALLOWED_VEFF_DIFF = 0.1;
     
-    private String fitOption = "RNQ";
+    private String fitOption = "RQ";
     int backgroundSF = -1;
     boolean showSlices = false;
-    private int FIT_METHOD_SF = 0;
-    private int FIT_METHOD_MAX = 1;
-
 
     public CtofVeffEventListener() {
 
@@ -71,7 +69,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
         filename = nextFileName();
 
         calib = new CalibrationConstants(3,
-                "veff_left/F:veff_right/F:veff_left_err/F:veff_right_err/F");
+                "veff_left/F:veff_right/F:veff_left_err/F:veff_right_err/F:veff_ud/F");
         calib.setName("/calibration/ctof/effective_velocity");
         calib.setPrecision(3);
 
@@ -182,8 +180,8 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
             hist.setTitleY("Half Time Diff (ns)");
 
             // create all the functions and graphs
-            //F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
-            F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", 0.0, 500.0);
+            F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", -250.0, 250.0);
+            //F1D veffFunc = new F1D("veffFunc", "[a]+[b]*x", 0.0, 500.0);
             //GraphErrors veffGraph = new GraphErrors("veffGraph",dummyPoint,dummyPoint,dummyPoint,dummyPoint);
             GraphErrors veffGraph = new GraphErrors("veffGraph");
             veffGraph.setName("veffGraph");
@@ -201,7 +199,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
             setPlotTitle(1,1,paddle);
 
             // initialize the constants array
-            Double[] consts = {UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
+            Double[] consts = {UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE, UNDEFINED_OVERRIDE};
             // override values
 
             constants.add(consts, 1, 1, paddle);
@@ -229,7 +227,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
             if (paddle.goodTrackFound()) {
                 dataGroups.getItem(sector,layer,component).getH2F("veff").fill(
                         paddle.zPosCTOF(), 
-                        paddle.halfTimeDiff());
+                        paddle.veffHalfTimeDiff());
                 
             }
         }
@@ -321,7 +319,8 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 
         String[] fields = { "Min range for fit:", "Max range for fit:", "SPACE",
                 "Min Events per slice:", "Background order for slicefitter(-1=no background, 0=p0 etc):","SPACE",
-                "Override Effective Velocity:", "Override Effective Velocity uncertainty:"};
+                "Override Effective Velocity:", "Override Effective Velocity uncertainty:",
+        		"Override Effective Velocity UD:"};
 
         TOFCustomFitPanel panel = new TOFCustomFitPanel(fields,sector,layer);
 
@@ -340,6 +339,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
             
             double overrideValue = toDouble(panel.textFields[4].getText());
             double overrideUnc = toDouble(panel.textFields[5].getText());
+            double overrideLR = toDouble(panel.textFields[6].getText());
             
             int minP = paddle;
             int maxP = paddle;
@@ -357,6 +357,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
                 Double[] consts = constants.getItem(sector, layer, p);
                 consts[VEFF_OVERRIDE] = overrideValue;
                 consts[VEFF_UNC_OVERRIDE] = overrideUnc;
+                consts[VEFF_LR_OVERRIDE] = overrideLR;
 
                 fit(sector, layer, p, minRange, maxRange);
 
@@ -417,6 +418,23 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
         }
         return veffError;
     }    
+    
+	public Double getLR(int sector, int layer, int paddle){
+
+		double lr = 0.0;
+		double overrideVal = constants.getItem(sector, layer, paddle)[VEFF_LR_OVERRIDE];
+
+		if (overrideVal != UNDEFINED_OVERRIDE) {
+			lr = overrideVal;
+		}
+		else {
+
+			double intercept = dataGroups.getItem(sector,layer,paddle).getF1D("veffFunc")
+					.getParameter(0);
+			lr = 2.0 * intercept;
+		}
+		return lr;
+	}	    
 
     @Override
     public void saveRow(int sector, int layer, int paddle) {
@@ -428,6 +446,8 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
                 "veff_left_err", sector, layer, paddle);
         calib.setDoubleValue(getVeffError(sector,layer,paddle),
                 "veff_right_err", sector, layer, paddle);
+		calib.setDoubleValue(getLR(sector,layer,paddle),
+				"veff_ud", sector, layer, paddle);
 
     }
 
@@ -473,6 +493,8 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
         double[] paddleUncs = new double[NUM_PADDLES[0]];
         double[] veffs = new double[NUM_PADDLES[0]];
         double[] veffUncs = new double[NUM_PADDLES[0]];
+		double[] lrs = new double[NUM_PADDLES[layer_index]];
+		double[] lrUncs = new double[NUM_PADDLES[layer_index]];
         
         for (int p = 1; p <= NUM_PADDLES[0]; p++) {
 
@@ -481,10 +503,14 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
             veffs[p - 1] = getVeff(sector, layer, p);
             //veffUncs[p - 1] = getVeffError(sector, layer, p);
             veffUncs[p - 1] = 0.0;
+			lrs[p-1] = getLR(sector,layer,p);
+			lrUncs[p-1] = 0.0;
         }
 
         GraphErrors summ = new GraphErrors("summ", paddleNumbers,
                 veffs, paddleUncs, veffUncs);
+		GraphErrors lrSumm = new GraphErrors("lrSumm", paddleNumbers,
+				lrs, paddleUncs, lrUncs);
         
         // add the previous calibration values
 //        summ.setMarkerStyle(1);
@@ -499,9 +525,14 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
         summ.setTitleY("Effective velocity (cm/ns)");
         summ.setMarkerSize(MARKER_SIZE);
         summ.setLineThickness(MARKER_LINE_WIDTH);
+		lrSumm.setTitleX("Paddle Number");
+		lrSumm.setTitleY("Left right (ns)");
+		lrSumm.setMarkerSize(MARKER_SIZE);
+		lrSumm.setLineThickness(MARKER_LINE_WIDTH);
 
-        DataGroup dg = new DataGroup(1,1);
+        DataGroup dg = new DataGroup(2,1);
         dg.addDataSet(summ, 0);
+		dg.addDataSet(lrSumm, 1);
         return dg;
 
     }

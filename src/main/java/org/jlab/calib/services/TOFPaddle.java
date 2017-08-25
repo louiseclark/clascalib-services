@@ -42,6 +42,7 @@ public class TOFPaddle {
 	public static final int PID_PION = 211;
 	private final double C = 29.98;
 	public static final double NS_PER_CH = 0.02345;
+//	public static final double NS_PER_CH = 0.024;
 
 	public TOFPaddle(int sector, int layer, int paddle) {
 		this.desc.setSectorLayerComponent(sector, layer, paddle);
@@ -380,7 +381,8 @@ public class TOFPaddle {
 			}
 		}
 		else {
-			len = 100.0;
+			//len = 100.0;
+			len = 88.05;
 		}
 
 		return len;
@@ -415,6 +417,13 @@ public class TOFPaddle {
 
 	double tdcToTime(double value) {
 		return NS_PER_CH * value;
+	}
+	
+	public double veffHalfTimeDiff() {
+
+		double timeL = timeLeftAfterTW();
+		double timeR = timeRightAfterTW();
+		return (timeL - timeR) / 2;
 	}
 
 	public double halfTimeDiff() {

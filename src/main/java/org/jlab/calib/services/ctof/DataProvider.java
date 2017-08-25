@@ -87,9 +87,6 @@ public class DataProvider {
 
 	public static List<TOFPaddle> getPaddleListHipo(DataEvent event){
 
-		boolean refPaddleFound = false;
-		boolean testPaddleFound = false;
-		
 		if (test) {
 
 			event.show();
@@ -183,21 +180,16 @@ public class DataProvider {
 				
 				//paddle.show();
 				
-//				System.out.println("Louise 171");
-				
 				if (event.hasBank("CVTRec::Tracks") && event.hasBank("RUN::rf")) {
 
-//					System.out.println("Louise 175");
 					DataBank  trkBank = event.getBank("CVTRec::Tracks");
 					DataBank  rfBank = event.getBank("RUN::rf");
 					
-//					System.out.println("Louise 179");
 					if (event.hasBank("RUN::config")) {
 						DataBank  configBank = event.getBank("RUN::config");
 						paddle.TRIGGER_BIT = configBank.getInt("trigger", 0);
 					}
 					
-//					System.out.println("Louise 185");
 					// get the RF time with id=1
 					double trf = 0.0; 
 					for (int rfIdx=0; rfIdx<rfBank.rows(); rfIdx++) {
@@ -206,32 +198,28 @@ public class DataProvider {
 						}
 					}
 
-//					System.out.println("Louise 194");
 					// Get track
 					int trkId = hitsBank.getShort("trkID", hitIndex);
 					double energy = hitsBank.getFloat("energy", hitIndex);
 					
-//					System.out.println("Louise 199");
-//					System.out.println("trkId energy trf "+trkId+" "+energy+" "+trf);
-
 					// only use hit with associated track and a minimum energy
 					if (trkId!=-1 && energy>1.5) {
 						
-//						System.out.println("Louise 205");
-//						System.out.println("Getting track info track id is "+trkId);
-
 						double c3x  = trkBank.getFloat("c_x",trkId);
 						double c3y  = trkBank.getFloat("c_y",trkId);
 						double c3z  = trkBank.getFloat("c_z",trkId);
 						double path = trkBank.getFloat("pathlength",trkId) + Math.sqrt((tx-c3x)*(tx-c3x)+(ty-c3y)*(ty-c3y)+(tz-c3z)*(tz-c3z));
-						paddle.PATH_LENGTH = path;
+						// calculated path length
+						//paddle.PATH_LENGTH = path;
+						
+						// path length from bank
+						paddle.PATH_LENGTH = hitsBank.getFloat("pathLength", hitIndex);
 						//System.out.println("Path length calc "+path);
 						//System.out.println("Path length bank "+hitsBank.getFloat("pathLength", hitIndex));
 						//double diff = path - hitsBank.getFloat("pathLength", hitIndex);
 						//System.out.println("Path length diff "+diff);
 						paddle.RF_TIME = trf;
 						
-//						System.out.println("Louise 215");
 						// Get the momentum and record the beta (assuming every hit is a pion!)
 //						double px  = tbtBank.getFloat("p0_x",trkId-1);
 //						double py  = tbtBank.getFloat("p0_y",trkId-1);
@@ -252,52 +240,10 @@ public class DataProvider {
 							paddle.TRACK_REDCHI2 = -1.0;
 						}
 						
-						if (paddle.getDescriptor().getComponent()==13 &&
-								paddle.getDescriptor().getLayer()== 1 && trkId !=-1) {
-							//refPaddleFound = true;
-						}
-						if (paddle.getDescriptor().getComponent()==35 &&
-								paddle.getDescriptor().getLayer()== 2 && trkId !=-1) {
-							//testPaddleFound = true;
-						}
-
 					}
 				}
-				
-				
-				if (refPaddleFound && testPaddleFound) {
 
-					event.show();
-					if (event.hasBank("FTOF::adc")) {
-						event.getBank("FTOF::adc").show();
-					}
-					if (event.hasBank("FTOF::tdc")) {
-						event.getBank("FTOF::tdc").show();
-					}
-					if (event.hasBank("FTOF::hits")) {
-						event.getBank("FTOF::hits").show();
-					}
-					if (event.hasBank("HitBasedTrkg::HBTracks")) {
-						event.getBank("HitBasedTrkg::HBTracks").show();
-					}
-					if (event.hasBank("TimeBasedTrkg::TBTracks")) {
-						event.getBank("TimeBasedTrkg::TBTracks").show();
-					}
-					if (event.hasBank("RUN::rf")) {
-						event.getBank("RUN::rf").show();
-					}
-					if (event.hasBank("RUN::config")) {
-						event.getBank("RUN::config").show();
-					}					
-					if (event.hasBank("MC::Particle")) {
-						event.getBank("MC::Particle").show();
-					}
-					refPaddleFound = false;
-					testPaddleFound = false;
-				}				
-
-
-				//paddle.show();
+//				paddle.show();
 //				System.out.println("Adding paddle to list");
 				if (paddle.includeInCalib()) {
 					paddleList.add(paddle);

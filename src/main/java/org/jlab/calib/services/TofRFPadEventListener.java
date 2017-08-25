@@ -35,7 +35,7 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 
 	private String showPlotType = "VERTEX_RF";
 
-	private String fitOption = "RNQ";
+	private String fitOption = "RQ";
 
 	public TofRFPadEventListener() {
 
@@ -163,6 +163,7 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 
 					// create a dummy function in case there's no data to fit 
 					F1D fineFunc = new F1D("fineFunc","[amp]*gaus(x,[mean],[sigma])+[a]*x^2+[b]*x+[c]", -1.0, 1.0);
+					//F1D fineFunc = new F1D("fineFunc","[amp]*gaus(x,[mean],[sigma])+[b]*x+[c]", -1.0, 1.0);
 					fineFunc.setLineColor(FUNC_COLOUR);
 					fineFunc.setLineWidth(FUNC_LINE_WIDTH);
 					dg.addDataSet(fineFunc, 1);
@@ -256,7 +257,8 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 			lowLimit = minRange;
 		}
 		else {
-			lowLimit = maxPos-0.65;
+			//lowLimit = maxPos-0.65;
+			lowLimit = maxPos-0.5;
 		}
 		if (maxRange != UNDEFINED_OVERRIDE) {
 			// use custom values for fit
@@ -264,13 +266,14 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 		}
 		else {
 			highLimit = maxPos+0.65;
+			highLimit = maxPos+0.5;
 		}
 
 		fineFunc.setRange(lowLimit, highLimit);
 		fineFunc.setParameter(0, fineHist.getBinContent(maxBin));
-		fineFunc.setParLimits(0, 0, fineHist.getBinContent(maxBin)+1.5);
+		fineFunc.setParLimits(0, fineHist.getBinContent(maxBin)*0.7, fineHist.getBinContent(maxBin)*1.2);
 		fineFunc.setParameter(1, maxPos);
-		fineFunc.setParameter(2, 0.5);
+		fineFunc.setParameter(2, 0.1);
 
 		try {
 			DataFitter.fit(fineFunc, fineHist, fitOption);
