@@ -98,7 +98,7 @@ public class CTOFCalibrationEngine extends CalibrationEngine {
         leftRightValues = new CalibrationConstants(3,
                 "upstream_downstream/F");
         veffValues = new CalibrationConstants(3,
-                "veff_left/F");
+                "veff_upstream/F");
         p2pValues =    new CalibrationConstants(3,
                         "paddle2paddle/F");
         rfpadValues =    new CalibrationConstants(3,

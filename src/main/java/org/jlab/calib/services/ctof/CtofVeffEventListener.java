@@ -69,7 +69,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
         filename = nextFileName();
 
         calib = new CalibrationConstants(3,
-                "veff_left/F:veff_right/F:veff_left_err/F:veff_right_err/F:veff_ud/F");
+                "veff_upstream/F:veff_downstream/F:veff_upstream_err/F:veff_downstream_err/F:veff_ud/F");
         calib.setName("/calibration/ctof/effective_velocity");
         calib.setPrecision(3);
 
@@ -115,7 +115,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
 
                     veffValues.addEntry(sector, layer, paddle);
                     veffValues.setDoubleValue(veff,
-                            "veff_left", sector, layer, paddle);
+                            "veff_upstream", sector, layer, paddle);
                     
                     line = bufferedReader.readLine();
                 }
@@ -140,7 +140,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
             for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
                 veffValues.addEntry(1, 1, paddle);
                 veffValues.setDoubleValue(EXPECTED_VEFF,
-                        "veff_left", 1, 1, paddle);
+                        "veff_upstream", 1, 1, paddle);
                         
             }
         }
@@ -439,13 +439,13 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
     @Override
     public void saveRow(int sector, int layer, int paddle) {
         calib.setDoubleValue(getVeff(sector,layer,paddle),
-                "veff_left", sector, layer, paddle);
+                "veff_upstream", sector, layer, paddle);
         calib.setDoubleValue(getVeff(sector,layer,paddle),
-                "veff_right", sector, layer, paddle);
+                "veff_downstream", sector, layer, paddle);
         calib.setDoubleValue(getVeffError(sector,layer,paddle),
-                "veff_left_err", sector, layer, paddle);
+                "veff_upstream_err", sector, layer, paddle);
         calib.setDoubleValue(getVeffError(sector,layer,paddle),
-                "veff_right_err", sector, layer, paddle);
+                "veff_downstream_err", sector, layer, paddle);
 		calib.setDoubleValue(getLR(sector,layer,paddle),
 				"veff_ud", sector, layer, paddle);
 
@@ -526,7 +526,7 @@ public class CtofVeffEventListener extends CTOFCalibrationEngine {
         summ.setMarkerSize(MARKER_SIZE);
         summ.setLineThickness(MARKER_LINE_WIDTH);
 		lrSumm.setTitleX("Paddle Number");
-		lrSumm.setTitleY("Left right (ns)");
+		lrSumm.setTitleY("Up down (ns)");
 		lrSumm.setMarkerSize(MARKER_SIZE);
 		lrSumm.setLineThickness(MARKER_LINE_WIDTH);
 

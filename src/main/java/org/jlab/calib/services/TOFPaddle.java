@@ -112,7 +112,7 @@ public class TOFPaddle {
 					desc.getSector(), desc.getLayer(), desc.getComponent());
 			//System.out.println("veff "+desc.getSector()+desc.getLayer()+desc.getComponent()+" "+veff);
 		} else {
-			veff = CTOFCalibrationEngine.veffValues.getDoubleValue("veff_left",
+			veff = CTOFCalibrationEngine.veffValues.getDoubleValue("veff_upstream",
 					desc.getSector(), desc.getLayer(), desc.getComponent());
 		}
 

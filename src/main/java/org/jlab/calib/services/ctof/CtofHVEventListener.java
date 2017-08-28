@@ -74,7 +74,7 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 		statusFileName = nextStatusFileName();
 
 		calib = new CalibrationConstants(3,
-				"mipa_left/F:mipa_right/F:mipa_left_err/F:mipa_right_err/F:logratio/F:logratio_err/F");
+				"mipa_upstream/F:mipa_downstream/F:mipa_upstream_err/F:mipa_downstream_err/F:logratio/F:logratio_err/F");
 		calib.setName("/calibration/ctof/gain_balance");
 		calib.setPrecision(3); // record calibration constants to 3 dp
 
@@ -561,13 +561,13 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 	@Override
 	public void saveRow(int sector, int layer, int paddle) {
 		calib.setDoubleValue(getMipChannel(sector,layer,paddle),
-				"mipa_left", sector, layer, paddle);
+				"mipa_upstream", sector, layer, paddle);
 		calib.setDoubleValue(getMipChannel(sector,layer,paddle),
-				"mipa_right", sector, layer, paddle);
+				"mipa_downstream", sector, layer, paddle);
 		calib.setDoubleValue(getMipChannelUnc(sector,layer,paddle),
-				"mipa_left_err", sector, layer, paddle);
+				"mipa_upstream_err", sector, layer, paddle);
 		calib.setDoubleValue(getMipChannelUnc(sector,layer,paddle),
-				"mipa_right_err", sector, layer, paddle);
+				"mipa_downstream_err", sector, layer, paddle);
 		calib.setDoubleValue(getLogRatio(sector,layer,paddle),
 				"logratio", sector, layer, paddle);
 		calib.setDoubleValue(getLogRatioUnc(sector,layer,paddle),
@@ -706,7 +706,7 @@ public class CtofHVEventListener extends CTOFCalibrationEngine {
 	public void setPlotTitle(int sector, int layer, int paddle) {
 		// reset hist title as may have been set to null by show all 
 		dataGroups.getItem(sector,layer,paddle).getH1F("geomean").setTitleX("ADC geometric mean");
-		dataGroups.getItem(sector,layer,paddle).getH1F("logratio").setTitleX("ln(ADC R / ADC L)");
+		dataGroups.getItem(sector,layer,paddle).getH1F("logratio").setTitleX("ln(ADC D / ADC U)");
 
 	}
 

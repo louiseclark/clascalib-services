@@ -38,6 +38,9 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 	private String showPlotType = "VERTEX_RF";
 
 	private String fitOption = "RQ";
+	
+	private final double MIN_SIGMA = 0.040;
+	private final double MAX_SIGMA = 0.150;
 
 	public CtofRFPadEventListener() {
 
@@ -48,13 +51,13 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 
 		calib = 
 				new CalibrationConstants(3,
-						"rfpad/F");
+						"rfpad/F:rfpad_sigma/F");
 
 		calib.setName("/calibration/ctof/timing_offset/rfpad");
 		calib.setPrecision(3);
 
 		// assign constraints
-		calib.addConstraint(3, -BEAM_BUCKET/2.0, BEAM_BUCKET/2.0);
+		calib.addConstraint(3, MIN_SIGMA, MAX_SIGMA);
 
 	}
 
@@ -322,13 +325,21 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 			offset = fineOffset;
 		}
 		return offset;
-	}    
+	}  
+	
+	public Double getSigma(int sector, int layer, int paddle) {
+
+		F1D fineFunc = dataGroups.getItem(sector,layer,paddle).getF1D("fineFunc");
+		return fineFunc.getParameter(2);
+	}  	
 
 	@Override
 	public void saveRow(int sector, int layer, int paddle) {
 
 		calib.setDoubleValue(getOffset(sector,layer,paddle),
 				"rfpad", sector, layer, paddle);
+		calib.setDoubleValue(getSigma(sector,layer,paddle),
+				"rfpad_sigma", sector, layer, paddle);
 
 	}
 
@@ -346,8 +357,7 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 
 			for (int paddle = 1; paddle <= NUM_PADDLES[0]; paddle++) {
 				String line = new String();
-				F1D fineFunc = dataGroups.getItem(1,1,paddle).getF1D("fineFunc");
-				line = 1+" "+1+" "+paddle+" "+new DecimalFormat("0.000").format(fineFunc.getParameter(2));
+				line = 1+" "+1+" "+paddle+" "+new DecimalFormat("0.000").format(getSigma(1,1,paddle));
 				outputBw.write(line);
 				outputBw.newLine();
 			}
@@ -395,9 +405,9 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 	@Override
 	public boolean isGoodPaddle(int sector, int layer, int paddle) {
 
-		return (getOffset(sector,layer,paddle) >= -BEAM_BUCKET/2.0
+		return (getSigma(sector,layer,paddle) >= MIN_SIGMA
 				&&
-				getOffset(sector,layer,paddle) <= BEAM_BUCKET/2.0);
+				getSigma(sector,layer,paddle) <= MAX_SIGMA);
 
 	}
 
@@ -409,6 +419,8 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 		double[] paddleUncs = new double[NUM_PADDLES[layer_index]];
 		double[] values = new double[NUM_PADDLES[layer_index]];
 		double[] valueUncs = new double[NUM_PADDLES[layer_index]];
+		double[] sigmas = new double[NUM_PADDLES[layer_index]];
+		double[] sigmaUncs = new double[NUM_PADDLES[layer_index]];		
 
 		for (int p = 1; p <= NUM_PADDLES[layer_index]; p++) {
 
@@ -416,15 +428,27 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 			paddleUncs[p - 1] = 0.0;
 			values[p - 1] = getOffset(sector, layer, p);
 			valueUncs[p - 1] = 0.0;
+			sigmas[p-1] = getSigma(sector,layer,p);
+			sigmaUncs[p-1] = 0.0;
 		}
 
 		GraphErrors summ = new GraphErrors("summ", paddleNumbers,
 				values, paddleUncs, valueUncs);
 		summ.setMarkerSize(MARKER_SIZE);
 		summ.setLineThickness(MARKER_LINE_WIDTH);
+		summ.setTitleX("Paddle number");
+		summ.setTitleY("Offset");
+
+		GraphErrors sigmaSumm = new GraphErrors("sigmaSumm", paddleNumbers,
+				sigmas, paddleUncs, sigmaUncs);
+		sigmaSumm.setMarkerSize(MARKER_SIZE);
+		sigmaSumm.setLineThickness(MARKER_LINE_WIDTH);		
+		sigmaSumm.setTitleX("Paddle number");
+		sigmaSumm.setTitleY("Sigma");
 
 		DataGroup dg = new DataGroup(1,1);
 		dg.addDataSet(summ, 0);
+		dg.addDataSet(sigmaSumm, 1);
 		return dg;
 
 	}

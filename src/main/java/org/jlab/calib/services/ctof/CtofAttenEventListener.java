@@ -71,7 +71,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 		filename = nextFileName();
 
 		calib = new CalibrationConstants(3,
-				"attlen_left/F:attlen_right/F:attlen_left_err/F:attlen_right_err/F:y_offset/F");
+				"attlen_upstream/F:attlen_downstream/F:attlen_upstream_err/F:attlen_downstream_err/F:y_offset/F");
 		calib.setName("/calibration/ctof/attenuation");
 		calib.setPrecision(3);
 
@@ -113,7 +113,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 			hist.setName("atten");
 			hist.setTitle("Log Ratio vs Position :  Paddle "+paddle);
 			hist.setTitleX("Position (cm)");
-			hist.setTitleY("ln(ADC R / ADC L)");
+			hist.setTitleY("ln(ADC D / ADC U)");
 
 			// create all the functions and graphs
 			F1D attenFunc = new F1D("attenFunc", "[a]+[b]*x", -50.0, 50.0);
@@ -399,13 +399,13 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 	@Override
 	public void saveRow(int sector, int layer, int paddle) {
 		calib.setDoubleValue(getAttlen(sector,layer,paddle),
-				"attlen_left", sector, layer, paddle);
+				"attlen_upstream", sector, layer, paddle);
 		calib.setDoubleValue(getAttlen(sector,layer,paddle),
-				"attlen_right", sector, layer, paddle);
+				"attlen_downstream", sector, layer, paddle);
 		calib.setDoubleValue(getAttlenError(sector,layer,paddle),
-				"attlen_left_err", sector, layer, paddle);
+				"attlen_upstream_err", sector, layer, paddle);
 		calib.setDoubleValue(getAttlenError(sector,layer,paddle),
-				"attlen_right_err", sector, layer, paddle);
+				"attlen_downstream_err", sector, layer, paddle);
 		calib.setDoubleValue(getOffset(sector,layer,paddle),
 				"y_offset", sector, layer, paddle);
 
@@ -430,7 +430,7 @@ public class CtofAttenEventListener extends CTOFCalibrationEngine {
 	public void setPlotTitle(int sector, int layer, int paddle) {
 		// reset hist title as may have been set to null by show all 
 		dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph").setTitleX("Position (cm)");
-		dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph").setTitleY("ln(ADC R / ADC L)");
+		dataGroups.getItem(sector,layer,paddle).getGraph("meanGraph").setTitleY("ln(ADC D / ADC U)");
 
 	}
 

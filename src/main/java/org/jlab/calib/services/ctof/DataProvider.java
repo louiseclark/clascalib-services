@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.jlab.calib.services.TOFCalibrationEngine;
 //import org.jlab.calib.services.TOFCalibrationEngine;
 import org.jlab.calib.services.TOFPaddle;
 import org.jlab.calib.temp.BaseHit;
@@ -114,6 +115,39 @@ public class DataProvider {
 		}
 
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
+		
+		// Set the status flags
+		if (event.hasBank("CTOF::adc")) {
+			DataBank adcBank = event.getBank("CTOF::adc");
+			
+			for (int i = 0; i < adcBank.rows(); i++) {
+				int component = adcBank.getShort("component", i);
+				int order = adcBank.getByte("order", i);
+				int adc = adcBank.getInt("ADC", i);
+				if (order==0 && adc != 0) {
+					CTOFCalibrationEngine.adcLeftStatus.add(0, 1,1,component);
+				}
+				if (order==1 && adc != 0) {
+					CTOFCalibrationEngine.adcRightStatus.add(0, 1,1,component);
+				}
+			}
+		}
+		if (event.hasBank("CTOF::tdc")) {
+			DataBank tdcBank = event.getBank("CTOF::tdc");
+			
+			for (int i = 0; i < tdcBank.rows(); i++) {
+				int component = tdcBank.getShort("component", i);
+				int order = tdcBank.getByte("order", i);
+				int tdc = tdcBank.getInt("TDC", i);
+				if (order==2 && tdc != 0) {
+					CTOFCalibrationEngine.tdcLeftStatus.add(0, 1,1,component);
+				}
+				if (order==3 && tdc != 0) {
+					CTOFCalibrationEngine.tdcRightStatus.add(0, 1,1,component);
+				}
+			}
+		}
+				
 
 		// Only continue if we have adc and tdc banks
 		if (!event.hasBank("CTOF::adc") || !event.hasBank("CTOF::tdc")) {
@@ -163,21 +197,7 @@ public class DataProvider {
 				paddle.ADC_TIMEL = adcBank.getFloat("time", adcIdx1);
 				paddle.ADC_TIMER = adcBank.getFloat("time", adcIdx2);
 				paddle.RECON_TIME = hitsBank.getFloat("time", hitIndex);
-				
-				// set status to ok if at least one reading
-                if (paddle.ADCL!=0) {
-                    CTOFCalibrationEngine.adcLeftStatus.add(0, 1,1,component);
-                }
-                if (paddle.ADCR!=0) {
-                    CTOFCalibrationEngine.adcRightStatus.add(0, 1,1,component);
-                }
-                if (paddle.TDCL!=0) {
-                    CTOFCalibrationEngine.tdcLeftStatus.add(0, 1,1,component);
-                }
-                if (paddle.TDCR!=0) {
-                    CTOFCalibrationEngine.tdcRightStatus.add(0, 1,1,component);
-                }				
-				
+								
 				//paddle.show();
 				
 				if (event.hasBank("CVTRec::Tracks") && event.hasBank("RUN::rf")) {

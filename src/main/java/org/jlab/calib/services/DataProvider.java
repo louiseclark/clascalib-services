@@ -107,7 +107,43 @@ public class DataProvider {
 		}
 
 		ArrayList<TOFPaddle>  paddleList = new ArrayList<TOFPaddle>();
-
+		
+		// Set the status flags
+		if (event.hasBank("FTOF::adc")) {
+			DataBank adcBank = event.getBank("FTOF::adc");
+			
+			for (int i = 0; i < adcBank.rows(); i++) {
+				int sector = adcBank.getByte("sector", i);
+				int layer = adcBank.getByte("layer", i);
+				int component = adcBank.getShort("component", i);
+				int order = adcBank.getByte("order", i);
+				int adc = adcBank.getInt("ADC", i);
+				if (order==0 && adc != 0) {
+					TOFCalibrationEngine.adcLeftStatus.add(0, sector,layer,component);
+				}
+				if (order==1 && adc != 0) {
+					TOFCalibrationEngine.adcRightStatus.add(0, sector,layer,component);
+				}
+			}
+		}
+		if (event.hasBank("FTOF::tdc")) {
+			DataBank tdcBank = event.getBank("FTOF::tdc");
+			
+			for (int i = 0; i < tdcBank.rows(); i++) {
+				int sector = tdcBank.getByte("sector", i);
+				int layer = tdcBank.getByte("layer", i);
+				int component = tdcBank.getShort("component", i);
+				int order = tdcBank.getByte("order", i);
+				int tdc = tdcBank.getInt("TDC", i);
+				if (order==2 && tdc != 0) {
+					TOFCalibrationEngine.tdcLeftStatus.add(0, sector,layer,component);
+				}
+				if (order==3 && tdc != 0) {
+					TOFCalibrationEngine.tdcRightStatus.add(0, sector,layer,component);
+				}
+			}
+		}
+		
 		// Only continue if we have adc and tdc banks
 		if (!event.hasBank("FTOF::adc") || !event.hasBank("FTOF::tdc")) {
 			return paddleList;
@@ -151,23 +187,6 @@ public class DataProvider {
 				paddle.ADC_TIMEL = adcBank.getFloat("time", hitsBank.getShort("adc_idx1", hitIndex));
 				paddle.ADC_TIMER = adcBank.getFloat("time", hitsBank.getShort("adc_idx2", hitIndex));
 				paddle.RECON_TIME = hitsBank.getFloat("time", hitIndex);
-				
-				// set status to ok if at least one reading
-				int sector = paddle.getDescriptor().getSector();
-				int layer = paddle.getDescriptor().getLayer();
-				int component = paddle.getDescriptor().getComponent();
-                if (paddle.ADCL!=0) {
-                    TOFCalibrationEngine.adcLeftStatus.add(0, sector,layer,component);
-                }
-                if (paddle.ADCR!=0) {
-                    TOFCalibrationEngine.adcRightStatus.add(0, sector,layer,component);
-                }
-                if (paddle.TDCL!=0) {
-                    TOFCalibrationEngine.tdcLeftStatus.add(0, sector,layer,component);
-                }
-                if (paddle.TDCR!=0) {
-                    TOFCalibrationEngine.tdcRightStatus.add(0, sector,layer,component);
-                }
 				
 				//System.out.println("Paddle created "+paddle.getDescriptor().getSector()+paddle.getDescriptor().getLayer()+paddle.getDescriptor().getComponent());
 

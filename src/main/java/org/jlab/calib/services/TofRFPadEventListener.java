@@ -36,6 +36,10 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 	private String showPlotType = "VERTEX_RF";
 
 	private String fitOption = "RQ";
+	
+	private final double[] MIN_SIGMA = {0.0, 0.040, 0.040, 0.040};
+	private final double[] MAX_SIGMA = {0.0, 0.300, 0.150, 0.300};
+	
 
 	public TofRFPadEventListener() {
 
@@ -46,13 +50,15 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 
 		calib = 
 				new CalibrationConstants(3,
-						"rfpad/F");
+						"rfpad/F:rfpad_sigma/F");
 
 		calib.setName("/calibration/ftof/timing_offset/rfpad");
 		calib.setPrecision(3);
 
 		// assign constraints
-		calib.addConstraint(3, -BEAM_BUCKET/2.0, BEAM_BUCKET/2.0);
+		for (int i=1; i<=3; i++) {
+			calib.addConstraint(4, MIN_SIGMA[i], MAX_SIGMA[i], 1, i);
+		}		
 
 	}
 
@@ -337,12 +343,21 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 		}
 		return offset;
 	}    
+	
+	public Double getSigma(int sector, int layer, int paddle) {
+
+		F1D fineFunc = dataGroups.getItem(sector,layer,paddle).getF1D("fineFunc");
+		return fineFunc.getParameter(2);
+	}    
+	
 
 	@Override
 	public void saveRow(int sector, int layer, int paddle) {
 
 		calib.setDoubleValue(getOffset(sector,layer,paddle),
 				"rfpad", sector, layer, paddle);
+		calib.setDoubleValue(getSigma(sector,layer,paddle),
+				"rfpad_sigma", sector, layer, paddle);
 
 	}
 
@@ -363,8 +378,7 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 					int layer_index = layer - 1;
 					for (int paddle = 1; paddle <= NUM_PADDLES[layer_index]; paddle++) {
 						String line = new String();
-						F1D fineFunc = dataGroups.getItem(sector,layer,paddle).getF1D("fineFunc");
-						line = sector+" "+layer+" "+paddle+" "+new DecimalFormat("0.000").format(fineFunc.getParameter(2));
+						line = sector+" "+layer+" "+paddle+" "+new DecimalFormat("0.000").format(getSigma(sector,layer,paddle));
 						outputBw.write(line);
 						outputBw.newLine();
 					}
@@ -414,9 +428,9 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 	@Override
 	public boolean isGoodPaddle(int sector, int layer, int paddle) {
 
-		return (getOffset(sector,layer,paddle) >= -BEAM_BUCKET/2.0
+		return (getSigma(sector,layer,paddle) >= MIN_SIGMA[layer]
 				&&
-				getOffset(sector,layer,paddle) <= BEAM_BUCKET/2.0);
+				getSigma(sector,layer,paddle) <= MAX_SIGMA[layer]);
 
 	}
 
@@ -428,6 +442,8 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 		double[] paddleUncs = new double[NUM_PADDLES[layer_index]];
 		double[] values = new double[NUM_PADDLES[layer_index]];
 		double[] valueUncs = new double[NUM_PADDLES[layer_index]];
+		double[] sigmas = new double[NUM_PADDLES[layer_index]];
+		double[] sigmaUncs = new double[NUM_PADDLES[layer_index]];
 
 		for (int p = 1; p <= NUM_PADDLES[layer_index]; p++) {
 
@@ -435,15 +451,27 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 			paddleUncs[p - 1] = 0.0;
 			values[p - 1] = getOffset(sector, layer, p);
 			valueUncs[p - 1] = 0.0;
+			sigmas[p-1] = getSigma(sector,layer,p);
+			sigmaUncs[p-1] = 0.0;
 		}
 
 		GraphErrors summ = new GraphErrors("summ", paddleNumbers,
 				values, paddleUncs, valueUncs);
 		summ.setMarkerSize(MARKER_SIZE);
 		summ.setLineThickness(MARKER_LINE_WIDTH);
+		summ.setTitleX("Paddle number");
+		summ.setTitleY("Offset");
+		
+		GraphErrors sigmaSumm = new GraphErrors("sigmaSumm", paddleNumbers,
+				sigmas, paddleUncs, sigmaUncs);
+		sigmaSumm.setMarkerSize(MARKER_SIZE);
+		sigmaSumm.setLineThickness(MARKER_LINE_WIDTH);		
+		sigmaSumm.setTitleX("Paddle number");
+		sigmaSumm.setTitleY("Sigma");		
 
-		DataGroup dg = new DataGroup(1,1);
+		DataGroup dg = new DataGroup(2,1);
 		dg.addDataSet(summ, 0);
+		dg.addDataSet(sigmaSumm, 1);
 		return dg;
 
 	}
