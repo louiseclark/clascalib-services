@@ -361,8 +361,9 @@ public class TofRFPadEventListener extends TOFCalibrationEngine {
 
 	}
 
-	@Override
-	public void writeFile(String filename) {
+	//@Override - no need to override as sigmas are in table
+	// rename back to writeFile and Override if sigmas to go in separate file
+	public void sigmaWriteFile(String filename) {
 
 		// write sigmas to a file then call the super method to write the rfpad
 		try { 

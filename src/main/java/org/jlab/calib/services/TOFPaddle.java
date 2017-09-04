@@ -278,7 +278,7 @@ public class TOFPaddle {
 	}	
 
 	// position dependent version
-	private double posDepNominalTWCorrL() {
+	private double v1posDepNominalTWCorrL() {
 		double padNum = getDescriptor().getComponent();
 		double tw0 = 40.0;
 		double coorTerm = (paddleLength()*0.5 + paddleY());
@@ -297,7 +297,29 @@ public class TOFPaddle {
 		return newTw0 / (Math.pow(ADCL,0.5));
 	}
 
-	private double posDepNominalTWCorrR() {
+	// position dependent version
+	private double posDepNominalTWCorrL() {
+		double padNum = getDescriptor().getComponent();
+		double tw0 = lamL();
+		double coorTerm = paddleY();
+		double paddleTerm = (1 - (0.795 - 0.0034*padNum)) / paddleLength();
+		double newTw0 = tw0 - tw0*coorTerm*paddleTerm;
+		
+//		System.out.println("pos Dep TWCorrL");
+//		System.out.println("Panel "+this.getDescriptor().getLayer());
+//		System.out.println("padNum "+padNum);
+//		System.out.println("lamL "+lamL());
+//		System.out.println("paddleLength "+paddleLength());
+//		System.out.println("paddleY "+paddleY());
+//		System.out.println("coorTerm "+coorTerm);
+//		System.out.println("paddleTerm "+paddleTerm);
+//		System.out.println("new tw0 "+newTw0);
+		
+		return newTw0 / (Math.pow(ADCL,0.5));
+	}
+
+	
+	private double v1posDepNominalTWCorrR() {
 		double padNum = getDescriptor().getComponent();
 		double tw0 = 40.0;
 		double coorTerm = (paddleLength()*0.5 - paddleY());
@@ -315,6 +337,26 @@ public class TOFPaddle {
 		
 		return newTw0 / (Math.pow(ADCR,0.5));
 	}		
+	
+	private double posDepNominalTWCorrR() {
+		double padNum = getDescriptor().getComponent();
+		double tw0 = lamR();
+		double coorTerm = paddleY();
+		double paddleTerm = (1 - (0.795 - 0.0034*padNum)) / paddleLength();
+		double newTw0 = tw0 + tw0*coorTerm*paddleTerm;
+		
+//		System.out.println("TWCorrR");
+//		System.out.println("Panel "+this.getDescriptor().getLayer());
+//		System.out.println("padNum "+padNum);
+//		System.out.println("lamR "+lamR());
+//		System.out.println("paddleLength "+paddleLength());
+//		System.out.println("paddleY "+paddleY());
+//		System.out.println("coorTerm "+coorTerm);
+//		System.out.println("paddleTerm "+paddleTerm);
+//		System.out.println("new tw0 "+newTw0);
+		
+		return newTw0 / (Math.pow(ADCR,0.5));
+	}			
 	
 	public double deltaTLeft(double offset) {
 

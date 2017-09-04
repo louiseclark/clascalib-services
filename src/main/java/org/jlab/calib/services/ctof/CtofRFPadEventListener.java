@@ -57,7 +57,7 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 		calib.setPrecision(3);
 
 		// assign constraints
-		calib.addConstraint(3, MIN_SIGMA, MAX_SIGMA);
+		calib.addConstraint(4, MIN_SIGMA, MAX_SIGMA);
 
 	}
 
@@ -343,8 +343,9 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 
 	}
 
-	@Override
-	public void writeFile(String filename) {
+	//@Override - no need to override as sigmas are in table
+	// rename back to writeFile and Override if sigmas to go in separate file
+	public void sigmaWriteFile(String filename) {
 
 		// write sigmas to a file then call the super method to write the rfpad
 		try { 
@@ -446,7 +447,7 @@ public class CtofRFPadEventListener extends CTOFCalibrationEngine {
 		sigmaSumm.setTitleX("Paddle number");
 		sigmaSumm.setTitleY("Sigma");
 
-		DataGroup dg = new DataGroup(1,1);
+		DataGroup dg = new DataGroup(2,1);
 		dg.addDataSet(summ, 0);
 		dg.addDataSet(sigmaSumm, 1);
 		return dg;

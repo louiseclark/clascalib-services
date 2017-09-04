@@ -51,7 +51,7 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 	private final double[]        FIT_MAX = {0.0, 1000.0, 2400.0, 1000.0};
 	//private final double[]        ADC_MIN = {0.0, 150.0,  500.0,  150.0};
 	//private final double[]        ADC_MAX = {0.0, 2000.0, 3500.0, 2000.0};
-	private final double[]        ADC_MIN = {0.0, 150.0,  500.0,  150.0};
+	private final double[]        ADC_MIN = {0.0, 100.0,  200.0,  100.0};
 	private final double[]        ADC_MAX = {0.0, 4000.0, 7000.0, 4000.0};
 	
 	// Preferred bins
@@ -227,11 +227,26 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 					
 					// create all the functions and graphs
 					//F1D trLeftFunc = new F1D("trLeftFunc", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
-					F1D trLeftFunc = new F1D("trLeftFunc", "(([a]/(x^[b]))-(40.0/(x^0.5))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
+					//F1D trLeftFunc = new F1D("trLeftFunc", "(([a]/(x^[b]))-(40.0/(x^0.5))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
+					double lamL = TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw0_left",
+											sector, layer, paddle);
+					String funcTextL = "(([a]/(x^[b]))-(" + lamL + "/(x^0.5))+[c])";
+					//System.out.println("funcTextL "+funcTextL);
+					
+					F1D trLeftFunc = new F1D("trLeftFunc", funcTextL, FIT_MIN[layer], FIT_MAX[layer]);
+					
 					GraphErrors trLeftGraph = new GraphErrors("trLeftGraph");
-					trLeftGraph.setName("trLeftGraph");                    
+					trLeftGraph.setName("trLeftGraph");   
+					
 					//F1D trRightFunc = new F1D("trRightFunc", "(([a]/(x^[b]))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
-					F1D trRightFunc = new F1D("trRightFunc", "(([a]/(x^[b]))-(40.0/(x^0.5))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
+					//F1D trRightFunc = new F1D("trRightFunc", "(([a]/(x^[b]))-(40.0/(x^0.5))+[c])", FIT_MIN[layer], FIT_MAX[layer]);
+					double lamR = TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw0_right",
+							sector, layer, paddle);
+					String funcTextR = "(([a]/(x^[b]))-(" + lamR + "/(x^0.5))+[c])";
+					//System.out.println("funcTextR "+funcTextR);
+					
+					F1D trRightFunc = new F1D("trRightFunc", funcTextR, FIT_MIN[layer], FIT_MAX[layer]);
+					
 					GraphErrors trRightGraph = new GraphErrors("trRightGraph");
 					trRightGraph.setName("trRightGraph");
 
@@ -446,6 +461,16 @@ public class TofTimeWalkEventListener extends TOFCalibrationEngine {
 		
 		H2F twL = offsetHists.getItem(sector,layer,paddle,offsetIdxLeft)[0];
 		H2F twR = offsetHists.getItem(sector,layer,paddle,offsetIdxRight)[1];
+		
+		// *********** TEST CODE *********** don't change offset hists
+		// replace code above
+//		DataGroup dg = dataGroups.getItem(sector,layer,paddle);
+//		H2F twL = dataGroups.getItem(sector,layer,paddle).getH2F("trLeftHist");
+//		H2F twR = dataGroups.getItem(sector,layer,paddle).getH2F("trRightHist");
+//		dg.addDataSet(twL, 2);
+//		dg.addDataSet(twR, 3);
+		
+		
 
 		GraphErrors twLGraph = (GraphErrors) dataGroups.getItem(sector, layer, paddle).getData("trLeftGraph"); 
 		if (fitMethod==FIT_METHOD_SF) {
