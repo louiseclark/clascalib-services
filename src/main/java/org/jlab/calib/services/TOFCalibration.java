@@ -93,7 +93,8 @@ ChangeListener {
 			new TofVeffEventListener(),
 			new TofTimeWalkEventListener(),
 			new TofRFPadEventListener(),
-			new TofP2PEventListener()};
+			new TofP2PEventListener(),
+			new TofCheckEventListener()};
 
 	// engine indices
 	public final int HV = 0;
@@ -104,7 +105,7 @@ ChangeListener {
 	public final int TW = 5;
 	public final int RFPAD = 6;
 	public final int P2P = 7;
-	//public final int RF_OFFSET = 8;
+	public final int CHECK = 8;
 
 	String[] dirs = {"/calibration/ftof/gain_balance",
 			"/calibration/ftof/attenuation",
@@ -113,7 +114,8 @@ ChangeListener {
 			"/calibration/ftof/effective_velocity",
 			"/calibration/ftof/time_walk",
 			"/calibration/ftof/timing_offset/rfpad",
-	"/calibration/ftof/timing_offset/P2P"};
+	"/calibration/ftof/timing_offset/P2P",
+	"/calibration/ftof/timing_offset/check"};
 
 	String selectedDir = "None";
 	int selectedSector = 1;
@@ -137,7 +139,7 @@ ChangeListener {
 
 	// configuration settings
 	JCheckBox[] stepChecks = {new JCheckBox(),new JCheckBox(),new JCheckBox(),new JCheckBox(),
-			new JCheckBox(),new JCheckBox(),new JCheckBox(),new JCheckBox()};    
+			new JCheckBox(),new JCheckBox(),new JCheckBox(),new JCheckBox(), new JCheckBox()};    
 	private JTextField rcsText = new JTextField(5);
 	public static double maxRcs = 0.0;
 	private JTextField minVText = new JTextField(5);
@@ -280,8 +282,8 @@ ChangeListener {
 			engine = engines[RFPAD];
 		} else if (selectedDir == dirs[P2P]) {
 			engine = engines[P2P];
-			//        } else if (selectedDir == dirs[RF_OFFSET]) {
-			//            engine = engines[RF_OFFSET];
+        } else if (selectedDir == dirs[CHECK]) {
+            engine = engines[CHECK];
 		}
 
 		return engine;
@@ -704,7 +706,7 @@ ChangeListener {
 				new TofPrevConfigPanel(new TOFCalibrationEngine()),
 				new TofPrevConfigPanel(new TOFCalibrationEngine())};
 
-		for (int i=3; i< engines.length; i++) {  // skip HV, attenuation and TDC
+		for (int i=3; i< engines.length-1; i++) {  // skip HV, attenuation, TDC, check
 			engPanels[i-3] = new TofPrevConfigPanel(engines[i]);
 			confPanel.add(engPanels[i-3]);
 		}

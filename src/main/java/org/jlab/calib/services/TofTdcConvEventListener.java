@@ -54,7 +54,7 @@ public class TofTdcConvEventListener extends TOFCalibrationEngine {
     public final double EXPECTED_CONV = TOFPaddle.NS_PER_CH;
     public final double ALLOWED_DIFF = 0.1;
     
-    private String fitOption = "RNQ";
+    private String fitOption = "RQ";
 	private String showPlotType = "CONV_LEFT";
 	int backgroundSF = 2;
 	boolean showSlices = false;

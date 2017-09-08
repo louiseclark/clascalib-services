@@ -109,7 +109,7 @@ public class TOFCalibrationEngine extends CalibrationEngine {
 		veffValues = new CalibrationConstants(3,
 				"veff_left/F");
 		timeWalkValues = new CalibrationConstants(3,
-				"tw0_left/F:tw1_left/F:tw0_right/F:tw1_right/F");
+				"tw0_left/F:tw1_left/F:tw2_left/F:tw0_right/F:tw1_right/F:tw2_right/F");
 		p2pValues =	new CalibrationConstants(3,
 				"paddle2paddle/F");
 		rfpadValues =	new CalibrationConstants(3,

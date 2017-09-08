@@ -88,7 +88,10 @@ public class TOFPaddle {
 
 	public boolean includeInCalib() {
 		//return (ADCR != 0 || ADCL != 0);
-		return (this.geometricMean() > 100.0 && ADCR>0 && ADCL>0 && TDCL>0 && TDCR>0);
+		//return (this.geometricMean() > 100.0 && ADCR>0 && ADCL>0 && TDCL>0 && TDCR>0);
+		double[] minAdc = {0.0, 20.0, 50.0, 20.0};
+		int layer = this.getDescriptor().getLayer();
+		return (ADCL > minAdc[layer] && ADCR > minAdc[layer] && TDCL>0 && TDCR>0);
 	}
 
 	//	public boolean includeInCtofVeff() {
@@ -155,19 +158,6 @@ public class TOFPaddle {
 		}
 		return p2p;
 	}	
-
-	public double combinedRes() {
-		double tr = 0.0;
-
-		double timeL = tdcToTime(TDCL);
-		double timeR = tdcToTime(TDCR);
-		double lr = leftRightAdjustment();
-
-		tr = ((timeL - timeR - lr) / 2)
-				- (paddleY() / veff());
-
-		return tr;
-	}
 
 	// timeResidualsADC
 	// rename to timeResiduals to use this version comparing TDC time to ADC time
@@ -264,51 +254,38 @@ public class TOFPaddle {
 		
 	}
 	
-	// original version
-	private double posIndepNominalTWCorr(double adc) {
-		return 40.0 / (Math.pow(adc,0.5));
-	}
-	
 	private double posIndepNominalTWCorrL() {
-		return posIndepNominalTWCorr(ADCL);
+
+//		System.out.println("SLC "+desc.getSector()+desc.getLayer()+desc.getComponent());
+//		System.out.println("ADCL "+ADCL+" lamL "+lamL());
+//		System.out.println("posIndepNominalTWCorrL "+(lamL() / Math.pow(ADCL, 0.5)));
+		return lamL() / Math.pow(ADCL, 0.5);
+		
 	}
 
 	private double posIndepNominalTWCorrR() {
-		return posIndepNominalTWCorr(ADCR);
+//		System.out.println("SLC "+desc.getSector()+desc.getLayer()+desc.getComponent());
+//		System.out.println("ADCR "+ADCR+" lamR "+lamR());
+//		System.out.println("posIndepNominalTWCorrR "+(lamR() / Math.pow(ADCR, 0.5)));
+		return lamR() / Math.pow(ADCR, 0.5);
 	}	
-
-	// position dependent version
-	private double v1posDepNominalTWCorrL() {
-		double padNum = getDescriptor().getComponent();
-		double tw0 = 40.0;
-		double coorTerm = (paddleLength()*0.5 + paddleY());
-		double paddleTerm = (1 - (0.795 - 0.0034*padNum)) / paddleLength();
-		double newTw0 = tw0 - tw0*coorTerm*paddleTerm;
-		
-//		System.out.println("pos Dep TWCorrL");
-//		System.out.println("Panel "+this.getDescriptor().getLayer());
-//		System.out.println("padNum "+padNum);
-//		System.out.println("paddleLength "+paddleLength());
-//		System.out.println("paddleY "+paddleY());
-//		System.out.println("coorTerm "+coorTerm);
-//		System.out.println("paddleTerm "+paddleTerm);
-//		System.out.println("new tw0 "+newTw0);
-		
-		return newTw0 / (Math.pow(ADCL,0.5));
-	}
 
 	// position dependent version
 	private double posDepNominalTWCorrL() {
 		double padNum = getDescriptor().getComponent();
 		double tw0 = lamL();
+		double tw1 = tw1L();
+		double tw2 = tw2L();
 		double coorTerm = paddleY();
-		double paddleTerm = (1 - (0.795 - 0.0034*padNum)) / paddleLength();
+		double paddleTerm = (1 - (tw2 - tw1*padNum)) / paddleLength();
 		double newTw0 = tw0 - tw0*coorTerm*paddleTerm;
 		
 //		System.out.println("pos Dep TWCorrL");
 //		System.out.println("Panel "+this.getDescriptor().getLayer());
 //		System.out.println("padNum "+padNum);
 //		System.out.println("lamL "+lamL());
+//		System.out.println("tw1L "+tw1L());
+//		System.out.println("tw2L "+tw2L());
 //		System.out.println("paddleLength "+paddleLength());
 //		System.out.println("paddleY "+paddleY());
 //		System.out.println("coorTerm "+coorTerm);
@@ -316,39 +293,23 @@ public class TOFPaddle {
 //		System.out.println("new tw0 "+newTw0);
 		
 		return newTw0 / (Math.pow(ADCL,0.5));
-	}
-
-	
-	private double v1posDepNominalTWCorrR() {
-		double padNum = getDescriptor().getComponent();
-		double tw0 = 40.0;
-		double coorTerm = (paddleLength()*0.5 - paddleY());
-		double paddleTerm = (1 - (0.795 - 0.0034*padNum)) / paddleLength();
-		double newTw0 = tw0 - tw0*coorTerm*paddleTerm;
-		
-//		System.out.println("TWCorrR");
-//		System.out.println("Panel "+this.getDescriptor().getLayer());
-//		System.out.println("padNum "+padNum);
-//		System.out.println("paddleLength "+paddleLength());
-//		System.out.println("paddleY "+paddleY());
-//		System.out.println("coorTerm "+coorTerm);
-//		System.out.println("paddleTerm "+paddleTerm);
-//		System.out.println("new tw0 "+newTw0);
-		
-		return newTw0 / (Math.pow(ADCR,0.5));
-	}		
+	}	
 	
 	private double posDepNominalTWCorrR() {
 		double padNum = getDescriptor().getComponent();
 		double tw0 = lamR();
+		double tw1 = tw1R();
+		double tw2 = tw2R();
 		double coorTerm = paddleY();
-		double paddleTerm = (1 - (0.795 - 0.0034*padNum)) / paddleLength();
+		double paddleTerm = (1 - (tw2 - tw1*padNum)) / paddleLength();
 		double newTw0 = tw0 + tw0*coorTerm*paddleTerm;
 		
 //		System.out.println("TWCorrR");
 //		System.out.println("Panel "+this.getDescriptor().getLayer());
 //		System.out.println("padNum "+padNum);
 //		System.out.println("lamR "+lamR());
+//		System.out.println("tw1R "+tw1R());
+//		System.out.println("tw2R "+tw2R());
 //		System.out.println("paddleLength "+paddleLength());
 //		System.out.println("paddleY "+paddleY());
 //		System.out.println("coorTerm "+coorTerm);
@@ -437,7 +398,7 @@ public class TOFPaddle {
 
 	public double timeLeftAfterTW() {
 		if (tof=="FTOF") {
-			return tdcToTime(TDCL) - (lamL() / Math.pow(ADCL, ordL()));
+			return tdcToTime(TDCL) - (lamL() / Math.pow(ADCL, 0.5));
 		}
 		else {
 			return tdcToTime(TDCL);
@@ -446,7 +407,7 @@ public class TOFPaddle {
 
 	public double timeRightAfterTW() {
 		if (tof=="FTOF") {
-			return tdcToTime(TDCR) - (lamR() / Math.pow(ADCR, ordR()));
+			return tdcToTime(TDCR) - (lamR() / Math.pow(ADCR, 0.5));
 		}
 		else {
 			return tdcToTime(TDCR);
@@ -502,14 +463,23 @@ public class TOFPaddle {
 		return lamL;			
 	}
 
-	public double ordL() {
-		double ordL = 0.5;
+	public double tw1L() {
+		double tw1L = 0.0;
 		if (tof == "FTOF") {
-			ordL = TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw1_left",
+			tw1L = TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw1_left",
 					desc.getSector(),desc.getLayer(),desc.getComponent());
 		}
-		return ordL;			
+		return tw1L;			
 	}
+	
+	public double tw2L() {
+		double tw2L = 0.0;
+		if (tof == "FTOF") {
+			tw2L = TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw2_left",
+					desc.getSector(),desc.getLayer(),desc.getComponent());
+		}
+		return tw2L;			
+	}	
 
 	public double lamR() {
 		double lamR = 0.0;
@@ -520,14 +490,23 @@ public class TOFPaddle {
 		return lamR;			
 	}
 
-	public double ordR() {
-		double ordR = 0.5;
+	public double tw1R() {
+		double tw1R = 0.0;
 		if (tof == "FTOF") {
-			ordR = TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw1_right",
+			tw1R = TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw1_right",
 					desc.getSector(),desc.getLayer(),desc.getComponent());
 		}
-		return ordR;			
+		return tw1R;			
 	}
+	
+	public double tw2R() {
+		double tw2R = 0.0;
+		if (tof == "FTOF") {
+			tw2R = TOFCalibrationEngine.timeWalkValues.getDoubleValue("tw2_right",
+					desc.getSector(),desc.getLayer(),desc.getComponent());
+		}
+		return tw2R;			
+	}	
 
 	public double position() {
 
@@ -621,7 +600,7 @@ public class TOFPaddle {
 		System.out.println("goodTrackFound "+goodTrackFound()+" chargeMatch "+chargeMatch());
 		System.out.println("refTime "+refTime()+" startTime "+startTime()+" averageHitTime "+p2pAverageHitTime());
 		System.out.println("tofTimeRFCorr "+tofTimeRFCorr()+" startTimeRFCorr "+startTimeRFCorr()+" startTimeP2PCorr "+startTimeP2PCorr());
-		System.out.println("rfpad "+rfpad()+" p2p "+p2p()+" lamL "+lamL()+" ordL "+ordL()+" lamR "+lamR()+" ordR "+ordR()+" LR "+leftRightAdjustment()+" veff "+veff());
+		System.out.println("rfpad "+rfpad()+" p2p "+p2p()+" lamL "+lamL()+" tw1L "+tw1L()+" tw2L "+tw2L()+" lamR "+lamR()+" tw1R "+tw1R()+" tw2R "+tw2R()+" LR "+leftRightAdjustment()+" veff "+veff());
 		System.out.println("paddleLength "+paddleLength()+" paddleY "+paddleY());
 		System.out.println("timeLeftAfterTW "+timeLeftAfterTW()+" timeRightAfterTW "+timeRightAfterTW());
 		System.out.println("deltaTLeft "+this.deltaTLeft(0.0)+ " deltaTRight "+this.deltaTRight(0.0));
